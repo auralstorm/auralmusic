@@ -1,0 +1,20 @@
+{
+  "git": {
+    "commitMessage": "chore: release v${version}",
+    "pushRepo": "https://github.com/1769762790/auralmusic.git",
+    "tagName": "v${version}",
+    "requireCleanWorkingDir": true,
+    "requireBranch": ["main", "master"],
+    "requireUpstream": true,
+    "push": false
+  },
+  "github": {
+    "release": false
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "infile": "CHANGELOG.md",
+      "preset": "conventionalcommits"
+    }
+  }
+}
