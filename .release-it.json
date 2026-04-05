@@ -1,11 +1,11 @@
 {
   "git": {
     "commitMessage": "chore: release v${version}",
-    "pushRepo": "https://example.com/auralmusic.git",
+    "pushRepo": "https://github.com/1769762790/auralmusic.git",
     "tagName": "v${version}",
     "requireCleanWorkingDir": true,
-    "requireBranch": false,
-    "requireUpstream": false,
+    "requireBranch": ["main", "master"],
+    "requireUpstream": true,
     "push": false
   },
   "github": {
