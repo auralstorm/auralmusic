@@ -1,0 +1,4 @@
+.keep-alive-render {
+  /* 这个类名用于标记需要被 keep-alive 包裹的组件 */
+  width: 100%;
+}

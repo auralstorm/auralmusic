@@ -1,13 +1,13 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-sans: 'Geist Variable', sans-serif;
-  --font-mono: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -163,7 +163,7 @@
     @apply antialiased bg-background text-foreground;
     margin: 0;
     font-family: var(--font-sans);
-    overflow: hidden;
+    /* overflow: hidden; */
     transition:
       background-color 180ms ease,
       color 180ms ease,
@@ -214,7 +214,7 @@
 
 .player-scene-artwork-shell.is-dark-glow {
   box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-    /* 0 28px 68px rgba(0, 0, 0, 0.48),
+  /* 0 28px 68px rgba(0, 0, 0, 0.48),
     0 0 26px color-mix(in srgb, var(--player-artwork-glow) 26%, transparent),
     0 0 52px color-mix(in srgb, var(--player-artwork-glow) 14%, transparent); */
 }
@@ -257,13 +257,12 @@
   opacity: var(--artwork-pulse-opacity, 0);
   transform: scale(var(--artwork-pulse-scale, 1));
   filter: blur(var(--artwork-pulse-blur, 18px));
-  background:
-    radial-gradient(
-      circle at 50% 50%,
-      color-mix(in srgb, var(--player-artwork-glow) 28%, transparent) 0%,
-      color-mix(in srgb, var(--player-artwork-glow) 12%, transparent) 36%,
-      transparent 72%
-    );
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--player-artwork-glow) 28%, transparent) 0%,
+    color-mix(in srgb, var(--player-artwork-glow) 12%, transparent) 36%,
+    transparent 72%
+  );
   transition:
     opacity 160ms linear,
     transform 160ms linear,

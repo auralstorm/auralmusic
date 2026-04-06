@@ -20,8 +20,8 @@ export default defineConfig([
       '.vscode/**',
       '.husky/**',
       'release/**',
-      'build/**'
-    ]
+      'build/**',
+    ],
   },
 
   // 基础 JS 配置
@@ -30,80 +30,72 @@ export default defineConfig([
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
-      sourceType: 'module'
+      sourceType: 'module',
     },
     rules: {
-      'no-var': 'error'
-    }
+      'no-var': 'error',
+    },
   },
 
   // 主进程配置 (Electron Main Process)
   {
     files: ['src/main/**/*.{ts,js}'],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended
-    ],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       parser: tseslint.parser,
       parserOptions: {
-        project: './tsconfig.node.json'
+        project: './tsconfig.node.json',
       },
       globals: {
         ...globals.node,
         process: 'readonly',
         __dirname: 'readonly',
-        __filename: 'readonly'
-      }
+        __filename: 'readonly',
+      },
     },
     rules: {
       'no-var': 'error',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
-      'no-console': 'off' // Electron 主进程允许 console
-    }
+      'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
 
   // 预加载脚本配置 (Electron Preload)
   {
     files: ['src/preload/**/*.{ts,js}'],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended
-    ],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       parser: tseslint.parser,
       parserOptions: {
-        project: './tsconfig.node.json'
+        project: './tsconfig.node.json',
       },
       globals: {
         ...globals.node,
         ...globals.browser,
         process: 'readonly',
         __dirname: 'readonly',
-        __filename: 'readonly'
-      }
+        __filename: 'readonly',
+      },
     },
     rules: {
       'no-var': 'error',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn'
-    }
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
   },
 
   // 渲染进程配置 (Electron Renderer Process)
   {
     files: ['src/renderer/**/*.{ts,tsx,js,jsx}'],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended
-    ],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -111,22 +103,22 @@ export default defineConfig([
       parserOptions: {
         project: './tsconfig.app.json',
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
       globals: {
-        ...globals.browser
-      }
+        ...globals.browser,
+      },
     },
     plugins: {
-      'react': pluginReact,
+      react: pluginReact,
       'react-hooks': pluginReactHooks,
-      'react-refresh': pluginReactRefresh
+      'react-refresh': pluginReactRefresh,
     },
     settings: {
       react: {
-        version: 'detect'
-      }
+        version: 'detect',
+      },
     },
     rules: {
       // React 相关规则
@@ -141,45 +133,34 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'warn',
 
       // React Refresh 规则
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true }
-      ],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
       // TypeScript 规则
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
-      'no-unused-vars': 'off' // 由 TS 规则处理
-    }
+      'no-unused-vars': 'off', // 由 TS 规则处理
+    },
   },
 
   // 配置文件配置
   {
-    files: [
-      '*.config.{ts,js,mjs}',
-      'vite.config.*',
-      'electron.vite.config.*',
-      'eslint.config.*'
-    ],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended
-    ],
+    files: ['*.config.{ts,js,mjs}', 'vite.config.*', 'electron.vite.config.*', 'eslint.config.*'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       parser: tseslint.parser,
       globals: {
-        ...globals.node
-      }
+        ...globals.node,
+      },
     },
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
-      'no-console': 'off'
-    }
+      'no-console': 'off',
+    },
   },
 
   // Prettier 最后覆盖所有冲突规则
-  prettier
+  prettier,
 ])

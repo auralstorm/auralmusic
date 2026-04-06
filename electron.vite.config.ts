@@ -1,7 +1,7 @@
-import path from 'node:path';
-import { defineConfig } from 'electron-vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
+import path from 'node:path'
+import { defineConfig } from 'electron-vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   main: {
@@ -41,9 +41,14 @@ export default defineConfig({
     root: path.resolve(__dirname, 'src/renderer'),
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'src/renderer')
+        '@': path.resolve(__dirname, 'src/renderer'),
+        '@components': path.resolve(__dirname, 'src/renderer/components'),
+        '@pages': path.resolve(__dirname, 'src/renderer/pages'),
+        '@styles': path.resolve(__dirname, 'src/renderer/styles'),
+        '@lib': path.resolve(__dirname, 'src/renderer/lib'),
+        '@api': path.resolve(__dirname, 'src/renderer/api'),
       },
     },
     plugins: [react(), tailwindcss()],
   },
-});
+})

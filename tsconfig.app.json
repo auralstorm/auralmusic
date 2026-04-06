@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-     "baseUrl": ".",
+    "baseUrl": ".",
     "paths": {
-      "@renderer/*": ["src/renderer/*"],
+      "@/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"],
       "@preload/*": ["src/preload/*"],
-      "@/components/*": ["src/renderer/components/*"],
-      "@/pages/*": ["src/renderer/pages/*"],
-      "@/styles/*": ["src/renderer/styles/*"],
-      "@/lib/*": ["src/renderer/lib/*"]
+      "@components/*": ["src/renderer/components/*"],
+      "@pages/*": ["src/renderer/pages/*"],
+      "@styles/*": ["src/renderer/styles/*"],
+      "@lib/*": ["src/renderer/lib/*"],
+      "@api/*": ["src/renderer/api/*"]
     },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
