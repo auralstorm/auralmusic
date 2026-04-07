@@ -2,14 +2,14 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      // "@/*": ["src/renderer/*"],
-      // "@renderer/*": ["src/renderer/*"],
+      "@/*": ["src/renderer/*"],
+      "@renderer/*": ["src/renderer/*"],
       "@main/*": ["src/main/*"],
-      "@preload/*": ["src/preload/*"]
-      // "@/components/*": ["src/renderer/components/*"],
-      // "@/pages/*": ["src/renderer/pages/*"],
-      // "@/styles/*": ["src/renderer/styles/*"],
-      // "@lib": ["src/renderer/lib/*"]
+      "@preload/*": ["src/preload/*"],
+      "@components/*": ["src/renderer/components/*"],
+      "@pages/*": ["src/renderer/pages/*"],
+      "@styles/*": ["src/renderer/styles/*"],
+      "@lib/*": ["src/renderer/lib/*"]
     }
   },
   "files": [],
