@@ -2,11 +2,14 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: 'Inter Variable', sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -82,8 +85,16 @@
   --body-linear-start: #f8f5ef;
   --body-linear-mid: #efe9e2;
   --body-linear-end: #e8e2da;
-  --player-panel: color-mix(in srgb, var(--card) 86%, rgba(225, 219, 208, 0.88));
-  --player-panel-strong: color-mix(in srgb, var(--card) 92%, rgba(221, 214, 203, 0.94));
+  --player-panel: color-mix(
+    in srgb,
+    var(--card) 86%,
+    rgba(225, 219, 208, 0.88)
+  );
+  --player-panel-strong: color-mix(
+    in srgb,
+    var(--card) 92%,
+    rgba(221, 214, 203, 0.94)
+  );
   --player-line: rgba(20, 21, 27, 0.14);
   --player-foreground: #17181f;
   --player-muted: rgba(23, 24, 31, 0.78);
@@ -135,7 +146,11 @@
   --body-linear-mid: #09090b;
   --body-linear-end: #060607;
   --player-panel: color-mix(in srgb, var(--card) 92%, rgba(9, 9, 11, 0.08));
-  --player-panel-strong: color-mix(in srgb, var(--card) 97%, rgba(9, 9, 11, 0.12));
+  --player-panel-strong: color-mix(
+    in srgb,
+    var(--card) 97%,
+    rgba(9, 9, 11, 0.12)
+  );
   --player-line: color-mix(in srgb, var(--foreground) 10%, transparent);
   --player-foreground: #f8fafc;
   --player-muted: rgba(241, 245, 249, 0.7);
@@ -160,7 +175,7 @@
   }
 
   body {
-    @apply antialiased bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     margin: 0;
     font-family: var(--font-sans);
     /* overflow: hidden; */
