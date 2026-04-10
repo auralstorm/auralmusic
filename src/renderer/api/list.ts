@@ -15,6 +15,18 @@ export function getPlaylistDetail(id: number | string) {
   })
 }
 
+export interface CreatePlaylistParams {
+  name: string
+  privacy?: '10'
+  type?: 'NORMAL' | 'VIDEO' | 'SHARED'
+}
+
+export function createPlaylist(params: CreatePlaylistParams) {
+  return request.get('/playlist/create', {
+    params,
+  })
+}
+
 // 获取推荐歌单
 export function getRecommendPlayList(limit: number = 1) {
   return request.get('/personalized', {
@@ -71,9 +83,26 @@ export function getRecommendSongs() {
   return request.get('/recommend/songs')
 }
 
-export function getLikeList(uid: number | string) {
+export interface LikeListParams {
+  uid: number | string
+  timestamp?: number
+}
+
+export function getLikeList(params: LikeListParams) {
   return request.get('/likelist', {
-    params: { uid },
+    params,
+  })
+}
+
+export interface ToggleSongLikeParams {
+  id: number | string
+  uid: number | string
+  like: boolean
+}
+
+export function toggleSongLike(params: ToggleSongLikeParams) {
+  return request.get('/song/like', {
+    params,
   })
 }
 
@@ -119,12 +148,18 @@ export function getPersonalizedNewSong(limit?: number) {
  * @param offset
  * @returns
  */
-export function getPlaylistTrackAll(id: number, limit: number, offset: number) {
+export function getPlaylistTrackAll(
+  id: number,
+  limit: number,
+  offset: number,
+  timestamp?: number
+) {
   return request.get('/playlist/track/all', {
     params: {
       id,
       limit,
       offset,
+      timestamp,
     },
   })
 }

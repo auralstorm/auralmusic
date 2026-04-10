@@ -1,43 +1,54 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 
-import { Plus } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import {
   LIBRARY_TAB_OPTIONS,
+  PLAYLIST_FILTER_OPTIONS,
   type LibraryPageData,
   type LibraryTabValue,
-  type PlaylistFilterValue,
+  type PlaylistSourceValue,
 } from '../library.model'
 import LibraryAlbumPanel from './LibraryAlbumPanel'
 import LibraryArtistPanel from './LibraryArtistPanel'
 import LibraryCloudPanel from './LibraryCloudPanel'
 import LibraryMvPanel from './LibraryMvPanel'
 import LibraryPlaylistPanel from './LibraryPlaylistPanel'
-import LibraryRankingPanel from './LibraryRankingPanel'
 
 interface LibraryTabsSectionProps {
   data: LibraryPageData
   playlistLoading?: boolean
-  rankingLoading?: boolean
   onOpenPlaylist: (id: number) => void
   onOpenMv: (id: number) => void
-  playlistFilter: PlaylistFilterValue
-  onPlaylistFilterChange: (value: PlaylistFilterValue) => void
+  playlistSource: PlaylistSourceValue
+  onPlaylistSourceChange: (value: PlaylistSourceValue) => void
+  onOpenCreatePlaylist: () => void
 }
 
 const LibraryTabsSection = ({
   data,
   playlistLoading = false,
-  rankingLoading = false,
   onOpenPlaylist,
   onOpenMv,
-  playlistFilter: _playlistFilter,
-  onPlaylistFilterChange: _onPlaylistFilterChange,
+  playlistSource,
+  onPlaylistSourceChange,
+  onOpenCreatePlaylist,
 }: LibraryTabsSectionProps) => {
   const [activeTab, setActiveTab] = useState<LibraryTabValue>('playlists')
+
+  const currentPlaylistLabel =
+    PLAYLIST_FILTER_OPTIONS.find(option => option.value === playlistSource)
+      ?.label || '我的歌单'
 
   return (
     <section className='w-full space-y-6'>
@@ -47,9 +58,62 @@ const LibraryTabsSection = ({
           onValueChange={value => setActiveTab(value as LibraryTabValue)}
           className='w-full'
         >
-          <div className='flex w-full items-center justify-between gap-4'>
+          <div className='relative flex w-full items-center justify-between gap-4'>
             <TabsList variant='line' className='bg-transparent p-0'>
-              {LIBRARY_TAB_OPTIONS.map(option => (
+              <div
+                className={`relative inline-flex w-[150px] items-center rounded-[14px] px-4 py-2.5 text-base font-semibold transition-colors ${
+                  activeTab === 'playlists'
+                    ? 'text-neutral-950'
+                    : 'text-foreground/60 hover:text-foreground'
+                }`}
+              >
+                <button
+                  type='button'
+                  onClick={() => setActiveTab('playlists')}
+                  className='cursor-pointer'
+                >
+                  {currentPlaylistLabel}
+                </button>
+
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type='button'
+                      aria-label='切换歌单来源'
+                      className='ml-2 inline-flex size-5 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-200 hover:text-neutral-800'
+                    >
+                      <ChevronDown className='size-3.5' />
+                    </button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align='start' className='min-w-[140px]'>
+                    <DropdownMenuRadioGroup
+                      value={playlistSource}
+                      onValueChange={value => {
+                        setActiveTab('playlists')
+                        onPlaylistSourceChange(value as PlaylistSourceValue)
+                      }}
+                    >
+                      {PLAYLIST_FILTER_OPTIONS.map(option => (
+                        <DropdownMenuRadioItem
+                          key={option.value}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {activeTab === 'playlists' ? (
+                  <span className='bg-foreground absolute right-0 bottom-[-5px] left-0 h-0.5' />
+                ) : null}
+              </div>
+
+              {LIBRARY_TAB_OPTIONS.filter(
+                option => option.value !== 'playlists'
+              ).map(option => (
                 <TabsTrigger
                   key={option.value}
                   value={option.value}
@@ -60,14 +124,19 @@ const LibraryTabsSection = ({
               ))}
             </TabsList>
 
-            <Button
-              type='button'
-              variant='outline'
-              className='h-12 rounded-[16px] border-neutral-200 bg-white px-5 text-base font-semibold text-neutral-700 shadow-[0_10px_24px_rgba(15,23,42,0.04)]'
-            >
-              <Plus className='mr-2 size-4' />
-              新建歌单
-            </Button>
+            {activeTab === 'playlists' && playlistSource === 'my' ? (
+              <Button
+                type='button'
+                variant='outline'
+                onClick={onOpenCreatePlaylist}
+                className='absolute right-0 h-10 rounded-[16px] border-neutral-200 bg-white px-5 text-base font-semibold text-neutral-700 shadow-[0_10px_24px_rgba(15,23,42,0.04)]'
+              >
+                <Plus className='mr-2 size-4' />
+                新建歌单
+              </Button>
+            ) : (
+              <div />
+            )}
           </div>
 
           <TabsContent value='playlists' className='w-full pt-6'>
@@ -92,13 +161,6 @@ const LibraryTabsSection = ({
 
           <TabsContent value='cloud' className='w-full pt-6'>
             <LibraryCloudPanel active={activeTab === 'cloud'} />
-          </TabsContent>
-
-          <TabsContent value='rankings' className='w-full pt-6'>
-            <LibraryRankingPanel
-              rankings={data.rankings}
-              loading={rankingLoading}
-            />
           </TabsContent>
         </Tabs>
       </div>

@@ -1,22 +1,33 @@
 import { Heart, MoreHorizontal, Play } from 'lucide-react'
+
+import AvatarCover from '@/components/AvatarCover'
 import { Button } from '@/components/ui/button'
+
 import {
   formatAlbumPublishDate,
   type AlbumDetailHeroData,
 } from '../album-detail.model'
-import AvatarCover from '@/components/AvatarCover'
 
 interface AlbumDetailHeroProps {
   hero: AlbumDetailHeroData
+  isLiked: boolean
+  likeLoading: boolean
+  onToggleLiked: () => void
 }
 
-const AlbumDetailHero = ({ hero }: AlbumDetailHeroProps) => {
+const AlbumDetailHero = ({
+  hero,
+  isLiked,
+  likeLoading,
+  onToggleLiked,
+}: AlbumDetailHeroProps) => {
   return (
     <section className='grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start'>
       <div className='relative'>
         {hero.coverUrl ? (
           <AvatarCover
             url={hero.coverUrl}
+            isAutoHovered
             shadowClassName='top-5 left-5 scale[1]'
           />
         ) : (
@@ -34,7 +45,7 @@ const AlbumDetailHero = ({ hero }: AlbumDetailHeroProps) => {
           <div className='text-muted-foreground space-y-1 text-lg'>
             <p>{hero.artistNames}</p>
             <p>
-              发行于 {formatAlbumPublishDate(hero.publishTime)} ·{' '}
+              发行于 {formatAlbumPublishDate(hero.publishTime)} 路{' '}
               {hero.trackCount}
               首歌
             </p>
@@ -54,9 +65,27 @@ const AlbumDetailHero = ({ hero }: AlbumDetailHeroProps) => {
             <Play className='size-4 fill-current' />
             播放
           </Button>
-          <Heart className='size-7 cursor-pointer' />
 
-          <MoreHorizontal className='size-7 cursor-pointer' />
+          <Button
+            type='button'
+            size='lg'
+            disabled={likeLoading}
+            onClick={onToggleLiked}
+            variant={isLiked ? 'outline' : 'secondary'}
+            className='h-14 cursor-pointer rounded-full px-8 text-base font-semibold'
+          >
+            <Heart className={`size-4 ${isLiked ? 'fill-current' : ''}`} />
+            {isLiked ? '已收藏' : '收藏'}
+          </Button>
+
+          <Button
+            type='button'
+            size='icon-lg'
+            variant='secondary'
+            className='w-[100px] rounded-full py-7'
+          >
+            <MoreHorizontal className='size-5' />
+          </Button>
         </div>
       </div>
     </section>

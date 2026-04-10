@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-const DailySongSkeleton = () => {
+const LikedSongsSkeleton = () => {
   return (
     <section className='space-y-10 pb-10'>
       <div className='relative flex flex-col items-center justify-center px-6 pt-14 pb-10 text-center md:pt-20 md:pb-14'>
@@ -35,4 +35,4 @@ const DailySongSkeleton = () => {
   )
 }
 
-export default DailySongSkeleton
+export default LikedSongsSkeleton

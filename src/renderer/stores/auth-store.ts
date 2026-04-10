@@ -15,6 +15,7 @@ import {
   type AuthSession,
   type AuthUser,
 } from '../../shared/auth'
+import { useUserStore } from './user'
 
 type LoginStatus = 'anonymous' | 'authenticated' | 'expired'
 
@@ -197,6 +198,10 @@ export const useAuthStore = create<AuthStoreState>(set => ({
           loginStatus: 'authenticated',
           hasHydrated: true,
         })
+        useUserStore.getState().resetUserData()
+        void useUserStore.getState().fetchLikedSongs()
+        void useUserStore.getState().fetchLikedArtists()
+        void useUserStore.getState().fetchLikedAlbums()
       } catch (validationError) {
         console.error('auth hydration failed', validationError)
         await clearPersistedSession()
@@ -266,6 +271,10 @@ export const useAuthStore = create<AuthStoreState>(set => ({
         loginStatus: 'authenticated',
         errorMessage: null,
       })
+      useUserStore.getState().resetUserData()
+      void useUserStore.getState().fetchLikedSongs()
+      void useUserStore.getState().fetchLikedArtists()
+      void useUserStore.getState().fetchLikedAlbums()
     } catch (error) {
       console.error('login failed', error)
       set({
@@ -382,6 +391,10 @@ export const useAuthStore = create<AuthStoreState>(set => ({
             loginStatus: 'authenticated',
             errorMessage: null,
           })
+          useUserStore.getState().resetUserData()
+          void useUserStore.getState().fetchLikedSongs()
+          void useUserStore.getState().fetchLikedArtists()
+          void useUserStore.getState().fetchLikedAlbums()
           return
         }
 
@@ -405,6 +418,7 @@ export const useAuthStore = create<AuthStoreState>(set => ({
     try {
       await logoutRequest()
       await clearPersistedSession()
+      useUserStore.getState().resetUserData()
       set({
         user: null,
         session: null,

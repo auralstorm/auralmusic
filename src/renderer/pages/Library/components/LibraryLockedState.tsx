@@ -17,7 +17,7 @@ const LibraryLockedState = () => {
             乐库仅限登录用户可见
           </h1>
           <p className='mt-4 text-base leading-7 text-neutral-600'>
-            登录后可以浏览你的歌单、专辑、艺人、MV 和听歌排行。
+            登录后可以浏览你的歌单、专辑、艺人和 MV。
           </p>
 
           <Button

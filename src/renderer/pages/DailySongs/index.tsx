@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getRecommendSongs } from '@/api/list'
 import DailySongsHero from './components/DailySongsHero'
-import DailySongsList from './components/DailySongsList'
 import DailySongsSkeleton from './components/DailySongsSkeleton'
 import {
   EMPTY_DAILY_SONGS_STATE,
@@ -67,7 +66,6 @@ const DailySongs = () => {
           <div className='px-6 py-12 text-center text-sm'>{error}</div>
         </div>
       ) : (
-        // <DailySongsList songs={state.songs} />
         <TrackList data={state.songs} />
       )}
     </section>

@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
-import { getSubscribedArtists } from '@/api/artist'
-import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
-import ArtistCard from '@/pages/Artists/components/ArtistCard'
-import type { ArtistListItem } from '@/pages/Artists/artists.model'
-
-import { normalizeLibraryArtistPage } from '../library-artists.model'
 import ArtistCover from '@/components/ArtistCover'
+import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
+import type { ArtistListItem } from '@/pages/Artists/artists.model'
+import { useAuthStore } from '@/stores/auth-store'
+import { useUserStore } from '@/stores/user'
 import { useNavigate } from 'react-router-dom'
-import { isDef } from '@/lib/utils'
 
 interface LibraryArtistPanelProps {
   active: boolean
@@ -17,29 +14,24 @@ interface LibraryArtistPanelProps {
 const PAGE_SIZE = 25
 
 const LibraryArtistPanel = ({ active }: LibraryArtistPanelProps) => {
-  const [isInitialLoading, setIsInitialLoading] = useState(false)
-  const hasActivatedRef = useRef(false)
   const navigate = useNavigate()
+  const hasActivatedRef = useRef(false)
+  const userId = useAuthStore(state => state.user?.userId)
+  const likedArtists = useUserStore(state => state.likedArtists)
+  const likedArtistsLoaded = useUserStore(state => state.likedArtistsLoaded)
+  const likedArtistsLoading = useUserStore(state => state.likedArtistsLoading)
+  const fetchLikedArtists = useUserStore(state => state.fetchLikedArtists)
 
-  const fetchSubscribedArtists = useCallback(
+  const fetchArtistPage = useCallback(
     async (offset: number, limit: number) => {
-      try {
-        const response = await getSubscribedArtists({
-          limit,
-          offset,
-        })
+      const list = likedArtists.slice(offset, offset + limit)
 
-        return normalizeLibraryArtistPage(response.data, {
-          limit,
-          offset,
-        })
-      } finally {
-        if (offset === 0) {
-          setIsInitialLoading(false)
-        }
+      return {
+        list,
+        hasMore: offset + list.length < likedArtists.length,
       }
     },
-    []
+    [likedArtists]
   )
 
   const {
@@ -48,27 +40,42 @@ const LibraryArtistPanel = ({ active }: LibraryArtistPanelProps) => {
     hasMore,
     sentinelRef,
     reset,
-  } = useIntersectionLoadMore<ArtistListItem>(fetchSubscribedArtists, {
+  } = useIntersectionLoadMore<ArtistListItem>(fetchArtistPage, {
     limit: PAGE_SIZE,
   })
 
-  console.log('fetchSubscribedArtists', artists)
-
   useEffect(() => {
-    if (!active || hasActivatedRef.current) {
+    if (!active) {
       return
     }
 
-    hasActivatedRef.current = true
-    setIsInitialLoading(true)
+    if (!hasActivatedRef.current) {
+      hasActivatedRef.current = true
+    }
+
+    if (userId && !likedArtistsLoaded && !likedArtistsLoading) {
+      void fetchLikedArtists()
+    }
+
     reset()
-  }, [active, reset])
+  }, [
+    active,
+    fetchLikedArtists,
+    likedArtists,
+    likedArtistsLoaded,
+    likedArtistsLoading,
+    reset,
+    userId,
+  ])
 
   if (!active && artists.length === 0) {
     return null
   }
 
-  if (isInitialLoading && artists.length === 0) {
+  if (
+    (likedArtistsLoading || (!likedArtistsLoaded && !!userId)) &&
+    artists.length === 0
+  ) {
     return (
       <div className='border-border/60 bg-card/70 text-muted-foreground rounded-[28px] border px-6 py-10 text-center text-sm'>
         正在加载已收藏艺人...
@@ -76,7 +83,7 @@ const LibraryArtistPanel = ({ active }: LibraryArtistPanelProps) => {
     )
   }
 
-  if (!isInitialLoading && artists.length === 0) {
+  if (!likedArtistsLoading && likedArtistsLoaded && artists.length === 0) {
     return (
       <div className='border-border/60 bg-card/70 text-muted-foreground rounded-[28px] border px-6 py-10 text-center text-sm'>
         暂无艺人内容
@@ -84,21 +91,16 @@ const LibraryArtistPanel = ({ active }: LibraryArtistPanelProps) => {
     )
   }
 
-  const onOpenArtist = (artistId: number) => {
-    if (isDef(artistId)) {
-      navigate(`/artists/${artistId}`)
-    }
-  }
   return (
     <div className='space-y-6'>
       <div className='grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-8'>
         {artists.map(artist => (
           <ArtistCover
+            key={artist.id}
             artistCoverUrl={artist.picUrl}
             artistName={artist.name}
             rounded='full'
-            onClickCover={() => onOpenArtist(artist.id)}
-            onPlay={() => console.log('播放', artist)}
+            onClickCover={() => navigate(`/artists/${artist.id}`)}
           />
         ))}
       </div>
@@ -107,7 +109,7 @@ const LibraryArtistPanel = ({ active }: LibraryArtistPanelProps) => {
         ref={sentinelRef}
         className='text-muted-foreground flex h-16 items-center justify-center text-sm'
       >
-        {loading && !isInitialLoading ? '正在加载更多艺人...' : null}
+        {loading ? '正在加载更多艺人...' : null}
         {!loading && !hasMore && artists.length > 0 ? '没有更多艺人了' : null}
       </div>
     </div>

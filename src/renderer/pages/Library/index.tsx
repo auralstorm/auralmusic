@@ -1,28 +1,30 @@
-﻿import { startTransition, useCallback, useEffect, useState } from 'react'
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import {
-  geTopPlayList,
-  getPlaylistTrackAll,
-  getRecommendPlayList,
-  getTopList,
-  getTopListDetailById,
-} from '@/api/list'
-import { useAuthStore } from '@/stores/auth-store'
-import { userPlaylist } from '@/api/user'
+import { toast } from 'sonner'
 
+import { createPlaylist, getPlaylistTrackAll } from '@/api/list'
+import { userPlaylist } from '@/api/user'
+import { useAuthStore } from '@/stores/auth-store'
+
+import CreatePlaylistDialog from './components/CreatePlaylistDialog'
 import LibraryHero from './components/LibraryHero'
 import LibraryLockedState from './components/LibraryLockedState'
 import LibrarySkeleton from './components/LibrarySkeleton'
 import LibraryTabsSection from './components/LibraryTabsSection'
 import {
   EMPTY_LIBRARY_PAGE_DATA,
-  resolveLibraryLikedPlaylist,
-  normalizeLibraryPlaylists,
-  normalizeLibraryRankings,
   normalizeLibrarySongs,
+  normalizeLibraryUserPlaylists,
+  resolveLibraryLikedPlaylist,
   type LibraryPageData,
-  type PlaylistFilterValue,
+  type PlaylistSourceValue,
 } from './library.model'
 
 const Library = () => {
@@ -34,122 +36,108 @@ const Library = () => {
   const [data, setData] = useState<LibraryPageData>(EMPTY_LIBRARY_PAGE_DATA)
   const [isLoading, setIsLoading] = useState(true)
   const [playlistLoading, setPlaylistLoading] = useState(false)
-  const [rankingLoading, setRankingLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [playlistFilter, setPlaylistFilter] =
-    useState<PlaylistFilterValue>('recommend')
+  const [playlistSource, setPlaylistSource] =
+    useState<PlaylistSourceValue>('my')
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [createPlaylistSubmitting, setCreatePlaylistSubmitting] =
+    useState(false)
+
+  const hasLoadedBaseDataRef = useRef(false)
+  const previousPlaylistSourceRef = useRef<PlaylistSourceValue>('my')
 
   const isAuthenticated =
     hasHydrated && loginStatus === 'authenticated' && Boolean(user?.userId)
 
-  const loadPlaylists = useCallback(async (filter: PlaylistFilterValue) => {
-    setPlaylistLoading(true)
+  const fetchPlaylistCollection = useCallback(
+    async (uid: number, bustCache = false) => {
+      return userPlaylist({
+        uid,
+        timestamp: bustCache ? Date.now() : undefined,
+      })
+    },
+    []
+  )
 
-    try {
-      if (filter === 'recommend') {
-        const response = await getRecommendPlayList(12)
-        return normalizeLibraryPlaylists(response.data)
+  const refreshPlaylists = useCallback(
+    async (uid: number, source: PlaylistSourceValue, bustCache = false) => {
+      if (!uid) {
+        return
       }
 
-      const response = await geTopPlayList({
-        cat: '全部',
-        order: filter,
-        limit: 12,
-        offset: 0,
-      })
-
-      return normalizeLibraryPlaylists(response.data)
-    } catch (fetchError) {
-      console.error('library playlists fetch failed', fetchError)
-      return []
-    } finally {
-      setPlaylistLoading(false)
-    }
-  }, [])
-
-  const loadBaseData = useCallback(
-    async (filter: PlaylistFilterValue, uid: number) => {
-      setIsLoading(true)
-      setErrorMessage('')
-      setRankingLoading(true)
       setPlaylistLoading(true)
 
       try {
-        const likedSongsPromise = userPlaylist({ uid })
-          .then(async response => {
-            const likedPlaylist = resolveLibraryLikedPlaylist(response.data)
+        const response = await fetchPlaylistCollection(uid, bustCache)
+        const playlists = normalizeLibraryUserPlaylists(response.data, source)
 
-            if (!likedPlaylist?.id) {
-              return {
-                likedSongs: [],
-                likedSongCount: 0,
-                likedPlaylistCoverUrl: '',
-              }
-            }
+        setData(current => ({
+          ...current,
+          playlists,
+        }))
+      } catch (fetchError) {
+        console.error('library playlists fetch failed', fetchError)
+        toast.error('歌单列表加载失败，请稍后重试')
+      } finally {
+        setPlaylistLoading(false)
+      }
+    },
+    [fetchPlaylistCollection]
+  )
 
+  const loadBaseData = useCallback(
+    async (uid: number, source: PlaylistSourceValue) => {
+      setIsLoading(true)
+      setErrorMessage('')
+      setPlaylistLoading(true)
+
+      try {
+        const playlistResponse = await fetchPlaylistCollection(uid, true)
+
+        const likedPlaylist = resolveLibraryLikedPlaylist(playlistResponse.data)
+        const playlists = normalizeLibraryUserPlaylists(
+          playlistResponse.data,
+          source
+        )
+
+        let likedSongs = EMPTY_LIBRARY_PAGE_DATA.likedSongs
+        let likedSongCount = 0
+        let likedPlaylistCoverUrl = ''
+
+        if (likedPlaylist?.id) {
+          likedSongCount = likedPlaylist.trackCount
+          likedPlaylistCoverUrl = likedPlaylist.coverImgUrl
+
+          try {
             const detailResponse = await getPlaylistTrackAll(
               likedPlaylist.id,
               9,
               0
             )
-
-            return {
-              likedSongs: normalizeLibrarySongs(detailResponse.data),
-              likedSongCount: likedPlaylist.trackCount,
-              likedPlaylistCoverUrl: likedPlaylist.coverImgUrl,
-            }
-          })
-          .catch(fetchError => {
+            likedSongs = normalizeLibrarySongs(detailResponse.data)
+          } catch (fetchError) {
             console.error('library liked songs fetch failed', fetchError)
-            return {
-              likedSongs: [],
-              likedSongCount: 0,
-              likedPlaylistCoverUrl: '',
-            }
-          })
-
-        const playlistsPromise = loadPlaylists(filter)
-
-        const rankingsPromise = getTopList()
-          .then(async response => {
-            const topList = response.data?.list || []
-            const first = topList[0]
-
-            if (!first?.id) {
-              return []
-            }
-
-            const detailResponse = await getTopListDetailById(first.id)
-            return normalizeLibraryRankings(detailResponse.data)
-          })
-          .catch(fetchError => {
-            console.error('library rankings fetch failed', fetchError)
-            return []
-          })
-
-        const [likedSongsData, playlists, rankings] = await Promise.all([
-          likedSongsPromise,
-          playlistsPromise,
-          rankingsPromise,
-        ])
+          }
+        }
 
         setData({
-          likedSongs: likedSongsData.likedSongs,
-          likedSongCount: likedSongsData.likedSongCount,
-          likedPlaylistCoverUrl: likedSongsData.likedPlaylistCoverUrl,
+          likedSongs,
+          likedSongCount,
+          likedPlaylistCoverUrl,
           playlists,
-          rankings,
         })
+
+        previousPlaylistSourceRef.current = source
+        hasLoadedBaseDataRef.current = true
       } catch (fetchError) {
         console.error('library base data fetch failed', fetchError)
         setErrorMessage('乐库内容加载失败，请稍后重试')
       } finally {
         setIsLoading(false)
-        setRankingLoading(false)
         setPlaylistLoading(false)
       }
     },
-    [loadPlaylists]
+    [fetchPlaylistCollection]
   )
 
   useEffect(() => {
@@ -157,17 +145,34 @@ const Library = () => {
       setData(EMPTY_LIBRARY_PAGE_DATA)
       setIsLoading(false)
       setPlaylistLoading(false)
-      setRankingLoading(false)
       setErrorMessage('')
+      setCreateDialogOpen(false)
+      setCreatePlaylistSubmitting(false)
+      setPlaylistSource('my')
+      hasLoadedBaseDataRef.current = false
+      previousPlaylistSourceRef.current = 'my'
       return
     }
 
-    void loadBaseData(playlistFilter, user.userId)
-  }, [isAuthenticated, loadBaseData, playlistFilter, user?.userId])
+    void loadBaseData(user.userId, previousPlaylistSourceRef.current)
+  }, [isAuthenticated, loadBaseData, user?.userId])
 
-  const handlePlaylistFilterChange = (value: PlaylistFilterValue) => {
+  useEffect(() => {
+    if (!isAuthenticated || !user?.userId || !hasLoadedBaseDataRef.current) {
+      return
+    }
+
+    if (previousPlaylistSourceRef.current === playlistSource) {
+      return
+    }
+
+    previousPlaylistSourceRef.current = playlistSource
+    void refreshPlaylists(user.userId, playlistSource)
+  }, [isAuthenticated, playlistSource, refreshPlaylists, user?.userId])
+
+  const handlePlaylistSourceChange = (value: PlaylistSourceValue) => {
     startTransition(() => {
-      setPlaylistFilter(value)
+      setPlaylistSource(value)
     })
   }
 
@@ -183,6 +188,34 @@ const Library = () => {
   const handleOpenMv = (mvId: number) => {
     if (!mvId) return
     navigate(`/mv/${mvId}`)
+  }
+
+  const handleCreatePlaylist = async (payload: {
+    name: string
+    privacy?: '10'
+  }) => {
+    if (!user?.userId || createPlaylistSubmitting) {
+      return
+    }
+
+    setCreatePlaylistSubmitting(true)
+
+    try {
+      await createPlaylist(payload)
+
+      previousPlaylistSourceRef.current = 'my'
+      setPlaylistSource('my')
+      setCreateDialogOpen(false)
+      toast.success('歌单创建成功')
+
+      await refreshPlaylists(user.userId, 'my', true)
+    } catch (createError) {
+      console.error('playlist create failed', createError)
+      toast.error('歌单创建失败，请稍后重试')
+      throw createError
+    } finally {
+      setCreatePlaylistSubmitting(false)
+    }
   }
 
   if (!hasHydrated) {
@@ -215,14 +248,21 @@ const Library = () => {
           <LibraryTabsSection
             data={data}
             playlistLoading={playlistLoading}
-            rankingLoading={rankingLoading}
             onOpenPlaylist={handleOpenPlaylist}
             onOpenMv={handleOpenMv}
-            playlistFilter={playlistFilter}
-            onPlaylistFilterChange={handlePlaylistFilterChange}
+            playlistSource={playlistSource}
+            onPlaylistSourceChange={handlePlaylistSourceChange}
+            onOpenCreatePlaylist={() => setCreateDialogOpen(true)}
           />
         </div>
       ) : null}
+
+      <CreatePlaylistDialog
+        open={createDialogOpen}
+        submitting={createPlaylistSubmitting}
+        onOpenChange={setCreateDialogOpen}
+        onSubmit={handleCreatePlaylist}
+      />
     </section>
   )
 }

@@ -1,4 +1,4 @@
-﻿import type { LibraryPlaylistItem } from '../library.model'
+import type { LibraryPlaylistItem } from '../library.model'
 import LibraryPlaylistCard from './LibraryPlaylistCard'
 
 interface LibraryPlaylistPanelProps {
@@ -21,7 +21,7 @@ const LibraryPlaylistPanel = ({
   }
 
   return (
-    <div className='grid grid-cols-2 gap-6 md:grid-cols-4 xl:grid-cols-5'>
+    <div className='grid grid-cols-2 gap-6 md:grid-cols-5 xl:grid-cols-6'>
       {playlists.map(playlist => (
         <LibraryPlaylistCard
           key={playlist.id}

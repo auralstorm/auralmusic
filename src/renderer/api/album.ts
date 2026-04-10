@@ -3,6 +3,7 @@ import request from '@/lib/request'
 export interface SubscribedAlbumListParams {
   limit?: number
   offset?: number
+  timestamp?: number
 }
 
 export function getAlbumNewSet() {
@@ -32,3 +33,11 @@ export function getNewAlbums(params: NewAlbumParams) {
     params,
   })
 }
+
+export function toggleAlbumSubscription(params: { id: number; t: 0 | 1 }) {
+  return request.get('/album/sub', {
+    params,
+  })
+}
+
+export const followAlbum = toggleAlbumSubscription

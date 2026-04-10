@@ -3,6 +3,7 @@ export interface PlaylistDetailHeroData {
   name: string
   coverUrl: string
   creatorName: string
+  creatorUserId: number | null
   description: string
   updateTime?: number
   trackCount: number
@@ -24,6 +25,7 @@ export interface PlaylistDetailPageState {
 
 interface RawPlaylistCreator {
   nickname?: string
+  userId?: number
 }
 
 interface RawPlaylistDetail {
@@ -80,6 +82,7 @@ export function normalizePlaylistDetailHero(
     name: playlist.name || '未知歌单',
     coverUrl: playlist.coverImgUrl || '',
     creatorName: playlist.creator?.nickname || '未知用户',
+    creatorUserId: playlist.creator?.userId ?? null,
     description: playlist.description || '',
     updateTime: playlist.updateTime,
     trackCount: playlist.trackCount || 0,

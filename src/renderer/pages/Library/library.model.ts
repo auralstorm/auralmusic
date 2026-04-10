@@ -6,9 +6,8 @@ export type LibraryTabValue =
   | 'artists'
   | 'mvs'
   | 'cloud'
-  | 'rankings'
 
-export type PlaylistFilterValue = 'recommend' | 'hot' | 'new'
+export type PlaylistSourceValue = 'my' | 'subscribed'
 
 export interface LibrarySongItem {
   id: number
@@ -37,22 +36,11 @@ export interface LibraryMvItem {
   publishTime?: number
 }
 
-export interface LibraryRankingItem {
-  id: number
-  rank: number
-  name: string
-  artistNames: string
-  albumName: string
-  coverUrl: string
-  duration: number
-}
-
 export interface LibraryPageData {
   likedSongs: LibrarySongItem[]
   likedSongCount: number
   likedPlaylistCoverUrl: string
   playlists: LibraryPlaylistItem[]
-  rankings: LibraryRankingItem[]
 }
 
 export interface LibraryLikedPlaylistMeta {
@@ -67,7 +55,7 @@ export interface LibraryTabOption {
 }
 
 export interface PlaylistFilterOption {
-  value: PlaylistFilterValue
+  value: PlaylistSourceValue
   label: string
 }
 
@@ -95,6 +83,8 @@ interface RawPlaylistItem {
   picUrl?: string
   trackCount?: number
   playCount?: number
+  subscribed?: boolean
+  specialType?: number
   creator?: {
     nickname?: string
   }
@@ -120,14 +110,6 @@ interface RawMvItem {
   artists?: Array<{ name?: string }>
   playCount?: number
   publishTime?: number
-}
-
-interface RawRankingTrack {
-  id?: number
-  name?: string
-  dt?: number
-  al?: RawDailySongAlbum
-  ar?: RawDailySongArtist[]
 }
 
 interface RawLikeListResponse {
@@ -246,7 +228,9 @@ export function resolveLibraryLikedPlaylist(
     return null
   }
 
-  const playlist = (body as { playlist?: RawPlaylistItem[] }).playlist?.[0]
+  const playlist = (body as { playlist?: RawPlaylistItem[] }).playlist?.find(
+    item => item?.specialType === 5 || item?.name?.trim() === '我喜欢的音乐'
+  )
 
   if (!playlist?.id) {
     return null
@@ -309,6 +293,42 @@ export function normalizeLibraryPlaylists(
   })
 }
 
+export function normalizeLibraryUserPlaylists(
+  response: unknown,
+  source: PlaylistSourceValue
+): LibraryPlaylistItem[] {
+  return resolveArray<RawPlaylistItem>(response, ['playlist'])
+    .filter(playlist => {
+      if (!playlist?.id) {
+        return false
+      }
+
+      const isLikedPlaylist =
+        playlist.specialType === 5 || playlist.name?.trim() === '我喜欢的音乐'
+
+      if (isLikedPlaylist) {
+        return false
+      }
+
+      if (source === 'my') {
+        return playlist.subscribed !== true
+      }
+
+      return playlist.subscribed === true
+    })
+    .map(playlist => ({
+      id: playlist.id!,
+      name: playlist.name || '未知歌单',
+      coverUrl: playlist.coverImgUrl || playlist.picUrl || '',
+      subtitle:
+        playlist.copywriter?.trim() ||
+        playlist.creator?.nickname?.trim() ||
+        '网易云音乐推荐',
+      trackCount: playlist.trackCount || 0,
+      playCount: playlist.playCount || 0,
+    }))
+}
+
 export function normalizeLibraryAlbums(response: unknown): AlbumListItem[] {
   return resolveArray<RawAlbumItem>(response, ['albums']).flatMap(album => {
     if (!album?.id) {
@@ -353,64 +373,17 @@ export function normalizeLibraryMvs(response: unknown): LibraryMvItem[] {
   })
 }
 
-function resolveRankingTracks(response: unknown): RawRankingTrack[] {
-  const body = unwrapData(response as RawResponse<unknown>)
-
-  if (!body || typeof body !== 'object') {
-    return []
-  }
-
-  const playlist = (body as Record<string, unknown>).playlist
-  if (playlist && typeof playlist === 'object') {
-    const tracks = (playlist as Record<string, unknown>).tracks
-    if (Array.isArray(tracks)) {
-      return tracks as RawRankingTrack[]
-    }
-  }
-
-  const tracks = (body as Record<string, unknown>).tracks
-  if (Array.isArray(tracks)) {
-    return tracks as RawRankingTrack[]
-  }
-
-  return []
-}
-
-export function normalizeLibraryRankings(
-  response: unknown
-): LibraryRankingItem[] {
-  return resolveRankingTracks(response).flatMap((track, index) => {
-    if (!track?.id) {
-      return []
-    }
-
-    return [
-      {
-        id: track.id,
-        rank: index + 1,
-        name: track.name || '未知歌曲',
-        artistNames: formatArtistNames(track.ar),
-        albumName: track.al?.name || '未知专辑',
-        coverUrl: track.al?.picUrl || '',
-        duration: track.dt || 0,
-      },
-    ]
-  })
-}
-
 export const LIBRARY_TAB_OPTIONS: LibraryTabOption[] = [
   { value: 'playlists', label: '全部歌单' },
   { value: 'albums', label: '专辑' },
   { value: 'artists', label: '艺人' },
   { value: 'mvs', label: 'MV' },
   { value: 'cloud', label: '云盘' },
-  { value: 'rankings', label: '听歌排行' },
 ]
 
 export const PLAYLIST_FILTER_OPTIONS: PlaylistFilterOption[] = [
-  { value: 'recommend', label: '全部歌单' },
-  { value: 'hot', label: '热门歌单' },
-  { value: 'new', label: '最新歌单' },
+  { value: 'my', label: '我的歌单' },
+  { value: 'subscribed', label: '收藏的歌单' },
 ]
 
 export const EMPTY_LIBRARY_PAGE_DATA: LibraryPageData = {
@@ -418,5 +391,4 @@ export const EMPTY_LIBRARY_PAGE_DATA: LibraryPageData = {
   likedSongCount: 0,
   likedPlaylistCoverUrl: '',
   playlists: [],
-  rankings: [],
 }

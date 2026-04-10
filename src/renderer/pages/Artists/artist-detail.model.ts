@@ -39,6 +39,12 @@ export interface ArtistMvItem {
   playCount?: number
 }
 
+export interface ArtistSimilarItem {
+  id: number
+  name: string
+  picUrl: string
+}
+
 export interface ArtistDescSection {
   title: string
   content: string
@@ -58,6 +64,55 @@ export interface ArtistDetailPageState {
   profile: ArtistDetailProfile | null
   topSongs: ArtistTopSongItem[]
   description: ArtistDescPayload
+  similarArtists: ArtistSimilarItem[]
+}
+
+export interface ArtistDetailResponse<T> {
+  data?: T | { data?: T }
+}
+
+interface RawSimilarArtist {
+  id?: number
+  name?: string
+  picUrl?: string
+  img1v1Url?: string
+}
+
+interface RawSimilarArtistsBody {
+  artists?: RawSimilarArtist[]
+  data?: RawSimilarArtistsBody
+}
+
+function unwrapSimilarArtistsBody(
+  response?: RawSimilarArtistsBody | null
+): RawSimilarArtistsBody {
+  if (!response) {
+    return {}
+  }
+
+  if (
+    Array.isArray(response.artists) ||
+    !response.data ||
+    typeof response.data !== 'object'
+  ) {
+    return response
+  }
+
+  return unwrapSimilarArtistsBody(response.data)
+}
+
+export function normalizeSimilarArtists(
+  response?: RawSimilarArtistsBody | null
+): ArtistSimilarItem[] {
+  const payload = unwrapSimilarArtistsBody(response)
+
+  return (payload?.artists || [])
+    .map(artist => ({
+      id: artist.id || 0,
+      name: artist.name || '未知歌手',
+      picUrl: artist.picUrl || artist.img1v1Url || '',
+    }))
+    .filter(artist => artist.id > 0)
 }
 
 export function formatArtistDuration(duration: number) {
@@ -82,4 +137,14 @@ export function formatArtistPublishDate(timestamp?: number | string) {
 export const EMPTY_ARTIST_DESCRIPTION: ArtistDescPayload = {
   summary: '',
   sections: [],
+}
+
+export function toArtistListItem(profile: ArtistDetailProfile) {
+  return {
+    id: profile.id,
+    name: profile.name,
+    picUrl: profile.coverUrl,
+    albumSize: profile.albumSize,
+    musicSize: profile.musicSize,
+  }
 }

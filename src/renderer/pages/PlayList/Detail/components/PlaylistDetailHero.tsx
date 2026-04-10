@@ -1,21 +1,31 @@
 import { Heart, MoreHorizontal, Play } from 'lucide-react'
+
+import AvatarCover from '@/components/AvatarCover'
 import { Button } from '@/components/ui/button'
+
 import {
   formatPlaylistUpdateDate,
   type PlaylistDetailHeroData,
 } from '../playlist-detail.model'
-import AvatarCover from '@/components/AvatarCover'
 
 interface PlaylistDetailHeroProps {
   hero: PlaylistDetailHeroData
+  showFavoriteButton: boolean
 }
 
-const PlaylistDetailHero = ({ hero }: PlaylistDetailHeroProps) => {
+const PlaylistDetailHero = ({
+  hero,
+  showFavoriteButton,
+}: PlaylistDetailHeroProps) => {
   return (
     <section className='grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start'>
       <div className='relative'>
         {hero.coverUrl ? (
-          <AvatarCover shadowClassName='top-4 left-3' url={hero.coverUrl} />
+          <AvatarCover
+            shadowClassName='top-4 left-3'
+            isAutoHovered
+            url={hero.coverUrl}
+          />
         ) : (
           <div className='from-muted to-muted/70 text-muted-foreground flex size-full items-center justify-center bg-gradient-to-br text-5xl font-black tracking-[-0.08em]'>
             PL
@@ -32,8 +42,7 @@ const PlaylistDetailHero = ({ hero }: PlaylistDetailHeroProps) => {
             <p>Playlist by {hero.creatorName}</p>
             <p>
               最近更新于 {formatPlaylistUpdateDate(hero.updateTime)} ·{' '}
-              {hero.trackCount}
-              首歌
+              {hero.trackCount} 首歌
             </p>
           </div>
           <p className='text-muted-foreground line-clamp-3 max-w-[70ch] text-[15px] leading-8'>
@@ -50,7 +59,10 @@ const PlaylistDetailHero = ({ hero }: PlaylistDetailHeroProps) => {
             <Play className='size-4 fill-current' />
             播放
           </Button>
-          <Heart className='size-7 cursor-pointer' />
+
+          {showFavoriteButton ? (
+            <Heart className='size-7 cursor-pointer' />
+          ) : null}
 
           <MoreHorizontal className='size-7 cursor-pointer' />
         </div>

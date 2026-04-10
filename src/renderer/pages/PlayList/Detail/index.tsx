@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getPlaylistDetail, getPlaylistTracks } from '@/api/list'
+import { useAuthStore } from '@/stores/auth-store'
 import PlaylistDetailHero from './components/PlaylistDetailHero'
 import PlaylistDetailSkeleton from './components/PlaylistDetailSkeleton'
 import {
@@ -14,6 +15,7 @@ import TrackList from '@/components/TrackList'
 const PlaylistDetail = () => {
   const { id } = useParams()
   const playlistId = Number(id)
+  const currentUserId = useAuthStore(state => state.user?.userId)
   const [state, setState] = useState<PlaylistDetailPageState>(
     EMPTY_PLAYLIST_DETAIL_STATE
   )
@@ -93,9 +95,15 @@ const PlaylistDetail = () => {
     )
   }
 
+  const isOwnPlaylist =
+    Boolean(currentUserId) && state.hero.creatorUserId === currentUserId
+
   return (
     <section className='space-y-10 pb-8'>
-      <PlaylistDetailHero hero={state.hero} />
+      <PlaylistDetailHero
+        hero={state.hero}
+        showFavoriteButton={!isOwnPlaylist}
+      />
       <TrackList data={state.tracks} />
     </section>
   )

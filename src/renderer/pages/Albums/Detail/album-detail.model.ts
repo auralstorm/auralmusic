@@ -1,3 +1,5 @@
+import type { AlbumListItem } from '../albums.model'
+
 export interface AlbumDetailHeroData {
   id: number
   name: string
@@ -104,7 +106,6 @@ export function normalizeAlbumDetailHero(
 export function normalizeAlbumTracks(
   payload: RawAlbumTracksResponse | null | undefined
 ): AlbumTrackItem[] {
-  console.log('normalizeAlbumTracks', payload)
   return (payload?.songs || []).map(track => ({
     id: track.id,
     name: track.name || '未知歌曲',
@@ -136,4 +137,22 @@ export function formatAlbumTrackDuration(duration: number) {
   const seconds = totalSeconds % 60
 
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+export function toAlbumListItem(hero: AlbumDetailHeroData): AlbumListItem {
+  const artistNames = hero.artistNames
+    .split('/')
+    .map(name => name.trim())
+    .filter(Boolean)
+
+  const artists = artistNames.map(name => ({ name }))
+
+  return {
+    id: hero.id,
+    name: hero.name,
+    picUrl: hero.coverUrl,
+    blurPicUrl: hero.coverUrl,
+    artists: artists.length ? artists : undefined,
+    artist: artists[0],
+  }
 }

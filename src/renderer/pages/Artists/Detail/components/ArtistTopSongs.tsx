@@ -1,9 +1,7 @@
 import { Heart } from 'lucide-react'
-import {
-  formatArtistDuration,
-  type ArtistTopSongItem,
-} from '@/pages/Artists/artist-detail.model'
+import { type ArtistTopSongItem } from '@/pages/Artists/artist-detail.model'
 import { useMemo, useState } from 'react'
+import TrackListItem from '@/components/TrackList/TrackListItem'
 
 interface ArtistTopSongsProps {
   songs: ArtistTopSongItem[]
@@ -20,9 +18,6 @@ const ArtistTopSongs = ({ songs }: ArtistTopSongsProps) => {
     }
     return songs.slice(0, 12)
   }, [songs, isMore])
-
-  console.log('list', list)
-
   return (
     <section className='space-y-5'>
       <h2 className='text-foreground text-3xl font-bold tracking-tight'>
@@ -36,44 +31,36 @@ const ArtistTopSongs = ({ songs }: ArtistTopSongsProps) => {
         ) : (
           <div>
             <div className='grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4'>
-              {list.map((song, index) => (
-                <div
-                  key={song.id}
-                  className='hover:bg-primary/5 flex items-center justify-between gap-4 rounded-[15px] px-5 py-4 transition-colors odd:bg-white/[0.02]'
-                >
-                  <div className='flex'>
-                    <img
-                      src={song.coverUrl}
-                      alt={song.name}
-                      className='size-14 rounded-2xl object-cover'
-                      loading='lazy'
-                      decoding='async'
-                      draggable={false}
-                    />
-                    <div className='ml-4 flex min-w-0 flex-col justify-center'>
-                      <div className='truncate text-lg font-semibold'>
-                        {song.name}
-                      </div>
-                      <div className='text-muted-foreground truncate text-sm'>
-                        {(song.artists || [])
-                          .map(artist => artist.name)
-                          .join(' / ') || ''}
-                      </div>
-                    </div>
-                  </div>
-                  {/* <div className='min-w-0'>
-                  <div className='truncate text-base font-medium'>
-                    {song.albumName || ''}
-                  </div>
-                  <div className='text-muted-foreground truncate text-sm'>
-                    {song.subtitle || ''}
-                  </div>
-                </div> */}
-                  <div className='flex items-center justify-end gap-3 text-sm'>
-                    <Heart className='text-foreground/70 size-5' />
-                    {/* <span>{formatArtistDuration(song.duration)}</span> */}
-                  </div>
-                </div>
+              {list.map(song => (
+                // <div
+                //   key={song.id}
+                //   className='hover:bg-primary/5 flex items-center justify-between gap-4 rounded-[15px] px-5 py-4 transition-colors odd:bg-white/[0.02]'
+                // >
+                //   <div className='flex min-w-0 flex-1 items-center'>
+                //     <img
+                //       src={song.coverUrl}
+                //       alt={song.name}
+                //       className='size-14 shrink-0 rounded-2xl object-cover'
+                //       loading='lazy'
+                //       decoding='async'
+                //       draggable={false}
+                //     />
+                //     <div className='ml-4 flex min-w-0 flex-col justify-center'>
+                //       <div className='truncate text-lg font-semibold'>
+                //         {song.name}
+                //       </div>
+                //       <div className='text-muted-foreground truncate text-sm'>
+                //         {(song.artists || [])
+                //           .map(artist => artist.name)
+                //           .join(' / ') || ''}
+                //       </div>
+                //     </div>
+                //   </div>
+                //   <div className='flex shrink-0 items-center justify-end gap-3 text-sm'>
+                //     <Heart className='text-foreground/70 size-5' />
+                //   </div>
+                // </div>
+                <TrackListItem item={song} type='hot' />
               ))}
             </div>
             {songs.length > 12 && (

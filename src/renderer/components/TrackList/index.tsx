@@ -2,9 +2,10 @@ import TrackListItem, { songProps } from './TrackListItem'
 
 interface TrackListProps {
   data: songProps[]
+  onLikeChangeSuccess?: (songId: number, nextLiked: boolean) => void
 }
 
-const TrackList = ({ data = [] }: TrackListProps) => {
+const TrackList = ({ data = [], onLikeChangeSuccess }: TrackListProps) => {
   console.log(data)
 
   return (
@@ -12,7 +13,13 @@ const TrackList = ({ data = [] }: TrackListProps) => {
       {data?.length > 0 ? (
         <div>
           {data?.map(item => {
-            return <TrackListItem key={item.id} item={item} />
+            return (
+              <TrackListItem
+                key={item.id}
+                item={item}
+                onLikeChangeSuccess={onLikeChangeSuccess}
+              />
+            )
           })}
         </div>
       ) : (

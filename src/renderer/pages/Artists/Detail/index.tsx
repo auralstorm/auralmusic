@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import {
+  followArtist,
   getArtistAlbums,
   getArtistDesc,
   getArtistDetail,
   getArtistMvs,
   getArtistTopSongs,
+  getSimilarArtists,
 } from '@/api/artist'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
+import { useAuthStore } from '@/stores/auth-store'
+import { useUserStore } from '@/stores/user'
 import ArtistDetailSkeleton from './components/ArtistDetailSkeleton'
 import ArtistHero from './components/ArtistHero'
 import ArtistLatestRelease from './components/ArtistLatestRelease'
@@ -15,18 +20,22 @@ import ArtistMediaTabs from './components/ArtistMediaTabs'
 import ArtistTopSongs from './components/ArtistTopSongs'
 import {
   EMPTY_ARTIST_DESCRIPTION,
+  normalizeSimilarArtists,
+  toArtistListItem,
   type ArtistAlbumItem,
   type ArtistDescPayload,
   type ArtistDetailPageState,
   type ArtistDetailProfile,
   type ArtistMvItem,
   type ArtistTopSongItem,
+  type ArtistDetailResponse,
 } from '../artist-detail.model'
 
 const INITIAL_STATE: ArtistDetailPageState = {
   profile: null,
   topSongs: [],
   description: EMPTY_ARTIST_DESCRIPTION,
+  similarArtists: [],
 }
 
 const PAGE_SIZE = 12
@@ -52,10 +61,6 @@ interface RawIdentify {
 interface RawArtistDetailPayload {
   artist?: RawArtistProfile
   identify?: RawIdentify
-}
-
-interface RawArtistResponse<T> {
-  data?: T | { data?: T }
 }
 
 interface RawSongArtist {
@@ -109,7 +114,7 @@ interface RawArtistDescResponse {
 }
 
 function unwrapPayload<T>(
-  response: RawArtistResponse<T> | null | undefined
+  response: ArtistDetailResponse<T> | null | undefined
 ): T | null {
   if (!response?.data) {
     return null
@@ -127,7 +132,7 @@ function unwrapPayload<T>(
 }
 
 function normalizeArtistProfile(
-  response: RawArtistResponse<RawArtistDetailPayload>
+  response: ArtistDetailResponse<RawArtistDetailPayload>
 ): ArtistDetailProfile | null {
   const payload = unwrapPayload(response) || {}
   const artist = payload.artist || {}
@@ -153,7 +158,7 @@ function normalizeArtistProfile(
 }
 
 function normalizeTopSongs(
-  response: RawArtistResponse<{ songs?: RawTopSong[] }>
+  response: ArtistDetailResponse<{ songs?: RawTopSong[] }>
 ): ArtistTopSongItem[] {
   const payload = unwrapPayload(response)
   return (payload?.songs || []).map(song => ({
@@ -171,7 +176,7 @@ function normalizeTopSongs(
 }
 
 function normalizeAlbums(
-  response: RawArtistResponse<{
+  response: ArtistDetailResponse<{
     hotAlbums?: RawArtistAlbum[]
     albums?: RawArtistAlbum[]
   }>
@@ -187,7 +192,7 @@ function normalizeAlbums(
 }
 
 function normalizeMvs(
-  response: RawArtistResponse<{ mvs?: RawArtistMv[] }>
+  response: ArtistDetailResponse<{ mvs?: RawArtistMv[] }>
 ): ArtistMvItem[] {
   const payload = unwrapPayload(response)
   return (payload?.mvs || []).map(mv => ({
@@ -200,7 +205,7 @@ function normalizeMvs(
 }
 
 function normalizeDescription(
-  response: RawArtistResponse<RawArtistDescResponse>
+  response: ArtistDetailResponse<RawArtistDescResponse>
 ): ArtistDescPayload {
   const payload = unwrapPayload(response) || {}
   const briefDesc = (payload.briefDesc || '').trim()
@@ -235,14 +240,32 @@ const ArtistDetail = () => {
   const [state, setState] = useState<ArtistDetailPageState>(INITIAL_STATE)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [similarArtistsLoading, setSimilarArtistsLoading] = useState(true)
+  const userId = useAuthStore(state => state.user?.userId)
+  const hasHydrated = useAuthStore(state => state.hasHydrated)
+  const openLoginDialog = useAuthStore(state => state.openLoginDialog)
+  const likedArtistsLoaded = useUserStore(state => state.likedArtistsLoaded)
+  const fetchLikedArtists = useUserStore(state => state.fetchLikedArtists)
+  const toggleFollowed = useUserStore(state => state.toggleFollowed)
+  const isFollowed = useUserStore(state =>
+    artistId ? state.likedArtistIds.has(artistId) : false
+  )
+  const [followLoading, setFollowLoading] = useState(false)
   const navigate = useNavigate()
+
   const navigateToAlbumDetail = (albumId: number) => {
     if (!albumId) return
     navigate(`/albums/${albumId}`)
   }
+
   const navigateToMvDetail = (mvId: number) => {
     if (!mvId) return
     navigate(`/mv/${mvId}`)
+  }
+
+  const navigateToArtistDetail = (nextArtistId: number) => {
+    if (!nextArtistId) return
+    navigate(`/artists/${nextArtistId}`)
   }
 
   const fetchAlbumsPage = useCallback(
@@ -311,11 +334,39 @@ const ArtistDetail = () => {
   useEffect(() => {
     if (!artistId) {
       setLoading(false)
+      setSimilarArtistsLoading(false)
       setError('无效的歌手 ID')
       return
     }
 
     let isActive = true
+
+    const fetchSimilarArtists = async () => {
+      setSimilarArtistsLoading(true)
+
+      try {
+        const response = await getSimilarArtists({ id: artistId })
+
+        if (!isActive) {
+          return
+        }
+
+        setState(previous => ({
+          ...previous,
+          similarArtists: normalizeSimilarArtists(response.data),
+        }))
+      } catch (fetchError) {
+        if (!isActive) {
+          return
+        }
+
+        console.error('similar artists fetch failed', fetchError)
+      } finally {
+        if (isActive) {
+          setSimilarArtistsLoading(false)
+        }
+      }
+    }
 
     const fetchArtistData = async () => {
       setLoading(true)
@@ -334,11 +385,12 @@ const ArtistDetail = () => {
           return
         }
 
-        setState({
+        setState(previous => ({
+          ...previous,
           profile: normalizeArtistProfile(detailResponse),
           topSongs: normalizeTopSongs(topSongsResponse),
           description: normalizeDescription(descResponse),
-        })
+        }))
       } catch (fetchError) {
         if (!isActive) {
           return
@@ -353,12 +405,21 @@ const ArtistDetail = () => {
       }
     }
 
+    void fetchSimilarArtists()
     void fetchArtistData()
 
     return () => {
       isActive = false
     }
   }, [artistId])
+
+  useEffect(() => {
+    if (!hasHydrated || !userId || likedArtistsLoaded) {
+      return
+    }
+
+    void fetchLikedArtists()
+  }, [fetchLikedArtists, hasHydrated, likedArtistsLoaded, userId])
 
   const latestRelease = useMemo(
     () => ({
@@ -367,6 +428,33 @@ const ArtistDetail = () => {
     }),
     [albums, mvs]
   )
+
+  const handleToggleFollowedArtist = async () => {
+    if (!hasHydrated || !userId) {
+      openLoginDialog('email')
+      return
+    }
+
+    if (!state.profile || followLoading) {
+      return
+    }
+
+    const nextFollowed = !isFollowed
+
+    try {
+      setFollowLoading(true)
+      await followArtist({ id: artistId, t: nextFollowed ? 1 : 0 })
+      toggleFollowed(artistId, nextFollowed, toArtistListItem(state.profile))
+      void fetchLikedArtists()
+    } catch (fetchError) {
+      console.error('artist subscription toggle failed', fetchError)
+      toast.error(
+        nextFollowed ? '关注歌手失败，请稍后重试' : '取消关注失败，请稍后重试'
+      )
+    } finally {
+      setFollowLoading(false)
+    }
+  }
 
   if (loading && !state.profile) {
     return <ArtistDetailSkeleton />
@@ -397,6 +485,9 @@ const ArtistDetail = () => {
       <ArtistHero
         profile={state.profile}
         summary={getHeroSummary(state.description)}
+        isFollowed={isFollowed}
+        followLoading={followLoading}
+        onToggleFollowedArtist={handleToggleFollowedArtist}
       />
       <ArtistLatestRelease
         latestRelease={latestRelease}
@@ -409,14 +500,17 @@ const ArtistDetail = () => {
       <ArtistMediaTabs
         albums={albums}
         mvs={mvs}
+        similarArtists={state.similarArtists}
         albumLoading={albumsLoading}
         mvLoading={mvsLoading}
+        similarArtistsLoading={similarArtistsLoading}
         albumHasMore={albumHasMore}
         mvHasMore={mvHasMore}
         albumSentinelRef={albumSentinelRef}
         mvSentinelRef={mvSentinelRef}
         onToAlbumDetail={navigateToAlbumDetail}
         onToMvDetail={navigateToMvDetail}
+        onToArtistDetail={navigateToArtistDetail}
       />
     </section>
   )

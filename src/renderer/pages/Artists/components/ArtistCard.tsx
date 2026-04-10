@@ -25,7 +25,7 @@ const ArtistCard = ({ artist }: ArtistCardProps) => {
           <div className='pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(17,24,39,0.04))]' />
         </div>
         <div className='mt-4'>
-          <h3 className='text-foreground truncate text-[clamp(1.1rem,1.4vw,1.55rem)] font-bold tracking-tight'>
+          <h3 className='text-foreground truncate font-bold tracking-tight'>
             {artist.name}
           </h3>
         </div>

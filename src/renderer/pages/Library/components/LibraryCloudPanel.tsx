@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getUserCloud } from '@/api/cloud'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
-import DailySongRow from '@/pages/DailySongs/components/DailySongRow'
 import type { DailySongRowItem } from '@/pages/DailySongs/daily-songs.model'
 
 import { normalizeLibraryCloudPage } from '../library-cloud.model'
+import TrackList from '@/components/TrackList'
 
 interface LibraryCloudPanelProps {
   active: boolean
@@ -78,9 +78,7 @@ const LibraryCloudPanel = ({ active }: LibraryCloudPanelProps) => {
   return (
     <div className='space-y-6'>
       <div className='border-border/40 bg-background/70 overflow-hidden rounded-[24px] border'>
-        {songs.map(song => (
-          <DailySongRow key={song.id} song={song} />
-        ))}
+        <TrackList data={songs} />
       </div>
 
       <div

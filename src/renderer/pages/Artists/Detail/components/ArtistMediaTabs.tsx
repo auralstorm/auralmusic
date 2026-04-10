@@ -1,23 +1,28 @@
 import type { Ref } from 'react'
 import { Play } from 'lucide-react'
+import ArtistCover from '@/components/ArtistCover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   formatArtistPublishDate,
   type ArtistAlbumItem,
   type ArtistMvItem,
+  type ArtistSimilarItem,
 } from '@/pages/Artists/artist-detail.model'
 
 interface ArtistMediaTabsProps {
   albums: ArtistAlbumItem[]
   mvs: ArtistMvItem[]
+  similarArtists: ArtistSimilarItem[]
   albumLoading?: boolean
   mvLoading?: boolean
+  similarArtistsLoading?: boolean
   albumHasMore?: boolean
   mvHasMore?: boolean
   albumSentinelRef: Ref<HTMLDivElement>
   mvSentinelRef: Ref<HTMLDivElement>
   onToAlbumDetail: (id: number) => void
   onToMvDetail: (id: number) => void
+  onToArtistDetail: (id: number) => void
 }
 
 function formatPlayCount(playCount?: number) {
@@ -28,14 +33,17 @@ function formatPlayCount(playCount?: number) {
 const ArtistMediaTabs = ({
   albums,
   mvs,
+  similarArtists,
   albumLoading = false,
   mvLoading = false,
+  similarArtistsLoading = false,
   albumHasMore = false,
   mvHasMore = false,
   albumSentinelRef,
   mvSentinelRef,
   onToAlbumDetail,
   onToMvDetail,
+  onToArtistDetail,
 }: ArtistMediaTabsProps) => {
   return (
     <section className='space-y-5'>
@@ -56,6 +64,12 @@ const ArtistMediaTabs = ({
               className='data-active:bg-background rounded-full px-4 text-2xl font-bold data-active:shadow-[0_10px_26px_rgba(15,23,42,0.08)]'
             >
               MV
+            </TabsTrigger>
+            <TabsTrigger
+              value='similar-artists'
+              className='data-active:bg-background rounded-full px-4 text-2xl font-bold data-active:shadow-[0_10px_26px_rgba(15,23,42,0.08)]'
+            >
+              相似歌手
             </TabsTrigger>
           </TabsList>
         </div>
@@ -160,6 +174,34 @@ const ArtistMediaTabs = ({
               </div>
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value='similar-artists' className='space-y-6'>
+          {similarArtistsLoading ? (
+            <div className='border-border/60 bg-card/68 text-muted-foreground rounded-[30px] border px-6 py-10 text-sm'>
+              正在加载相似歌手...
+            </div>
+          ) : null}
+
+          {!similarArtistsLoading && similarArtists.length === 0 ? (
+            <div className='border-border/60 bg-card/68 text-muted-foreground rounded-[30px] border px-6 py-10 text-sm'>
+              暂无相似歌手
+            </div>
+          ) : null}
+
+          {!similarArtistsLoading && similarArtists.length > 0 ? (
+            <div className='grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8'>
+              {similarArtists.map(artist => (
+                <ArtistCover
+                  key={artist.id}
+                  artistCoverUrl={artist.picUrl}
+                  artistName={artist.name}
+                  rounded='full'
+                  onClickCover={() => onToArtistDetail(artist.id)}
+                />
+              ))}
+            </div>
+          ) : null}
         </TabsContent>
       </Tabs>
     </section>

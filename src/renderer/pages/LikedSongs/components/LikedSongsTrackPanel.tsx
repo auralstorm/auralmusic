@@ -1,30 +1,72 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import TrackList from '@/components/TrackList'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getPlaylistTrackAll } from '@/api/list'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
+import { useUserStore } from '@/stores/user'
+import { filterLikedSongsListItems } from '../../../../shared/liked-song-visibility'
 
 import {
   normalizeLikedSongsTrackPage,
   type LikedSongsPlaylistMeta,
 } from '../liked-songs.model'
-import TrackList from '@/components/TrackList'
 
 interface LikedSongsTrackPanelProps {
   playlist: LikedSongsPlaylistMeta
+  refreshKey: string
 }
 
 const PAGE_SIZE = 50
 
-const LikedSongsTrackPanel = ({ playlist }: LikedSongsTrackPanelProps) => {
+const LikedSongsTrackSkeleton = () => {
+  return (
+    <div className='mx-auto px-4 pb-10 md:px-6'>
+      <div className='border-border/60 bg-card/75 overflow-hidden rounded-[28px] border shadow-[0_18px_50px_rgba(15,23,42,0.04)]'>
+        {Array.from({ length: 10 }).map((_, index) => (
+          <div
+            key={index}
+            className='grid grid-cols-[minmax(0,1fr)_72px] items-center gap-4 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_72px] md:px-6'
+          >
+            <div className='flex min-w-0 items-center gap-4'>
+              <Skeleton className='size-12 rounded-[14px]' />
+              <div className='min-w-0 flex-1 space-y-2'>
+                <Skeleton className='h-4 w-40 rounded-full' />
+                <Skeleton className='h-3 w-28 rounded-full' />
+                <Skeleton className='h-3 w-24 rounded-full md:hidden' />
+              </div>
+            </div>
+            <Skeleton className='hidden h-4 w-32 rounded-full md:block' />
+            <Skeleton className='ml-auto h-4 w-12 rounded-full' />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const LikedSongsTrackPanel = ({
+  playlist,
+  refreshKey,
+}: LikedSongsTrackPanelProps) => {
   const [error, setError] = useState('')
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [hiddenSongIds, setHiddenSongIds] = useState<Set<number>>(new Set())
+  const likedSongIds = useUserStore(state => state.likedSongIds)
+  const likedSongsLoaded = useUserStore(state => state.likedSongsLoaded)
 
   const fetchTrackPage = useCallback(
     async (offset: number, limit: number) => {
       try {
         setError('')
 
-        const response = await getPlaylistTrackAll(playlist.id, limit, offset)
+        const response = await getPlaylistTrackAll(
+          playlist.id,
+          limit,
+          offset,
+          Date.now()
+        )
+
         return normalizeLikedSongsTrackPage(response.data, {
           offset,
           totalSongs: playlist.totalSongs,
@@ -62,8 +104,28 @@ const LikedSongsTrackPanel = ({ playlist }: LikedSongsTrackPanelProps) => {
   useEffect(() => {
     setError('')
     setIsInitialLoading(true)
+    setHiddenSongIds(new Set())
     reset()
-  }, [playlist.id, reset])
+  }, [playlist.id, refreshKey, reset])
+
+  const visibleSongs = filterLikedSongsListItems(
+    songs,
+    likedSongIds,
+    likedSongsLoaded,
+    hiddenSongIds
+  )
+
+  const handleLikeChangeSuccess = (songId: number, nextLiked: boolean) => {
+    if (nextLiked) {
+      return
+    }
+
+    setHiddenSongIds(previous => {
+      const nextIds = new Set(previous)
+      nextIds.add(songId)
+      return nextIds
+    })
+  }
 
   if (playlist.totalSongs === 0) {
     return (
@@ -86,16 +148,10 @@ const LikedSongsTrackPanel = ({ playlist }: LikedSongsTrackPanelProps) => {
   }
 
   if (isInitialLoading && songs.length === 0) {
-    return (
-      <div className='mx-auto px-4 pb-10 md:px-6'>
-        <div className='border-border/60 bg-card/75 text-muted-foreground rounded-[28px] border px-6 py-12 text-center text-sm shadow-[0_18px_50px_rgba(15,23,42,0.04)]'>
-          正在加载我喜欢的音乐...
-        </div>
-      </div>
-    )
+    return <LikedSongsTrackSkeleton />
   }
 
-  if (!isInitialLoading && songs.length === 0) {
+  if (!isInitialLoading && visibleSongs.length === 0 && !loading && !hasMore) {
     return (
       <div className='mx-auto px-4 pb-10 md:px-6'>
         <div className='border-border/60 bg-card/75 text-muted-foreground rounded-[28px] border px-6 py-12 text-center text-sm shadow-[0_18px_50px_rgba(15,23,42,0.04)]'>
@@ -107,14 +163,19 @@ const LikedSongsTrackPanel = ({ playlist }: LikedSongsTrackPanelProps) => {
 
   return (
     <div className='space-y-4'>
-      <TrackList data={songs} />
+      <TrackList
+        data={visibleSongs}
+        onLikeChangeSuccess={handleLikeChangeSuccess}
+      />
 
       <div
         ref={sentinelRef}
         className='text-muted-foreground flex h-16 items-center justify-center text-sm'
       >
         {loading && !isInitialLoading ? '正在加载更多喜欢的音乐...' : null}
-        {!loading && !hasMore && songs.length > 0 ? '没有更多歌曲了' : null}
+        {!loading && !hasMore && visibleSongs.length > 0
+          ? '没有更多歌曲了'
+          : null}
       </div>
     </div>
   )

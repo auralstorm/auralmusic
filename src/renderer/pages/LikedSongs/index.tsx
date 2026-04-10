@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
-import DailySongsSkeleton from '@/pages/DailySongs/components/DailySongsSkeleton'
+import { toast } from 'sonner'
+
+import { userPlaylist } from '@/api/user'
 import LibraryLockedState from '@/pages/Library/components/LibraryLockedState'
 import { useAuthStore } from '@/stores/auth-store'
-import { userPlaylist } from '@/api/user'
 
 import LikedSongsHero from './components/LikedSongsHero'
+import LikedSongsSkeleton from './components/LikedSongsSkeleton'
 import LikedSongsTrackPanel from './components/LikedSongsTrackPanel'
 import {
   resolveLikedSongsPlaylist,
   type LikedSongsPlaylistMeta,
 } from './liked-songs.model'
-import { toast } from 'sonner'
 
 const LikedSongs = () => {
+  const location = useLocation()
   const user = useAuthStore(state => state.user)
   const loginStatus = useAuthStore(state => state.loginStatus)
   const hasHydrated = useAuthStore(state => state.hasHydrated)
@@ -24,6 +27,7 @@ const LikedSongs = () => {
 
   const isAuthenticated =
     hasHydrated && loginStatus === 'authenticated' && Boolean(user?.userId)
+  const refreshKey = location.key || location.pathname
 
   useEffect(() => {
     if (!isAuthenticated || !user?.userId) {
@@ -41,7 +45,10 @@ const LikedSongs = () => {
       setPlaylist(null)
 
       try {
-        const playlistResponse = await userPlaylist({ uid: user.userId })
+        const playlistResponse = await userPlaylist({
+          uid: user.userId,
+          timestamp: Date.now(),
+        })
         const likedPlaylist = resolveLikedSongsPlaylist(playlistResponse.data)
 
         if (!isActive) {
@@ -55,6 +62,7 @@ const LikedSongs = () => {
         }
 
         console.error('liked songs playlist fetch failed', fetchError)
+        setError('音乐歌单加载失败，请稍后重试')
         toast.error('音乐歌单加载失败，请稍后重试')
       } finally {
         if (isActive) {
@@ -68,10 +76,10 @@ const LikedSongs = () => {
     return () => {
       isActive = false
     }
-  }, [isAuthenticated, user?.userId])
+  }, [isAuthenticated, refreshKey, user?.userId])
 
   if (!hasHydrated || loading) {
-    return <DailySongsSkeleton />
+    return <LikedSongsSkeleton />
   }
 
   if (!isAuthenticated) {
@@ -79,7 +87,7 @@ const LikedSongs = () => {
   }
 
   return (
-    <section className='relative isolate min-h-full overflow-hidden pb-8'>
+    <section className='relative isolate min-h-full'>
       <LikedSongsHero totalSongs={playlist?.totalSongs || 0} />
 
       {error ? (
@@ -95,7 +103,7 @@ const LikedSongs = () => {
           </div>
         </div>
       ) : (
-        <LikedSongsTrackPanel playlist={playlist} />
+        <LikedSongsTrackPanel playlist={playlist} refreshKey={refreshKey} />
       )}
     </section>
   )
