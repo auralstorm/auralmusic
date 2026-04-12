@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { toast } from 'sonner'
 
 import { getSongUrlV1 } from '@/api/list'
@@ -12,7 +12,12 @@ import {
 
 const PLAYBACK_UNAVAILABLE_MESSAGE = '暂时无法播放'
 
-const PlaybackEngine = () => {
+// 定义暴露的方法类型
+interface PlaybackEngineRef {
+  getAudioElement: () => HTMLAudioElement | null
+}
+
+const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const volumeRef = useRef(70)
   const qualityRef = useRef(useConfigStore.getState().config.quality)
@@ -33,6 +38,15 @@ const PlaybackEngine = () => {
   )
   const audioOutputDeviceId = useConfigStore(
     state => state.config.audioOutputDeviceId
+  )
+
+  // 🔥 暴露获取 audio 实例的方法
+  useImperativeHandle(
+    ref,
+    () => ({
+      getAudioElement: () => audioRef.current,
+    }),
+    []
   )
 
   useEffect(() => {
@@ -251,6 +265,6 @@ const PlaybackEngine = () => {
   }, [seekRequestId, seekPosition])
 
   return null
-}
+})
 
 export default PlaybackEngine
