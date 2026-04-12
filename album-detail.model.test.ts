@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  normalizeAlbumTracks,
   toAlbumListItem,
   type AlbumDetailHeroData,
 } from './src/renderer/pages/Albums/Detail/album-detail.model.ts'
@@ -25,4 +26,34 @@ test('toAlbumListItem maps album detail hero into album list item', () => {
     artists: [{ name: 'Artist A' }, { name: 'Artist B' }],
     artist: { name: 'Artist A' },
   })
+})
+
+test('normalizeAlbumTracks uses album cover fallback when track cover is missing', () => {
+  const tracks = normalizeAlbumTracks(
+    {
+      songs: [
+        {
+          id: 101,
+          name: 'Track without cover',
+          dt: 180000,
+          al: { name: 'Album A' },
+          ar: [{ name: 'Artist A' }],
+        },
+        {
+          id: 102,
+          name: 'Track with cover',
+          dt: 200000,
+          al: {
+            name: 'Album A',
+            picUrl: 'https://img.example.com/track.jpg',
+          },
+          ar: [{ name: 'Artist A' }],
+        },
+      ],
+    },
+    { fallbackCoverUrl: 'https://img.example.com/album.jpg' }
+  )
+
+  assert.equal(tracks[0].coverUrl, 'https://img.example.com/album.jpg')
+  assert.equal(tracks[1].coverUrl, 'https://img.example.com/track.jpg')
 })

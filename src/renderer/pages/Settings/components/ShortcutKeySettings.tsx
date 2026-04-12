@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { RotateCcw } from 'lucide-react'
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -8,6 +9,7 @@ import { useConfigStore } from '@/stores/config-store'
 import {
   DEFAULT_SHORTCUT_BINDINGS,
   SHORTCUT_ACTIONS,
+  canEditShortcutBinding,
   formatShortcutAccelerator,
   hasShortcutConflict,
   keyboardEventToShortcut,
@@ -24,7 +26,7 @@ const SHORTCUT_ACTION_LABELS: Record<ShortcutActionId, string> = {
   volumeUp: '增加音量',
   volumeDown: '减少音量',
   likeSong: '喜欢歌曲',
-  togglePlayer: '隐藏/显示 播放器',
+  togglePlayer: '隐藏/显示播放器',
 }
 
 const MODIFIER_KEY_NAMES = new Set(['Alt', 'Control', 'Meta', 'Shift'])
@@ -37,6 +39,7 @@ type RecordingTarget = {
 type ShortcutRecorderProps = {
   value: string
   recording: boolean
+  disabled?: boolean
   onStartRecording: () => void
   onCancelRecording: () => void
   onCommit: (value: string) => void
@@ -45,12 +48,13 @@ type ShortcutRecorderProps = {
 const ShortcutRecorder = ({
   value,
   recording,
+  disabled = false,
   onStartRecording,
   onCancelRecording,
   onCommit,
 }: ShortcutRecorderProps) => {
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!recording) {
+    if (!recording || disabled) {
       return
     }
 
@@ -85,10 +89,12 @@ const ShortcutRecorder = ({
   return (
     <button
       type='button'
+      disabled={disabled}
       className={cn(
         'bg-muted/60 text-foreground h-9 w-full rounded-lg px-3 text-center text-sm transition-colors outline-none',
         'hover:bg-muted focus-visible:ring-ring/50 focus-visible:ring-3',
-        recording && 'bg-primary/10 text-primary ring-primary/30 ring-1'
+        recording && 'bg-primary/10 text-primary ring-primary/30 ring-1',
+        disabled && 'hover:bg-muted/60 cursor-not-allowed opacity-45'
       )}
       onClick={onStartRecording}
       onKeyDown={handleKeyDown}
@@ -138,6 +144,14 @@ const ShortcutKeySettings = () => {
     void initConfig()
   }, [initConfig, isConfigLoading])
 
+  useEffect(() => {
+    if (globalShortcutEnabled || recordingTarget?.scope !== 'global') {
+      return
+    }
+
+    setRecordingTarget(null)
+  }, [globalShortcutEnabled, recordingTarget])
+
   const isRecording = (actionId: ShortcutActionId, scope: ShortcutScope) => {
     return (
       recordingTarget?.actionId === actionId && recordingTarget.scope === scope
@@ -148,11 +162,26 @@ const ShortcutKeySettings = () => {
     void setConfig('globalShortcutEnabled', !globalShortcutEnabled)
   }
 
+  const handleStartRecording = (
+    actionId: ShortcutActionId,
+    scope: ShortcutScope
+  ) => {
+    if (!canEditShortcutBinding(scope, globalShortcutEnabled)) {
+      return
+    }
+
+    setRecordingTarget({ actionId, scope })
+  }
+
   const handleCommitShortcut = (
     actionId: ShortcutActionId,
     scope: ShortcutScope,
     nextValue: string
   ) => {
+    if (!canEditShortcutBinding(scope, globalShortcutEnabled)) {
+      return
+    }
+
     if (hasShortcutConflict(shortcutBindings, scope, nextValue, actionId)) {
       toast.error('该快捷键已被同一列的其它功能占用')
       return
@@ -184,7 +213,7 @@ const ShortcutKeySettings = () => {
             启用全局快捷键
           </div>
           <p className='text-muted-foreground text-xs'>
-            当前仅保存配置，后续接入播放控制后生效
+            开启后可编辑并使用全局快捷键，关闭时全局快捷键配置禁止更改。
           </p>
         </div>
         <button
@@ -247,9 +276,7 @@ const ShortcutKeySettings = () => {
               <ShortcutRecorder
                 value={shortcutBindings[actionId].local}
                 recording={isRecording(actionId, 'local')}
-                onStartRecording={() =>
-                  setRecordingTarget({ actionId, scope: 'local' })
-                }
+                onStartRecording={() => handleStartRecording(actionId, 'local')}
                 onCancelRecording={() => setRecordingTarget(null)}
                 onCommit={value =>
                   handleCommitShortcut(actionId, 'local', value)
@@ -258,8 +285,11 @@ const ShortcutKeySettings = () => {
               <ShortcutRecorder
                 value={shortcutBindings[actionId].global}
                 recording={isRecording(actionId, 'global')}
+                disabled={
+                  !canEditShortcutBinding('global', globalShortcutEnabled)
+                }
                 onStartRecording={() =>
-                  setRecordingTarget({ actionId, scope: 'global' })
+                  handleStartRecording(actionId, 'global')
                 }
                 onCancelRecording={() => setRecordingTarget(null)}
                 onCommit={value =>

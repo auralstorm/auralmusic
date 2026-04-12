@@ -4,7 +4,11 @@ import { getConfig, setConfig, resetConfig } from '../config/store'
 import type { AppConfig } from '../config/types'
 import { handleThemePreferenceChange } from '../window/titlebar-theme'
 
-export function registerConfigIpc() {
+type RegisterConfigIpcOptions = {
+  onShortcutConfigChange?: () => void
+}
+
+export function registerConfigIpc(options: RegisterConfigIpcOptions = {}) {
   ipcMain.handle(IPC_CHANNELS.CONFIG.GET, (_event, key: keyof AppConfig) => {
     return getConfig(key)
   })
@@ -17,11 +21,16 @@ export function registerConfigIpc() {
       if (key === 'theme') {
         handleThemePreferenceChange(value as AppConfig['theme'])
       }
+
+      if (key === 'globalShortcutEnabled' || key === 'shortcutBindings') {
+        options.onShortcutConfigChange?.()
+      }
     }
   )
 
   ipcMain.handle(IPC_CHANNELS.CONFIG.RESET, () => {
     resetConfig()
     handleThemePreferenceChange(defaultConfig.theme)
+    options.onShortcutConfigChange?.()
   })
 }

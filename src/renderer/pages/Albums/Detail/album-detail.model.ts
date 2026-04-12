@@ -60,8 +60,12 @@ interface RawAlbumTrack {
   ar?: RawTrackArtist[]
 }
 
-interface RawAlbumTracksResponse {
+interface RawAlbumTracksResponse extends RawAlbumDetailResponse {
   songs?: RawAlbumTrack[]
+}
+
+interface NormalizeAlbumTracksOptions {
+  fallbackCoverUrl?: string
 }
 
 export const EMPTY_ALBUM_DETAIL_STATE: AlbumDetailPageState = {
@@ -104,8 +108,12 @@ export function normalizeAlbumDetailHero(
 }
 
 export function normalizeAlbumTracks(
-  payload: RawAlbumTracksResponse | null | undefined
+  payload: RawAlbumTracksResponse | null | undefined,
+  options: NormalizeAlbumTracksOptions = {}
 ): AlbumTrackItem[] {
+  const fallbackCoverUrl =
+    options.fallbackCoverUrl || payload?.album?.picUrl || ''
+
   return (payload?.songs || []).map(track => ({
     id: track.id,
     name: track.name || '未知歌曲',
@@ -116,7 +124,7 @@ export function normalizeAlbumTracks(
         .join(' / ') || '未知歌手',
     albumName: track.al?.name || '未知专辑',
     duration: track.dt || 0,
-    coverUrl: track.al?.picUrl || '',
+    coverUrl: track.al?.picUrl || fallbackCoverUrl,
   }))
 }
 

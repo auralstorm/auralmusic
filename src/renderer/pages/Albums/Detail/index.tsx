@@ -68,9 +68,13 @@ const AlbumDetail = () => {
           return
         }
 
+        const hero = normalizeAlbumDetailHero(response.data)
+
         setState({
-          hero: normalizeAlbumDetailHero(response.data),
-          tracks: normalizeAlbumTracks(response.data),
+          hero,
+          tracks: normalizeAlbumTracks(response.data, {
+            fallbackCoverUrl: hero?.coverUrl,
+          }),
         })
       } catch (fetchError) {
         if (!isActive) {

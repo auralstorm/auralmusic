@@ -152,7 +152,9 @@ const Home = () => {
 
     try {
       const response = await getAlbumDetail(album.id)
-      const tracks = normalizeAlbumTracks(response.data)
+      const tracks = normalizeAlbumTracks(response.data, {
+        fallbackCoverUrl: album.picUrl,
+      })
 
       if (!tracks.length) {
         toast.error('暂无可播放的专辑歌曲')

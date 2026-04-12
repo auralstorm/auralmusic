@@ -19,6 +19,10 @@ import { registerWindowIpc, bindWindowStateEvents } from './ipc/window-ipc'
 import { applyMusicApiRuntimeEnv } from './music-api-runtime'
 import { startMusicApi } from './server'
 import {
+  clearConfiguredGlobalShortcuts,
+  syncConfiguredGlobalShortcuts,
+} from './shortcuts/global-shortcuts'
+import {
   applyWindowTitleBarTheme,
   syncNativeThemeSource,
 } from './window/titlebar-theme'
@@ -141,11 +145,20 @@ function createWindow() {
 
   if (mainWindow) {
     applyWindowTitleBarTheme(mainWindow)
+    syncConfiguredGlobalShortcuts(mainWindow)
+    mainWindow.on('closed', () => {
+      clearConfiguredGlobalShortcuts()
+      mainWindow = null
+    })
   }
 }
 
 app.whenReady().then(async () => {
-  registerConfigIpc()
+  registerConfigIpc({
+    onShortcutConfigChange: () => {
+      syncConfiguredGlobalShortcuts(mainWindow)
+    },
+  })
   registerAuthIpc()
   registerMusicSourceIpc()
   registerWindowIpc()
@@ -181,4 +194,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('will-quit', () => {
+  clearConfiguredGlobalShortcuts()
 })
