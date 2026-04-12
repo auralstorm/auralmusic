@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { getSongUrlV1 } from '@/api/list'
 import { applyAudioOutputDevice } from '@/lib/audio-output'
+import { resolveTrackWithLxMusicSource } from '@/services/music-source/lx-playback-resolver'
 import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import {
@@ -20,6 +21,7 @@ interface PlaybackEngineRef {
 const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const volumeRef = useRef(70)
+  const configRef = useRef(useConfigStore.getState().config)
   const qualityRef = useRef(useConfigStore.getState().config.quality)
   const unblockRef = useRef(useConfigStore.getState().config.musicSourceEnabled)
   const audioOutputDeviceIdRef = useRef(
@@ -32,6 +34,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const volume = usePlaybackStore(state => state.volume)
   const seekRequestId = usePlaybackStore(state => state.seekRequestId)
   const seekPosition = usePlaybackStore(state => state.seekPosition)
+  const config = useConfigStore(state => state.config)
   const quality = useConfigStore(state => state.config.quality)
   const musicSourceEnabled = useConfigStore(
     state => state.config.musicSourceEnabled
@@ -48,6 +51,10 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
     }),
     []
   )
+
+  useEffect(() => {
+    configRef.current = config
+  }, [config])
 
   useEffect(() => {
     qualityRef.current = quality
@@ -163,6 +170,14 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
           if (result?.url) {
             break
           }
+        }
+
+        if (!result?.url) {
+          result = await resolveTrackWithLxMusicSource({
+            track: currentTrack,
+            quality: qualityRef.current,
+            config: configRef.current,
+          })
         }
 
         const latestState = usePlaybackStore.getState()

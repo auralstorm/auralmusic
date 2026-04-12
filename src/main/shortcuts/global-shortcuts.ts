@@ -1,4 +1,4 @@
-import { type BrowserWindow, globalShortcut } from 'electron'
+import electron, { type BrowserWindow } from 'electron'
 
 import { getConfig } from '../config/store'
 import {
@@ -7,6 +7,7 @@ import {
 } from '../../shared/shortcut-keys'
 
 const registeredAccelerators = new Set<string>()
+const { globalShortcut } = electron
 
 export function clearConfiguredGlobalShortcuts() {
   for (const accelerator of registeredAccelerators) {

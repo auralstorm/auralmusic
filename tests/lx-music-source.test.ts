@@ -2,11 +2,12 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  isProbablyLxMusicSourceScript,
   normalizeImportedLxMusicSource,
   normalizeImportedLxMusicSources,
   parseLxScriptInfo,
   resolveActiveLxMusicSourceScriptId,
-} from './src/shared/lx-music-source.ts'
+} from '../src/shared/lx-music-source.ts'
 
 test('parseLxScriptInfo reads lx script metadata from userscript header', () => {
   const info = parseLxScriptInfo(`
@@ -128,4 +129,16 @@ test('resolveActiveLxMusicSourceScriptId falls back to the first available scrip
     'source-1'
   )
   assert.equal(resolveActiveLxMusicSourceScriptId(null, []), null)
+})
+
+test('isProbablyLxMusicSourceScript accepts header-only and lx api scripts', () => {
+  assert.equal(
+    isProbablyLxMusicSourceScript('/**\n * @name A\n */\nconsole.log(1)'),
+    true
+  )
+  assert.equal(
+    isProbablyLxMusicSourceScript('lx.on(lx.EVENT_NAMES.request, () => {})'),
+    true
+  )
+  assert.equal(isProbablyLxMusicSourceScript('console.log("plain")'), false)
 })

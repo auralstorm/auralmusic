@@ -15,7 +15,7 @@ import {
   normalizePlaybackVolume,
   resolvePlaybackQueueStep,
   type PlaybackTrack,
-} from './src/shared/playback.ts'
+} from '../src/shared/playback.ts'
 
 const tracks: PlaybackTrack[] = [
   {

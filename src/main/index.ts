@@ -1,10 +1,4 @@
-import {
-  app,
-  BrowserWindow,
-  globalShortcut,
-  nativeTheme,
-  session,
-} from 'electron'
+import electron, { type BrowserWindow } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getConfig } from './config/store'
@@ -29,6 +23,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const { app, globalShortcut, nativeTheme, session } = electron
 
 let mainWindow: BrowserWindow | null = null
 
@@ -110,7 +105,7 @@ function createWindow() {
   const isMac = process.platform === 'darwin'
   const isWindows = process.platform === 'win32'
 
-  mainWindow = new BrowserWindow({
+  mainWindow = new electron.BrowserWindow({
     width: 1280,
     height: 760,
     minWidth: 1280,
@@ -184,7 +179,7 @@ app.whenReady().then(async () => {
   }
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (electron.BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })

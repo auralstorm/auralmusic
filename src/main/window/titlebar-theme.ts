@@ -1,8 +1,9 @@
-import { BrowserWindow, nativeTheme } from 'electron'
+import electron, { type BrowserWindow } from 'electron'
 
 import type { AppConfig } from '../config/types'
 
 const TITLEBAR_OVERLAY_HEIGHT = 52
+const { nativeTheme } = electron
 
 function getTitleBarOverlayOptions() {
   if (nativeTheme.shouldUseDarkColors) {
@@ -35,7 +36,7 @@ export function syncNativeThemeSource(theme: AppConfig['theme']) {
 export function handleThemePreferenceChange(theme: AppConfig['theme']) {
   syncNativeThemeSource(theme)
 
-  for (const window of BrowserWindow.getAllWindows()) {
+  for (const window of electron.BrowserWindow.getAllWindows()) {
     applyWindowTitleBarTheme(window)
   }
 }

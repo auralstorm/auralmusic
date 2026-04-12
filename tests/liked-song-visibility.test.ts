@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   filterLikedSongsListItems,
   filterVisibleSongItems,
-} from './src/shared/liked-song-visibility.ts'
+} from '../src/shared/liked-song-visibility.ts'
 
 test('filterVisibleSongItems removes songs hidden from liked songs list', () => {
   const songs = [

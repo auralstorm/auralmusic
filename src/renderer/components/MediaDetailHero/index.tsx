@@ -60,7 +60,7 @@ const MediaDetailHero = ({
             url={coverUrl}
             isAutoHovered
             wrapperClass='aspect-square w-full max-w-[320px]'
-            shadowClassName='top-5 left-5 scale-100'
+            shadowClassName='top-3 left-3 scale-95'
           />
         ) : (
           <div className='from-muted to-muted/70 text-muted-foreground flex aspect-square w-full max-w-[320px] items-center justify-center rounded-[15px] bg-gradient-to-br text-5xl font-black tracking-[-0.08em]'>
@@ -101,7 +101,8 @@ const MediaDetailHero = ({
               size='lg'
               disabled={favoriteLoading}
               onClick={onToggleFavorite}
-              variant={favorited ? 'outline' : 'secondary'}
+              variant='secondary'
+              // variant={favorited ? 'outline' : 'secondary'}
               className={cn(
                 'h-14 cursor-pointer rounded-full px-8 text-base font-semibold',
                 favorited && 'text-red-500'

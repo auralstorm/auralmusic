@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { usePlaybackStore } from './src/renderer/stores/playback-store.ts'
-import type { PlaybackTrack } from './src/shared/playback.ts'
+import { usePlaybackStore } from '../src/renderer/stores/playback-store.ts'
+import type { PlaybackTrack } from '../src/shared/playback.ts'
 
 const tracks: PlaybackTrack[] = [
   {

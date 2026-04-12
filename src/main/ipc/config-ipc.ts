@@ -1,8 +1,10 @@
-import { ipcMain } from 'electron'
+import electron from 'electron'
 import { IPC_CHANNELS, defaultConfig } from '../config/types'
 import { getConfig, setConfig, resetConfig } from '../config/store'
 import type { AppConfig } from '../config/types'
 import { handleThemePreferenceChange } from '../window/titlebar-theme'
+
+const { ipcMain } = electron
 
 type RegisterConfigIpcOptions = {
   onShortcutConfigChange?: () => void

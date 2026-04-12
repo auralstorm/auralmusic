@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { normalizeSimilarArtists } from './src/renderer/pages/Artists/artist-detail.model.ts'
+import { normalizeSimilarArtists } from '../src/renderer/pages/Artists/artist-detail.model.ts'
 
 test('normalizeSimilarArtists maps similar artist payload into cover items', () => {
   const artists = normalizeSimilarArtists({

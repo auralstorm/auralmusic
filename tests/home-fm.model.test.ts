@@ -5,7 +5,7 @@ import {
   normalizeHomeDailyTracks,
   normalizeHomeFmTrack,
   normalizeHomeNewSongTracks,
-} from './src/renderer/pages/Home/home.model.ts'
+} from '../src/renderer/pages/Home/home.model.ts'
 
 test('normalizeHomeFmTrack converts personal fm song to playback track', () => {
   const track = normalizeHomeFmTrack({

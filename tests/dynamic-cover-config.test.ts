@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   defaultConfig,
   normalizeDynamicCoverEnabled,
-} from './src/main/config/types.ts'
+} from '../src/main/config/types.ts'
 
 test('dynamic cover effect defaults to enabled', () => {
   assert.equal(defaultConfig.dynamicCoverEnabled, true)

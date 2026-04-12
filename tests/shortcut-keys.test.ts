@@ -12,7 +12,7 @@ import {
   normalizeShortcutForElectronAccelerator,
   resolveEnabledGlobalShortcutRegistrations,
   resolveShortcutVolume,
-} from './src/shared/shortcut-keys.ts'
+} from '../src/shared/shortcut-keys.ts'
 
 test('default shortcut bindings include all supported actions', () => {
   assert.equal(Object.keys(DEFAULT_SHORTCUT_BINDINGS).length, 7)

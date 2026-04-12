@@ -1,7 +1,9 @@
 import type {
   LxInitedData,
   LxScriptInfo,
-} from '../../../../shared/lx-music-source'
+  LxScriptRequestPayload,
+  LxScriptRequestResult,
+} from '../../../../shared/lx-music-source.ts'
 
 type WorkerInitMessage = {
   type: 'initialize'
@@ -17,7 +19,16 @@ type WorkerHttpResponseMessage = {
   error?: string
 }
 
-type HostMessage = WorkerInitMessage | WorkerHttpResponseMessage
+type WorkerInvokeRequestMessage = {
+  type: 'invoke-request'
+  callId: string
+  payload: LxScriptRequestPayload
+}
+
+type HostMessage =
+  | WorkerInitMessage
+  | WorkerHttpResponseMessage
+  | WorkerInvokeRequestMessage
 
 type WorkerMessage =
   | { type: 'initialized'; data: LxInitedData }
@@ -28,6 +39,16 @@ type WorkerMessage =
       url: string
       options: RequestInit
     }
+  | {
+      type: 'invoke-result'
+      callId: string
+      result: LxScriptRequestResult
+    }
+  | {
+      type: 'invoke-error'
+      callId: string
+      message: string
+    }
   | { type: 'log'; level: 'log' | 'warn' | 'error' | 'info'; args: unknown[] }
 
 type LxRequestCallback = (
@@ -37,6 +58,12 @@ type LxRequestCallback = (
 ) => void
 
 let requestCounter = 0
+let requestHandler:
+  | ((
+      payload: LxScriptRequestPayload
+    ) => Promise<LxScriptRequestResult> | LxScriptRequestResult)
+  | null = null
+
 const pendingHttpCallbacks = new Map<string, LxRequestCallback>()
 
 const postToHost = (message: WorkerMessage) => {
@@ -67,7 +94,7 @@ function hardenGlobalScope() {
 function createLxApi(scriptInfo: LxScriptInfo) {
   const unavailable = (name: string) => {
     return () => {
-      throw new Error(`当前阶段暂不支持 lx.utils.${name}`)
+      throw new Error(`Current worker does not support lx.utils.${name}`)
     }
   }
 
@@ -85,8 +112,18 @@ function createLxApi(scriptInfo: LxScriptInfo) {
       request: 'request',
       updateAlert: 'updateAlert',
     },
-    on: () => {
-      // Playback request handling is intentionally not wired in this phase.
+    on: (eventName: string, handler: unknown) => {
+      if (eventName !== 'request') {
+        return
+      }
+
+      if (typeof handler !== 'function') {
+        throw new Error('lx.on(request) requires a function handler')
+      }
+
+      requestHandler = handler as (
+        payload: LxScriptRequestPayload
+      ) => Promise<LxScriptRequestResult> | LxScriptRequestResult
     },
     send: (eventName: string, data: unknown) => {
       if (eventName === 'inited') {
@@ -151,7 +188,37 @@ function createLxApi(scriptInfo: LxScriptInfo) {
   }
 }
 
+async function resolveInvocation(
+  callId: string,
+  payload: LxScriptRequestPayload
+) {
+  if (!requestHandler) {
+    postToHost({
+      type: 'invoke-error',
+      callId,
+      message: 'LX script did not register lx.on(request)',
+    })
+    return
+  }
+
+  try {
+    const result = await requestHandler(payload)
+    postToHost({
+      type: 'invoke-result',
+      callId,
+      result,
+    })
+  } catch (error) {
+    postToHost({
+      type: 'invoke-error',
+      callId,
+      message: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
 async function initializeScript(script: string, scriptInfo: LxScriptInfo) {
+  requestHandler = null
   pendingHttpCallbacks.clear()
   requestCounter = 0
   hardenGlobalScope()
@@ -187,6 +254,9 @@ globalThis.onmessage = async (event: MessageEvent<HostMessage>) => {
           message: error instanceof Error ? error.message : String(error),
         })
       }
+      break
+    case 'invoke-request':
+      await resolveInvocation(message.callId, message.payload)
       break
     case 'http-response': {
       const callback = pendingHttpCallbacks.get(message.requestId)

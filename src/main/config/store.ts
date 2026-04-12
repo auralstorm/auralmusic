@@ -1,4 +1,4 @@
-import Store from 'electron-store'
+import ElectronStore from 'electron-store'
 import {
   AppConfig,
   AUDIO_QUALITY_LEVELS,
@@ -19,6 +19,13 @@ import {
   normalizePlaybackMode,
   normalizePlaybackVolume,
 } from '../../shared/playback'
+
+const Store =
+  (
+    ElectronStore as typeof ElectronStore & {
+      default?: typeof ElectronStore
+    }
+  ).default ?? ElectronStore
 
 function normalizeQuality(value: unknown): AudioQualityLevel {
   if (value === 'high') {
@@ -78,86 +85,87 @@ function normalizeProvidersForLxState(
     : defaultConfig.musicSourceProviders
 }
 
-// 单例模式：保证整个应用只有一个配置存储实例
-class ConfigStore {
-  private static instance: Store<AppConfig>
+function createConfigStore() {
+  return new Store<AppConfig>({
+    cwd: process.cwd(),
+    name: 'aural-music-config',
+    defaults: defaultConfig,
+    schema: {
+      theme: { type: 'string', enum: ['light', 'dark', 'system'] },
+      fontFamily: { type: 'string' },
+      audioOutputDeviceId: { type: 'string' },
+      playbackVolume: { type: 'number', minimum: 0, maximum: 100 },
+      playbackMode: { type: 'string', enum: PLAYBACK_MODE_SEQUENCE },
+      dynamicCoverEnabled: { type: 'boolean' },
+      musicSourceEnabled: { type: 'boolean' },
+      musicSourceProviders: {
+        type: 'array',
+        items: { type: 'string', enum: MUSIC_SOURCE_PROVIDERS },
+      },
+      luoxueSourceEnabled: { type: 'boolean' },
+      luoxueSourceUrl: { type: 'string' },
+      luoxueMusicSourceScript: {
+        anyOf: [
+          { type: 'null' },
+          {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              fileName: { type: 'string' },
+              description: { type: 'string' },
+              version: { type: 'string' },
+              author: { type: 'string' },
+              homepage: { type: 'string' },
+              createdAt: { type: 'number' },
+              updatedAt: { type: 'number' },
+            },
+            required: ['id', 'name', 'fileName', 'createdAt', 'updatedAt'],
+          },
+        ],
+      },
+      luoxueMusicSourceScripts: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            fileName: { type: 'string' },
+            sources: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+            description: { type: 'string' },
+            version: { type: 'string' },
+            author: { type: 'string' },
+            homepage: { type: 'string' },
+            createdAt: { type: 'number' },
+            updatedAt: { type: 'number' },
+          },
+          required: ['id', 'name', 'fileName', 'createdAt', 'updatedAt'],
+        },
+      },
+      activeLuoxueMusicSourceScriptId: {
+        anyOf: [{ type: 'string' }, { type: 'null' }],
+      },
+      customMusicApiEnabled: { type: 'boolean' },
+      customMusicApiUrl: { type: 'string' },
+      quality: { type: 'string', enum: AUDIO_QUALITY_LEVELS },
+      globalShortcutEnabled: { type: 'boolean' },
+      shortcutBindings: { type: 'object' },
+    },
+  })
+}
 
-  // 私有化构造，禁止外部实例化
+class ConfigStore {
+  private static instance: ReturnType<typeof createConfigStore>
+
   private constructor() {}
 
-  // 获取全局唯一实例
-  public static getInstance(): Store<AppConfig> {
+  public static getInstance(): ReturnType<typeof createConfigStore> {
     if (!ConfigStore.instance) {
-      ConfigStore.instance = new Store<AppConfig>({
-        name: 'aural-music-config', // 存储文件名：aural-music-config.json
-        defaults: defaultConfig,
-        // 可选：添加 schema 校验，防止非法配置写入
-        schema: {
-          theme: { type: 'string', enum: ['light', 'dark', 'system'] },
-          fontFamily: { type: 'string' },
-          audioOutputDeviceId: { type: 'string' },
-          playbackVolume: { type: 'number', minimum: 0, maximum: 100 },
-          playbackMode: { type: 'string', enum: PLAYBACK_MODE_SEQUENCE },
-          dynamicCoverEnabled: { type: 'boolean' },
-          musicSourceEnabled: { type: 'boolean' },
-          musicSourceProviders: {
-            type: 'array',
-            items: { type: 'string', enum: MUSIC_SOURCE_PROVIDERS },
-          },
-          luoxueSourceEnabled: { type: 'boolean' },
-          luoxueSourceUrl: { type: 'string' },
-          luoxueMusicSourceScript: {
-            anyOf: [
-              { type: 'null' },
-              {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  name: { type: 'string' },
-                  fileName: { type: 'string' },
-                  description: { type: 'string' },
-                  version: { type: 'string' },
-                  author: { type: 'string' },
-                  homepage: { type: 'string' },
-                  createdAt: { type: 'number' },
-                  updatedAt: { type: 'number' },
-                },
-                required: ['id', 'name', 'fileName', 'createdAt', 'updatedAt'],
-              },
-            ],
-          },
-          luoxueMusicSourceScripts: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                name: { type: 'string' },
-                fileName: { type: 'string' },
-                sources: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                description: { type: 'string' },
-                version: { type: 'string' },
-                author: { type: 'string' },
-                homepage: { type: 'string' },
-                createdAt: { type: 'number' },
-                updatedAt: { type: 'number' },
-              },
-              required: ['id', 'name', 'fileName', 'createdAt', 'updatedAt'],
-            },
-          },
-          activeLuoxueMusicSourceScriptId: {
-            anyOf: [{ type: 'string' }, { type: 'null' }],
-          },
-          customMusicApiEnabled: { type: 'boolean' },
-          customMusicApiUrl: { type: 'string' },
-          quality: { type: 'string', enum: AUDIO_QUALITY_LEVELS },
-          globalShortcutEnabled: { type: 'boolean' },
-          shortcutBindings: { type: 'object' },
-        },
-      })
+      ConfigStore.instance = createConfigStore()
 
       const quality = ConfigStore.instance.get('quality')
       const normalizedQuality = normalizeQuality(quality)
@@ -172,9 +180,9 @@ class ConfigStore {
       }
 
       const playbackMode = ConfigStore.instance.get('playbackMode')
-      const normalizedPlaybackMode = normalizePlaybackMode(playbackMode)
-      if (playbackMode !== normalizedPlaybackMode) {
-        ConfigStore.instance.set('playbackMode', normalizedPlaybackMode)
+      const normalizedMode = normalizePlaybackMode(playbackMode)
+      if (playbackMode !== normalizedMode) {
+        ConfigStore.instance.set('playbackMode', normalizedMode)
       }
 
       const dynamicCoverEnabled = ConfigStore.instance.get(
@@ -253,14 +261,13 @@ class ConfigStore {
         )
       }
     }
+
     return ConfigStore.instance
   }
 }
 
-// 导出配置实例
 export const configStore = ConfigStore.getInstance()
 
-// 导出快捷读写方法
 export const getConfig = <K extends keyof AppConfig>(key: K): AppConfig[K] => {
   return configStore.get(key)
 }

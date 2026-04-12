@@ -20,7 +20,7 @@ export interface songProps {
 }
 interface TrackListItemProps {
   item: songProps
-  type?: 'default' | 'hot'
+  type?: 'default' | 'hot' | 'quick'
   coverUrl?: string
   isActive?: boolean
   isPlaying?: boolean
@@ -118,7 +118,9 @@ const TrackListItem = ({
         className={cn(
           'hover:bg-primary/5 grid cursor-pointer grid-cols-3 items-center rounded-[15px] px-4 py-4 transition-colors',
           isActive && 'bg-primary/8',
-          type === 'hot' && 'grid-cols-2'
+          type === 'default'
+            ? 'grid-cols-[2.5fr_1fr_auto] gap-4'
+            : 'grid-cols-[1.5fr_auto] gap-2'
         )}
       >
         <div className='flex items-center gap-4'>
@@ -139,9 +141,9 @@ const TrackListItem = ({
               {item.name}
             </div>
             <div className='text-primary/50 truncate text-xs md:text-sm'>
-              {type === 'default'
-                ? item.artistNames
-                : formatArtistNames(item.artists)}
+              {type === 'hot'
+                ? formatArtistNames(item.artists)
+                : item.artistNames}
             </div>
           </div>
         </div>

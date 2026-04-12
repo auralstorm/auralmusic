@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import electron from 'electron'
 import { IPC_CHANNELS } from '../config/types'
 import {
   downloadLxMusicSourceScriptFromUrl,
@@ -10,10 +10,12 @@ import {
 import type { LxInitedData } from '../../shared/lx-music-source'
 import type { LxMusicSourceScriptDraft } from '../../shared/lx-music-source'
 
+const { ipcMain } = electron
+
 export function registerMusicSourceIpc() {
   ipcMain.handle(IPC_CHANNELS.MUSIC_SOURCE.SELECT_LX_SCRIPT, event => {
     return selectLxMusicSourceScript(
-      BrowserWindow.fromWebContents(event.sender)
+      electron.BrowserWindow.fromWebContents(event.sender)
     )
   })
 

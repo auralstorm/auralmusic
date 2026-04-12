@@ -1,0 +1,61 @@
+{
+  "theme": "system",
+  "fontFamily": "Inter Variable",
+  "audioOutputDeviceId": "default",
+  "playbackVolume": 39,
+  "playbackMode": "repeat-all",
+  "dynamicCoverEnabled": true,
+  "musicSourceEnabled": true,
+  "musicSourceProviders": ["migu", "kugou", "pyncmd", "bilibili", "lxMusic"],
+  "luoxueSourceEnabled": true,
+  "luoxueSourceUrl": "",
+  "luoxueMusicSourceScript": null,
+  "luoxueMusicSourceScripts": [
+    {
+      "id": "fe5e6a33-3584-4667-9f4b-cbc10e5f27e7",
+      "name": "Huibq_lxmusic源",
+      "fileName": "huibq.js",
+      "createdAt": 1776006070262,
+      "updatedAt": 1776006070262,
+      "description": "Github搜索“洛雪音乐音源”，禁止批量下载！",
+      "version": "v1.2.0",
+      "author": "Huibq",
+      "sources": ["kw", "kg", "tx", "wy", "mg"]
+    }
+  ],
+  "activeLuoxueMusicSourceScriptId": "fe5e6a33-3584-4667-9f4b-cbc10e5f27e7",
+  "customMusicApiEnabled": false,
+  "customMusicApiUrl": "",
+  "quality": "higher",
+  "globalShortcutEnabled": false,
+  "shortcutBindings": {
+    "playPause": {
+      "local": "Ctrl+P",
+      "global": "Alt+Ctrl+P"
+    },
+    "nextTrack": {
+      "local": "Ctrl+ArrowRight",
+      "global": "Alt+Ctrl+ArrowRight"
+    },
+    "previousTrack": {
+      "local": "Ctrl+ArrowLeft",
+      "global": "Alt+Ctrl+ArrowLeft"
+    },
+    "volumeUp": {
+      "local": "Ctrl+ArrowUp",
+      "global": "Alt+Ctrl+ArrowUp"
+    },
+    "volumeDown": {
+      "local": "Ctrl+ArrowDown",
+      "global": "Alt+Ctrl+ArrowDown"
+    },
+    "likeSong": {
+      "local": "Ctrl+L",
+      "global": "Alt+Ctrl+L"
+    },
+    "togglePlayer": {
+      "local": "Ctrl+M",
+      "global": "Alt+Ctrl+M"
+    }
+  }
+}

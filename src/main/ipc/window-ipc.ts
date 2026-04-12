@@ -1,9 +1,11 @@
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import electron, { type IpcMainInvokeEvent, type BrowserWindow } from 'electron'
 
 import { WINDOW_IPC_CHANNELS } from '../window/types'
 
+const { ipcMain } = electron
+
 function getEventWindow(event: IpcMainInvokeEvent) {
-  return BrowserWindow.fromWebContents(event.sender)
+  return electron.BrowserWindow.fromWebContents(event.sender)
 }
 
 export function registerWindowIpc() {

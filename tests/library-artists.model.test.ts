@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   normalizeLibraryArtistPage,
   normalizeSubscribedArtistList,
-} from './src/renderer/pages/Library/library-artists.model.ts'
+} from '../src/renderer/pages/Library/library-artists.model.ts'
 
 test('normalizeSubscribedArtistList maps nested subscribed artist payload', () => {
   const artists = normalizeSubscribedArtistList({

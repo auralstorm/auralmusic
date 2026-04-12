@@ -159,3 +159,14 @@ pnpm build:linux
 ---
 
 If you want, I can also add a short `CONTRIBUTING.md` for team collaboration rules.
+
+未登录的情况下走游客登录模式
+
+3. 游客登录
+   说明 : 直接调用此接口, 可获取游客 cookie,如果遇到其他接口未登录状态报 400 状态码需要验证的错误,可使用此接口获取游客 cookie 避免报错
+
+接口地址 : /register/anonimous
+
+播放私人fm时，底部控制栏切歌和私人FM卡片切哥逻辑不一致
+
+MV 播放器全屏按钮失效

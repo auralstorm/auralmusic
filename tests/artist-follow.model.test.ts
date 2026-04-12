@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   toArtistListItem,
   type ArtistDetailProfile,
-} from './src/renderer/pages/Artists/artist-detail.model.ts'
+} from '../src/renderer/pages/Artists/artist-detail.model.ts'
 
 test('toArtistListItem maps artist detail profile into artist list item', () => {
   const profile: ArtistDetailProfile = {

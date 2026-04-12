@@ -19,7 +19,7 @@ const ArtistCover = ({
 }: ArtistCoverProps) => {
   return (
     <div>
-      <div className='relative'>
+      <div className='group relative'>
         <AvatarCover
           url={artistCoverUrl}
           rounded={rounded}
@@ -28,7 +28,7 @@ const ArtistCover = ({
 
         {onPlay ? (
           <div
-            className='absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/12 text-white backdrop-blur-md transition-transform duration-300 group-hover:scale-[1.04] hover:bg-white/18 disabled:cursor-default disabled:opacity-45'
+            className='absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/12 text-white opacity-0 backdrop-blur-md transition-all duration-300 group-hover:scale-[1.04] group-hover:opacity-100 hover:bg-white/18 disabled:cursor-default disabled:opacity-45'
             onClick={e => {
               e.preventDefault()
               onPlay()

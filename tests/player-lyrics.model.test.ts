@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   findActiveLyricIndex,
   parseLrc,
-} from './src/renderer/components/PlayerScene/player-lyrics.model.ts'
+} from '../src/renderer/components/PlayerScene/player-lyrics.model.ts'
 
 test('parseLrc parses standard lrc timestamps and text', () => {
   assert.deepEqual(

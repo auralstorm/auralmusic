@@ -1,8 +1,9 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import electron, { type BrowserWindow } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import {
+  isProbablyLxMusicSourceScript,
   type LxInitedData,
   normalizeImportedLxMusicSource,
   parseLxScriptInfo,
@@ -12,6 +13,7 @@ import {
 
 const LX_SCRIPT_FILE_EXTENSION = '.js'
 const LX_SCRIPT_ID_PATTERN = /^[0-9a-f-]{36}$/i
+const { app, dialog } = electron
 
 function getLxScriptDirectory() {
   return path.join(app.getPath('userData'), 'music-sources', 'lx')
@@ -30,12 +32,8 @@ function assertLxMusicSourceScript(rawScript: string) {
     throw new Error('音源脚本内容为空')
   }
 
-  if (!/^\s*\/\*+[\s\S]*?@name[\s\S]*?\*\//.test(rawScript)) {
-    throw new Error('音源脚本缺少 @name 元信息')
-  }
-
-  if (!rawScript.includes('lx.on(') && !rawScript.includes('lx.send(')) {
-    throw new Error('音源脚本未检测到 LX API 调用')
+  if (!isProbablyLxMusicSourceScript(rawScript)) {
+    throw new Error('音源脚本未检测到合法的 LX 脚本特征')
   }
 }
 

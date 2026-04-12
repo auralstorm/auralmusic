@@ -5,7 +5,7 @@ import {
   normalizeLibraryUserPlaylists,
   resolveLibraryLikedSongIds,
   resolveLibraryLikedPlaylist,
-} from './src/renderer/pages/Library/library.model.ts'
+} from '../src/renderer/pages/Library/library.model.ts'
 
 test('normalizeLibraryUserPlaylists returns only created playlists for my source', () => {
   const playlists = normalizeLibraryUserPlaylists(

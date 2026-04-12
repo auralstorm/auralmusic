@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   formatDailySongDuration,
   normalizeDailySongs,
-} from './src/renderer/pages/DailySongs/daily-songs.model.ts'
+} from '../src/renderer/pages/DailySongs/daily-songs.model.ts'
 
 test('normalizeDailySongs maps recommend songs payload into list items', () => {
   const songs = normalizeDailySongs({

@@ -5,7 +5,7 @@ import {
   normalizeAlbumTracks,
   toAlbumListItem,
   type AlbumDetailHeroData,
-} from './src/renderer/pages/Albums/Detail/album-detail.model.ts'
+} from '../src/renderer/pages/Albums/Detail/album-detail.model.ts'
 
 test('toAlbumListItem maps album detail hero into album list item', () => {
   const hero: AlbumDetailHeroData = {

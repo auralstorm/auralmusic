@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { normalizePlaylistDetailHero } from './src/renderer/pages/PlayList/Detail/playlist-detail.model.ts'
+import { normalizePlaylistDetailHero } from '../src/renderer/pages/PlayList/Detail/playlist-detail.model.ts'
 
 test('normalizePlaylistDetailHero maps creator user id from playlist detail payload', () => {
   const hero = normalizePlaylistDetailHero({

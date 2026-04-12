@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   applySongLikeState,
   applySongLikePendingState,
-} from './src/shared/song-like-state.ts'
+} from '../src/shared/song-like-state.ts'
 
 test('applySongLikeState adds and removes liked song ids immutably', () => {
   const initialIds = new Set([1, 2])

@@ -8,6 +8,10 @@ export type LxScriptInfo = {
 
 export type LxQuality = '128k' | '320k' | 'flac' | 'flac24bit'
 
+export const LX_SOURCE_KEYS = ['kw', 'kg', 'tx', 'wy', 'mg'] as const
+
+export type LxSourceKey = (typeof LX_SOURCE_KEYS)[number]
+
 export type LxSourceConfig = {
   name: string
   type: 'music'
@@ -15,9 +19,40 @@ export type LxSourceConfig = {
   qualitys: LxQuality[]
 }
 
+export type LxMusicInfo = {
+  songmid: string | number
+  name: string
+  singer: string
+  album: string
+  albumId?: string | number
+  source: LxSourceKey
+  interval: string
+  img?: string
+}
+
+export type LxScriptRequestAction = 'musicUrl' | 'lyric' | 'pic'
+
+export type LxScriptRequestPayload = {
+  source: LxSourceKey
+  action: LxScriptRequestAction
+  info: {
+    type?: LxQuality
+    musicInfo: LxMusicInfo
+  }
+}
+
+export type LxScriptRequestResult =
+  | string
+  | {
+      url?: string
+      data?: string | { url?: string }
+      lyric?: string
+      pic?: string
+    }
+
 export type LxInitedData = {
   openDevTools?: boolean
-  sources: Partial<Record<string, LxSourceConfig>>
+  sources: Partial<Record<LxSourceKey, LxSourceConfig>>
 }
 
 export type LxMusicSourceScriptDraft = LxScriptInfo & {
@@ -66,6 +101,14 @@ export function parseLxScriptInfo(script: string): LxScriptInfo {
   if (homepage) info.homepage = homepage
 
   return info
+}
+
+export function isProbablyLxMusicSourceScript(script: string) {
+  const source = typeof script === 'string' ? script : ''
+  const hasHeaderComment = /^\/\*+[\s\S]*?@name[\s\S]*?\*\//.test(source)
+  const hasLxApi = source.includes('lx.on(') || source.includes('lx.send(')
+
+  return hasHeaderComment || hasLxApi
 }
 
 function readOptionalString(
