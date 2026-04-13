@@ -1,25 +1,32 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+
 import {
+  deletePlaylist,
   getPlaylistDetail,
   getPlaylistTracks,
   togglePlaylistSubscription,
+  updatePlaylist,
 } from '@/api/list'
-import { toast } from 'sonner'
+import TrackList from '@/components/TrackList'
 import { useAuthStore } from '@/stores/auth-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
+import { toast } from 'sonner'
+
 import PlaylistDetailHero from './components/PlaylistDetailHero'
+import PlaylistDetailMoreActions from './components/PlaylistDetailMoreActions'
 import PlaylistDetailSkeleton from './components/PlaylistDetailSkeleton'
+import { buildPlaylistDetailLoadRequest } from './playlist-detail-refresh.model'
 import {
   EMPTY_PLAYLIST_DETAIL_STATE,
   normalizePlaylistDetailHero,
   normalizePlaylistTracks,
   type PlaylistDetailPageState,
 } from './playlist-detail.model'
-import TrackList from '@/components/TrackList'
 
 const PlaylistDetail = () => {
+  const navigate = useNavigate()
   const { id } = useParams()
   const playlistId = Number(id)
   const currentUserId = useAuthStore(state => state.user?.userId)
@@ -27,34 +34,73 @@ const PlaylistDetail = () => {
   const openLoginDialog = useAuthStore(state => state.openLoginDialog)
   const fetchLikedPlaylist = useUserStore(state => state.fetchLikedPlaylist)
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
+
   const [state, setState] = useState<PlaylistDetailPageState>(
     EMPTY_PLAYLIST_DETAIL_STATE
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (!playlistId) {
-      setLoading(false)
-      setError('无效的歌单 ID')
-      return
-    }
+  const loadPlaylistDetail = useCallback(
+    async (bustCache = false) => {
+      if (!playlistId) {
+        setLoading(false)
+        setError('无效的歌单 ID')
+        return
+      }
 
-    let isActive = true
-
-    const fetchPlaylistDetail = async () => {
       setLoading(true)
       setError('')
       setState(EMPTY_PLAYLIST_DETAIL_STATE)
 
       try {
+        const request = buildPlaylistDetailLoadRequest(playlistId, bustCache)
+
         const [detailResponse, tracksResponse] = await Promise.all([
-          getPlaylistDetail(playlistId),
-          getPlaylistTracks({ id: playlistId, limit: 1000, offset: 0 }),
+          getPlaylistDetail(request.detail.id, request.detail.timestamp),
+          getPlaylistTracks(request.tracks),
         ])
 
-        if (!isActive) {
+        setState({
+          hero: normalizePlaylistDetailHero(detailResponse.data),
+          tracks: normalizePlaylistTracks(tracksResponse.data),
+        })
+      } catch (fetchError) {
+        console.error('playlist detail fetch failed', fetchError)
+        setError('歌单详情加载失败，请稍后重试')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [playlistId]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+      if (!playlistId) {
+        setLoading(false)
+        setError('无效的歌单 ID')
+        return
+      }
+
+      setLoading(true)
+      setError('')
+      setState(EMPTY_PLAYLIST_DETAIL_STATE)
+
+      try {
+        const request = buildPlaylistDetailLoadRequest(playlistId, true)
+
+        const [detailResponse, tracksResponse] = await Promise.all([
+          getPlaylistDetail(request.detail.id, request.detail.timestamp),
+          getPlaylistTracks(request.tracks),
+        ])
+
+        if (cancelled) {
           return
         }
 
@@ -63,23 +109,23 @@ const PlaylistDetail = () => {
           tracks: normalizePlaylistTracks(tracksResponse.data),
         })
       } catch (fetchError) {
-        if (!isActive) {
+        if (cancelled) {
           return
         }
 
         console.error('playlist detail fetch failed', fetchError)
         setError('歌单详情加载失败，请稍后重试')
       } finally {
-        if (isActive) {
+        if (!cancelled) {
           setLoading(false)
         }
       }
     }
 
-    void fetchPlaylistDetail()
+    void run()
 
     return () => {
-      isActive = false
+      cancelled = true
     }
   }, [playlistId])
 
@@ -163,6 +209,70 @@ const PlaylistDetail = () => {
     }
   }
 
+  const handleEditPlaylist = async (payload: {
+    id: number
+    name: string
+    desc: string
+  }) => {
+    if (!hasHydrated || !currentUserId) {
+      openLoginDialog('email')
+      return
+    }
+
+    if (editSubmitting) {
+      return
+    }
+
+    setEditSubmitting(true)
+
+    try {
+      await updatePlaylist({
+        ...payload,
+        timestamp: Date.now(),
+      })
+
+      toast.success('歌单已更新')
+      await loadPlaylistDetail(true)
+      void fetchLikedPlaylist()
+    } catch (updateError) {
+      console.error('playlist update failed', updateError)
+      toast.error('歌单更新失败，请稍后重试')
+      throw updateError
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  const handleDeletePlaylist = async (targetPlaylistId: number) => {
+    if (!hasHydrated || !currentUserId) {
+      openLoginDialog('email')
+      return
+    }
+
+    if (deleteSubmitting) {
+      return
+    }
+
+    setDeleteSubmitting(true)
+
+    try {
+      await deletePlaylist({
+        id: targetPlaylistId,
+        timestamp: Date.now(),
+      })
+
+      toast.success('歌单已删除')
+      void fetchLikedPlaylist()
+      navigate('/library')
+    } catch (deleteError) {
+      console.error('playlist delete failed', deleteError)
+      toast.error('歌单删除失败，请稍后重试')
+      throw deleteError
+    } finally {
+      setDeleteSubmitting(false)
+    }
+  }
+
   return (
     <section className='space-y-10 pb-8'>
       <PlaylistDetailHero
@@ -171,6 +281,20 @@ const PlaylistDetail = () => {
         favoriteLoading={favoriteLoading}
         onToggleFavorite={handleTogglePlaylistFavorite}
         onPlay={handlePlayPlaylist}
+        moreActions={
+          isOwnPlaylist ? (
+            <PlaylistDetailMoreActions
+              playlistId={state.hero.id}
+              playlistName={state.hero.name}
+              playlistDescription={state.hero.description}
+              isOwnPlaylist={isOwnPlaylist}
+              editSubmitting={editSubmitting}
+              deleteSubmitting={deleteSubmitting}
+              onEdit={handleEditPlaylist}
+              onDelete={handleDeletePlaylist}
+            />
+          ) : null
+        }
       />
       <TrackList data={state.tracks} />
     </section>

@@ -1,4 +1,5 @@
-import { Heart, MoreHorizontal, Play } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Heart, Play } from 'lucide-react'
 
 import AvatarCover from '@/components/AvatarCover'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ interface MediaDetailHeroProps {
   favoriteLoading?: boolean
   onPlay?: () => void
   onToggleFavorite?: () => void
+  moreActions?: ReactNode
 }
 
 const FALLBACK_TEXT: Record<MediaDetailHeroType, string> = {
@@ -49,6 +51,7 @@ const MediaDetailHero = ({
   favoriteLoading = false,
   onPlay,
   onToggleFavorite,
+  moreActions,
 }: MediaDetailHeroProps) => {
   const [idleFavoriteText, activeFavoriteText] = FAVORITE_TEXT[type]
 
@@ -113,14 +116,7 @@ const MediaDetailHero = ({
             </Button>
           ) : null}
 
-          <Button
-            type='button'
-            size='icon-lg'
-            variant='secondary'
-            className='w-[100px] rounded-full py-7'
-          >
-            <MoreHorizontal className='size-5' />
-          </Button>
+          {moreActions}
         </div>
       </div>
     </section>

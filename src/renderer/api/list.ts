@@ -10,9 +10,9 @@ export function getTopListDetailById(id: string) {
   return request.get(`/playlist/detail?id=${id}`)
 }
 
-export function getPlaylistDetail(id: number | string) {
+export function getPlaylistDetail(id: number | string, timestamp?: number) {
   return request.get('/playlist/detail', {
-    params: { id },
+    params: { id, timestamp },
   })
 }
 
@@ -24,6 +24,31 @@ export interface CreatePlaylistParams {
 
 export function createPlaylist(params: CreatePlaylistParams) {
   return request.get('/playlist/create', {
+    params,
+  })
+}
+
+export interface DeletePlaylistParams {
+  id: number | string
+  timestamp?: number
+}
+
+export function deletePlaylist(params: DeletePlaylistParams) {
+  return request.get('/playlist/delete', {
+    params,
+  })
+}
+
+export interface UpdatePlaylistParams {
+  id: number | string
+  name: string
+  desc?: string
+  tags?: string
+  timestamp?: number
+}
+
+export function updatePlaylist(params: UpdatePlaylistParams) {
+  return request.get('/playlist/update', {
     params,
   })
 }
@@ -114,6 +139,7 @@ export interface PlaylistTracksParams {
   id: number | string
   limit?: number
   offset?: number
+  timestamp?: number
 }
 
 export function getPlaylistTracks(params: PlaylistTracksParams) {

@@ -1,4 +1,5 @@
 import MediaDetailHero from '@/components/MediaDetailHero'
+import type { ReactNode } from 'react'
 
 import {
   formatPlaylistUpdateDate,
@@ -11,6 +12,7 @@ interface PlaylistDetailHeroProps {
   favoriteLoading: boolean
   onToggleFavorite: () => void
   onPlay: () => void
+  moreActions?: ReactNode
 }
 
 const PlaylistDetailHero = ({
@@ -19,6 +21,7 @@ const PlaylistDetailHero = ({
   favoriteLoading,
   onToggleFavorite,
   onPlay,
+  moreActions,
 }: PlaylistDetailHeroProps) => {
   return (
     <MediaDetailHero
@@ -36,6 +39,7 @@ const PlaylistDetailHero = ({
       favoriteLoading={favoriteLoading}
       onToggleFavorite={onToggleFavorite}
       onPlay={onPlay}
+      moreActions={moreActions}
     />
   )
 }
