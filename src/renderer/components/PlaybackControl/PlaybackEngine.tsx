@@ -7,6 +7,10 @@ import { resolveTrackWithLxMusicSource } from '@/services/music-source/lx-playba
 import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import {
+  applyPlaybackSpeedToAudio,
+  normalizePlaybackSpeedValue,
+} from '@/pages/Settings/components/playback-speed.model'
+import {
   createSongUrlRequestAttempts,
   normalizeSongUrlV1Response,
 } from '../../../shared/playback.ts'
@@ -24,6 +28,9 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const configRef = useRef(useConfigStore.getState().config)
   const qualityRef = useRef(useConfigStore.getState().config.quality)
   const unblockRef = useRef(useConfigStore.getState().config.musicSourceEnabled)
+  const playbackSpeedRef = useRef(
+    normalizePlaybackSpeedValue(useConfigStore.getState().config.playbackSpeed)
+  )
   const audioOutputDeviceIdRef = useRef(
     useConfigStore.getState().config.audioOutputDeviceId
   )
@@ -39,6 +46,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const musicSourceEnabled = useConfigStore(
     state => state.config.musicSourceEnabled
   )
+  const playbackSpeed = useConfigStore(state => state.config.playbackSpeed)
   const audioOutputDeviceId = useConfigStore(
     state => state.config.audioOutputDeviceId
   )
@@ -65,6 +73,19 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   }, [musicSourceEnabled])
 
   useEffect(() => {
+    const normalizedPlaybackSpeed = normalizePlaybackSpeedValue(playbackSpeed)
+    playbackSpeedRef.current = normalizedPlaybackSpeed
+
+    const audio = audioRef.current
+
+    if (!audio) {
+      return
+    }
+
+    applyPlaybackSpeedToAudio(audio, normalizedPlaybackSpeed)
+  }, [playbackSpeed])
+
+  useEffect(() => {
     volumeRef.current = volume
     if (audioRef.current) {
       audioRef.current.volume = volume / 100
@@ -89,7 +110,37 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
     const audio = new Audio()
     audio.preload = 'auto'
     audio.volume = volumeRef.current / 100
+    applyPlaybackSpeedToAudio(audio, playbackSpeedRef.current)
     audioRef.current = audio
+    let frameId = 0
+
+    const stopProgressSync = () => {
+      if (!frameId) {
+        return
+      }
+
+      cancelAnimationFrame(frameId)
+      frameId = 0
+    }
+
+    const syncProgress = () => {
+      frameId = 0
+
+      if (audio.paused || audio.ended) {
+        return
+      }
+
+      usePlaybackStore.getState().setProgress(audio.currentTime * 1000)
+      frameId = requestAnimationFrame(syncProgress)
+    }
+
+    const startProgressSync = () => {
+      if (frameId) {
+        return
+      }
+
+      frameId = requestAnimationFrame(syncProgress)
+    }
 
     const handleTimeUpdate = () => {
       usePlaybackStore.getState().setProgress(audio.currentTime * 1000)
@@ -102,6 +153,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
     }
 
     const handleEnded = () => {
+      stopProgressSync()
       const hasNext = usePlaybackStore.getState().playNext('auto')
 
       if (!hasNext) {
@@ -110,6 +162,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
     }
 
     const handleError = () => {
+      stopProgressSync()
       usePlaybackStore
         .getState()
         .markPlaybackError(PLAYBACK_UNAVAILABLE_MESSAGE)
@@ -119,16 +172,23 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('durationchange', handleDurationChange)
     audio.addEventListener('loadedmetadata', handleDurationChange)
+    audio.addEventListener('play', startProgressSync)
+    audio.addEventListener('playing', startProgressSync)
+    audio.addEventListener('pause', stopProgressSync)
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('error', handleError)
 
     return () => {
+      stopProgressSync()
       audio.pause()
       audio.removeAttribute('src')
       audio.load()
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('durationchange', handleDurationChange)
       audio.removeEventListener('loadedmetadata', handleDurationChange)
+      audio.removeEventListener('play', startProgressSync)
+      audio.removeEventListener('playing', startProgressSync)
+      audio.removeEventListener('pause', stopProgressSync)
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('error', handleError)
       audioRef.current = null
@@ -196,10 +256,23 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
           return
         }
 
+        let resolvedAudioUrl = result.url
+        try {
+          const cacheKey = `audio:${currentTrack.id}:${qualityRef.current}:${result.url}`
+          const cachedResult = await window.electronCache.resolveAudioSource(
+            cacheKey,
+            result.url
+          )
+          resolvedAudioUrl = cachedResult.url || result.url
+        } catch (error) {
+          console.error('resolve cached audio source failed', error)
+        }
+
         audio.pause()
-        audio.src = result.url
+        audio.src = resolvedAudioUrl
         audio.currentTime = 0
         audio.volume = volumeRef.current / 100
+        applyPlaybackSpeedToAudio(audio, playbackSpeedRef.current)
         latestState.setProgress(0)
         latestState.setDuration(result.time || currentTrack.duration)
 

@@ -335,4 +335,20 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --player-panel: color-mix(in srgb, var(--card) 92%, rgba(9, 9, 11, 0.08));
+  --player-panel-strong: color-mix(
+    in srgb,
+    var(--card) 97%,
+    rgba(9, 9, 11, 0.12)
+  );
+  --player-line: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --player-foreground: #f8fafc;
+  --player-muted: rgba(241, 245, 249, 0.76);
+  --player-soft: rgba(241, 245, 249, 0.54);
+  --player-faint: rgba(241, 245, 249, 0.22);
+  --player-top-wash: color-mix(in srgb, var(--background) 18%, transparent);
+  --player-bottom-wash: color-mix(in srgb, var(--background) 80%, transparent);
+  --player-scene-veil: rgba(8, 9, 16, 0.2);
+  --player-scene-side: rgba(8, 9, 16, 0.08);
+  --player-cover-opacity: 0.95;
 }

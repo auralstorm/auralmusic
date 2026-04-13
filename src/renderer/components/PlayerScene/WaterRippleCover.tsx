@@ -1,18 +1,21 @@
 import { useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useTexture, Plane, useCursor } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 
 interface WaterRipple3DCoverProps {
   src: string
   className?: string
   playBeat?: boolean
+  blurEnabled?: boolean
 }
 
 export default function WaterRipple3DCover({
   src,
   className = '',
   playBeat = false,
+  blurEnabled = false,
 }: WaterRipple3DCoverProps) {
   const [loading, setLoading] = useState(true)
 
@@ -40,6 +43,16 @@ export default function WaterRipple3DCover({
         }}
       >
         <ambientLight intensity={2.0} />
+        {/* 模糊效果开关（核心） */}
+        {blurEnabled && (
+          <EffectComposer enableNormalPass>
+            <Bloom
+              intensity={1.2} // 模糊强度
+              luminanceThreshold={0.0} // 让整张图都模糊
+              luminanceSmoothing={0.9}
+            />
+          </EffectComposer>
+        )}
         <WaterSurface
           url={src}
           playBeat={playBeat}

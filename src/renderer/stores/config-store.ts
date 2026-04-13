@@ -4,8 +4,14 @@ import {
   AUDIO_QUALITY_LEVELS,
   MUSIC_SOURCE_PROVIDERS,
   defaultConfig,
+  normalizeDiskCacheDir,
+  normalizeDiskCacheEnabled,
+  normalizeDiskCacheMaxBytes,
   normalizeDynamicCoverEnabled,
+  normalizeLyricsKaraokeEnabled,
+  normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
+  normalizeShowLyricTranslation,
   type AudioQualityLevel,
   type MusicSourceProvider,
 } from '../../main/config/types'
@@ -90,8 +96,15 @@ function normalizeConfig(config: AppConfig): AppConfig {
     quality: normalizeQuality(config.quality),
     playbackVolume: normalizePlaybackVolume(config.playbackVolume),
     playbackMode: normalizePlaybackMode(config.playbackMode),
+    playbackSpeed: normalizePlaybackSpeed(config.playbackSpeed),
     dynamicCoverEnabled: normalizeDynamicCoverEnabled(
       config.dynamicCoverEnabled
+    ),
+    showLyricTranslation: normalizeShowLyricTranslation(
+      config.showLyricTranslation
+    ),
+    lyricsKaraokeEnabled: normalizeLyricsKaraokeEnabled(
+      config.lyricsKaraokeEnabled
     ),
     musicSourceEnabled:
       typeof config.musicSourceEnabled === 'boolean'
@@ -136,6 +149,9 @@ function normalizeConfig(config: AppConfig): AppConfig {
       typeof config.rememberCloseChoice === 'boolean'
         ? config.rememberCloseChoice
         : defaultConfig.rememberCloseChoice,
+    diskCacheEnabled: normalizeDiskCacheEnabled(config.diskCacheEnabled),
+    diskCacheDir: normalizeDiskCacheDir(config.diskCacheDir),
+    diskCacheMaxBytes: normalizeDiskCacheMaxBytes(config.diskCacheMaxBytes),
   }
 }
 

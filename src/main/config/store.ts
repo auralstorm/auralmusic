@@ -4,8 +4,14 @@ import {
   AUDIO_QUALITY_LEVELS,
   MUSIC_SOURCE_PROVIDERS,
   defaultConfig,
+  normalizeDiskCacheDir,
+  normalizeDiskCacheEnabled,
+  normalizeDiskCacheMaxBytes,
   normalizeDynamicCoverEnabled,
+  normalizeLyricsKaraokeEnabled,
+  normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
+  normalizeShowLyricTranslation,
   type AudioQualityLevel,
   type MusicSourceProvider,
 } from './types'
@@ -97,7 +103,10 @@ function createConfigStore() {
       audioOutputDeviceId: { type: 'string' },
       playbackVolume: { type: 'number', minimum: 0, maximum: 100 },
       playbackMode: { type: 'string', enum: PLAYBACK_MODE_SEQUENCE },
+      playbackSpeed: { type: 'number', minimum: 0.5, maximum: 2 },
       dynamicCoverEnabled: { type: 'boolean' },
+      showLyricTranslation: { type: 'boolean' },
+      lyricsKaraokeEnabled: { type: 'boolean' },
       musicSourceEnabled: { type: 'boolean' },
       musicSourceProviders: {
         type: 'array',
@@ -162,6 +171,9 @@ function createConfigStore() {
         type: 'string',
         enum: ['off', 'static', 'dynamic'],
       },
+      diskCacheEnabled: { type: 'boolean' },
+      diskCacheDir: { type: 'string' },
+      diskCacheMaxBytes: { type: 'number', minimum: 1 },
     },
   })
 }
@@ -193,6 +205,12 @@ class ConfigStore {
         ConfigStore.instance.set('playbackMode', normalizedMode)
       }
 
+      const playbackSpeed = ConfigStore.instance.get('playbackSpeed')
+      const normalizedPlaybackSpeed = normalizePlaybackSpeed(playbackSpeed)
+      if (playbackSpeed !== normalizedPlaybackSpeed) {
+        ConfigStore.instance.set('playbackSpeed', normalizedPlaybackSpeed)
+      }
+
       const dynamicCoverEnabled = ConfigStore.instance.get(
         'dynamicCoverEnabled'
       )
@@ -214,6 +232,16 @@ class ConfigStore {
         ConfigStore.instance.set(
           'playerBackgroundMode',
           normalizedPlayerBackgroundMode
+        )
+      }
+
+      const diskCacheMaxBytes = ConfigStore.instance.get('diskCacheMaxBytes')
+      const normalizedDiskCacheMaxBytes =
+        normalizeDiskCacheMaxBytes(diskCacheMaxBytes)
+      if (diskCacheMaxBytes !== normalizedDiskCacheMaxBytes) {
+        ConfigStore.instance.set(
+          'diskCacheMaxBytes',
+          normalizedDiskCacheMaxBytes
         )
       }
 
@@ -279,6 +307,43 @@ class ConfigStore {
           'musicSourceProviders',
           normalizedLxAwareProviders
         )
+      }
+
+      const showLyricTranslation = ConfigStore.instance.get(
+        'showLyricTranslation'
+      )
+      const normalizedShowLyricTranslation =
+        normalizeShowLyricTranslation(showLyricTranslation)
+      if (showLyricTranslation !== normalizedShowLyricTranslation) {
+        ConfigStore.instance.set(
+          'showLyricTranslation',
+          normalizedShowLyricTranslation
+        )
+      }
+
+      const lyricsKaraokeEnabled = ConfigStore.instance.get(
+        'lyricsKaraokeEnabled'
+      )
+      const normalizedLyricsKaraokeEnabled =
+        normalizeLyricsKaraokeEnabled(lyricsKaraokeEnabled)
+      if (lyricsKaraokeEnabled !== normalizedLyricsKaraokeEnabled) {
+        ConfigStore.instance.set(
+          'lyricsKaraokeEnabled',
+          normalizedLyricsKaraokeEnabled
+        )
+      }
+
+      const diskCacheEnabled = ConfigStore.instance.get('diskCacheEnabled')
+      const normalizedDiskCacheEnabled =
+        normalizeDiskCacheEnabled(diskCacheEnabled)
+      if (diskCacheEnabled !== normalizedDiskCacheEnabled) {
+        ConfigStore.instance.set('diskCacheEnabled', normalizedDiskCacheEnabled)
+      }
+
+      const diskCacheDir = ConfigStore.instance.get('diskCacheDir')
+      const normalizedDiskCacheDir = normalizeDiskCacheDir(diskCacheDir)
+      if (diskCacheDir !== normalizedDiskCacheDir) {
+        ConfigStore.instance.set('diskCacheDir', normalizedDiskCacheDir)
       }
     }
 

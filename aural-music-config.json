@@ -1,10 +1,13 @@
 {
-  "theme": "system",
+  "theme": "light",
   "fontFamily": "Source Han Serif SC",
   "audioOutputDeviceId": "default",
   "playbackVolume": 26,
   "playbackMode": "shuffle",
-  "dynamicCoverEnabled": true,
+  "playbackSpeed": 1,
+  "dynamicCoverEnabled": false,
+  "showLyricTranslation": false,
+  "lyricsKaraokeEnabled": true,
   "musicSourceEnabled": true,
   "musicSourceProviders": ["migu", "kugou", "pyncmd", "bilibili", "lxMusic"],
   "luoxueSourceEnabled": true,
@@ -58,8 +61,11 @@
       "global": "Alt+Ctrl+M"
     }
   },
-  "autoStartEnabled": true,
+  "autoStartEnabled": false,
   "closeBehavior": "ask",
   "rememberCloseChoice": false,
-  "playerBackgroundMode": "off"
+  "playerBackgroundMode": "static",
+  "diskCacheEnabled": true,
+  "diskCacheDir": "",
+  "diskCacheMaxBytes": 1073741824
 }

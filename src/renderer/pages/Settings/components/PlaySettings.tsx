@@ -3,6 +3,7 @@ import { Volume2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import {
   Select,
@@ -21,6 +22,15 @@ import {
   type AudioOutputDeviceOption,
   type AudioOutputDeviceQueryStatus,
 } from '../settings-audio-output'
+import {
+  formatPlaybackSpeedLabel,
+  normalizePlaybackSpeedValue,
+  PLAYBACK_SPEED_MAX,
+  PLAYBACK_SPEED_MIN,
+  PLAYBACK_SPEED_STEP,
+  resolvePlaybackSpeedCommitValue,
+  resolvePlaybackSpeedSliderValue,
+} from './playback-speed.model'
 import MusicSourceSettingsDialog from './MusicSourceSettingsDialog'
 
 const AUDIO_OUTPUT_STATUS_LABEL: Partial<
@@ -47,22 +57,77 @@ const AUDIO_QUALITY_OPTIONS: Array<{
   { label: '超清母带', value: 'jymaster' },
 ]
 
+type ToggleSettingProps = {
+  enabled: boolean
+  disabled?: boolean
+  onToggle: () => void
+}
+
+function ToggleSetting({
+  enabled,
+  disabled = false,
+  onToggle,
+}: ToggleSettingProps) {
+  return (
+    <button
+      type='button'
+      disabled={disabled}
+      aria-pressed={enabled}
+      onClick={onToggle}
+      className={cn(
+        'bg-muted/60 relative h-9 w-full rounded-full px-1 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
+        enabled
+          ? 'text-primary-foreground bg-primary/90'
+          : 'text-muted-foreground'
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'bg-background absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm transition-transform duration-300',
+          enabled ? 'translate-x-full' : 'translate-x-0'
+        )}
+      />
+      <span className='relative z-10 grid h-full grid-cols-2 items-center'>
+        <span
+          className={cn('transition-colors', !enabled && 'text-foreground')}
+        >
+          关闭
+        </span>
+        <span className={cn('transition-colors', enabled && 'text-foreground')}>
+          开启
+        </span>
+      </span>
+    </button>
+  )
+}
+
 const PlaySettings = () => {
   const audioOutputDeviceId =
     useConfigStore(state => state.config.audioOutputDeviceId) ||
     DEFAULT_AUDIO_OUTPUT_DEVICE_ID
   const audioQuality = useConfigStore(state => state.config.quality)
+  const playbackSpeed = useConfigStore(state => state.config.playbackSpeed)
   const musicSourceEnabled = useConfigStore(
     state => state.config.musicSourceEnabled
   )
   const dynamicCoverEnabled = useConfigStore(
     state => state.config.dynamicCoverEnabled
   )
+  const showLyricTranslation = useConfigStore(
+    state => state.config.showLyricTranslation
+  )
+  const lyricsKaraokeEnabled = useConfigStore(
+    state => state.config.lyricsKaraokeEnabled
+  )
   const isConfigLoading = useConfigStore(state => state.isLoading)
   const initConfig = useConfigStore(state => state.initConfig)
   const setConfig = useConfigStore(state => state.setConfig)
   const [devices, setDevices] = useState<AudioOutputDeviceOption[]>([])
   const [devicesLoading, setDevicesLoading] = useState(false)
+  const [playbackSpeedDragValue, setPlaybackSpeedDragValue] = useState<
+    number | null
+  >(null)
   const [testing, setTesting] = useState(false)
   const [musicSourceDialogOpen, setMusicSourceDialogOpen] = useState(false)
   const [queryStatus, setQueryStatus] =
@@ -72,6 +137,10 @@ const PlaySettings = () => {
   const audioOutputDevices = mergeSelectedAudioOutputDevice(
     devices,
     audioOutputDeviceId
+  )
+  const playbackSpeedSliderValue = resolvePlaybackSpeedSliderValue(
+    playbackSpeed,
+    playbackSpeedDragValue
   )
 
   const loadAudioOutputDevices = async () => {
@@ -118,6 +187,29 @@ const PlaySettings = () => {
     void setConfig('dynamicCoverEnabled', !dynamicCoverEnabled)
   }
 
+  const handleToggleLyricTranslation = () => {
+    void setConfig('showLyricTranslation', !showLyricTranslation)
+  }
+
+  const handleToggleLyricsKaraoke = () => {
+    void setConfig('lyricsKaraokeEnabled', !lyricsKaraokeEnabled)
+  }
+
+  const handlePlaybackSpeedChange = (nextValue: number[]) => {
+    setPlaybackSpeedDragValue(resolvePlaybackSpeedCommitValue(nextValue))
+  }
+
+  const handlePlaybackSpeedCommit = (nextValue: number[]) => {
+    const nextPlaybackSpeed = resolvePlaybackSpeedCommitValue(nextValue)
+    setPlaybackSpeedDragValue(null)
+
+    if (nextPlaybackSpeed === normalizePlaybackSpeedValue(playbackSpeed)) {
+      return
+    }
+
+    void setConfig('playbackSpeed', nextPlaybackSpeed)
+  }
+
   const handleTestAudioOutput = async () => {
     if (testing) {
       return
@@ -129,7 +221,9 @@ const PlaySettings = () => {
       await playAudioOutputTestTone(audioOutputDeviceId)
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : '测试音播放失败，请稍后重试。'
+        error instanceof Error
+          ? error.message
+          : '测试音频输出失败，请稍后重试。'
       )
     } finally {
       setTesting(false)
@@ -217,50 +311,78 @@ const PlaySettings = () => {
       <div className='grid grid-cols-[minmax(0,1fr)_minmax(220px,280px)] items-center gap-6 py-3'>
         <div className='space-y-1'>
           <div className='text-muted-foreground text-sm font-medium'>
+            倍速播放
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            0.5x - 2.0x 播放速度调节
+          </p>
+        </div>
+        <div className='space-y-2'>
+          <div className='text-muted-foreground text-right text-xs tabular-nums'>
+            {formatPlaybackSpeedLabel(playbackSpeedSliderValue)}
+          </div>
+          <Slider
+            aria-label='倍速播放'
+            min={PLAYBACK_SPEED_MIN}
+            max={PLAYBACK_SPEED_MAX}
+            step={PLAYBACK_SPEED_STEP}
+            value={[playbackSpeedSliderValue]}
+            disabled={isConfigLoading}
+            onValueChange={handlePlaybackSpeedChange}
+            onValueCommit={handlePlaybackSpeedCommit}
+          />
+        </div>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(220px,280px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            显示歌词翻译
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            开启后，播放器歌词区域显示翻译文本
+          </p>
+        </div>
+        <ToggleSetting
+          enabled={showLyricTranslation}
+          disabled={isConfigLoading}
+          onToggle={handleToggleLyricTranslation}
+        />
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(220px,280px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            卡拉 OK 模式
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            开启后优先使用逐字歌词，没有逐字数据时回退逐行高亮
+          </p>
+        </div>
+        <ToggleSetting
+          enabled={lyricsKaraokeEnabled}
+          disabled={isConfigLoading}
+          onToggle={handleToggleLyricsKaraoke}
+        />
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(220px,280px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
             动态封面效果
           </div>
           <p className='text-muted-foreground text-xs'>
-            开启后播放器大界面使用水波动态封面，关闭后使用静态封面
+            开启后播放器大界面使用动态封面，关闭后使用静态封面
           </p>
         </div>
-        <button
-          type='button'
+        <ToggleSetting
+          enabled={dynamicCoverEnabled}
           disabled={isConfigLoading}
-          aria-pressed={dynamicCoverEnabled}
-          onClick={handleToggleDynamicCover}
-          className={cn(
-            'bg-muted/60 relative h-9 w-full rounded-full px-1 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
-            dynamicCoverEnabled
-              ? 'text-primary-foreground bg-primary/90'
-              : 'text-muted-foreground'
-          )}
-        >
-          <span
-            aria-hidden
-            className={cn(
-              'bg-background absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm transition-transform duration-300',
-              dynamicCoverEnabled ? 'translate-x-full' : 'translate-x-0'
-            )}
-          />
-          <span className='relative z-10 grid h-full grid-cols-2 items-center'>
-            <span
-              className={cn(
-                'transition-colors',
-                !dynamicCoverEnabled && 'text-foreground'
-              )}
-            >
-              关闭
-            </span>
-            <span
-              className={cn(
-                'transition-colors',
-                dynamicCoverEnabled && 'text-foreground'
-              )}
-            >
-              开启
-            </span>
-          </span>
-        </button>
+          onToggle={handleToggleDynamicCover}
+        />
       </div>
       <Separator />
 

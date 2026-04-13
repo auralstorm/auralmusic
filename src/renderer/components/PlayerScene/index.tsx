@@ -1,7 +1,6 @@
 import { Maximize2, Minimize2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
-import { getLyric } from '@/api/list'
 import {
   Drawer,
   DrawerContent,
@@ -14,37 +13,9 @@ import PlayerSceneArtwork from './PlayerSceneArtwork'
 import PlayerSceneControls from './PlayerSceneControls'
 import PlayerSceneLyrics from './PlayerSceneLyrics'
 import PlayerSceneProgress from './PlayerSceneProgress'
+import { findActiveLyricIndex } from './player-lyrics.model'
+import { usePlayerLyrics } from './usePlayerLyrics'
 import WaterRipple3DCover from './WaterRippleCover'
-import {
-  findActiveLyricIndex,
-  parseLrc,
-  type LyricLine,
-} from './player-lyrics.model'
-
-function readLyricText(payload: unknown) {
-  if (!payload || typeof payload !== 'object') {
-    return ''
-  }
-
-  const record = payload as Record<string, unknown>
-  const directLrc = record.lrc
-
-  if (directLrc && typeof directLrc === 'object') {
-    const lyric = (directLrc as Record<string, unknown>).lyric
-
-    if (typeof lyric === 'string') {
-      return lyric
-    }
-  }
-
-  const nestedData = record.data
-
-  if (nestedData && typeof nestedData === 'object') {
-    return readLyricText(nestedData)
-  }
-
-  return ''
-}
 
 const PlayerScene = () => {
   const currentTrack = usePlaybackStore(state => state.currentTrack)
@@ -65,13 +36,20 @@ const PlayerScene = () => {
   const dynamicCoverEnabled = useConfigStore(
     state => state.config.dynamicCoverEnabled
   )
+  const showLyricTranslation = useConfigStore(
+    state => state.config.showLyricTranslation
+  )
+  const lyricsKaraokeEnabled = useConfigStore(
+    state => state.config.lyricsKaraokeEnabled
+  )
   const playerBackgroundMode = useConfigStore(
     state => state.config.playerBackgroundMode
   )
 
-  const [lyrics, setLyrics] = useState<LyricLine[]>([])
-  const [lyricsLoading, setLyricsLoading] = useState(false)
-  const [lyricsError, setLyricsError] = useState('')
+  const { lyrics, lyricsLoading, lyricsError } = usePlayerLyrics({
+    isOpen,
+    trackId: currentTrack?.id,
+  })
 
   const hasTrack = Boolean(currentTrack)
   const isPlaying = status === 'playing' || status === 'loading'
@@ -116,55 +94,6 @@ const PlayerScene = () => {
       unsubscribe()
     }
   }, [setPlayerSceneFullscreen])
-
-  useEffect(() => {
-    if (!isOpen || !currentTrack) {
-      setLyrics([])
-      setLyricsError('')
-      setLyricsLoading(false)
-      return
-    }
-
-    let cancelled = false
-
-    const loadLyrics = async () => {
-      setLyricsLoading(true)
-      setLyricsError('')
-
-      try {
-        const response = await getLyric({ id: currentTrack.id })
-        const nextLyrics = parseLrc(readLyricText(response.data))
-        if (cancelled) {
-          return
-        }
-
-        setLyrics(nextLyrics)
-        setLyricsError(
-          nextLyrics.length && !JSON.stringify(nextLyrics).includes('暂无歌词')
-            ? ''
-            : '暂无歌词'
-        )
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-
-        console.error('load lyric failed', error)
-        setLyrics([])
-        setLyricsError('暂无歌词')
-      } finally {
-        if (!cancelled) {
-          setLyricsLoading(false)
-        }
-      }
-    }
-
-    void loadLyrics()
-
-    return () => {
-      cancelled = true
-    }
-  }, [currentTrack, isOpen])
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isFullscreen) {
@@ -226,7 +155,11 @@ const PlayerScene = () => {
               aria-hidden='true'
               className='absolute inset-0 scale-110 overflow-hidden opacity-[var(--player-cover-opacity)]'
             >
-              <WaterRipple3DCover src={coverUrl} className='h-full w-full' />
+              <WaterRipple3DCover
+                src={coverUrl}
+                blurEnabled={true}
+                className='h-full w-full'
+              />
             </div>
           ) : null}
           {showStaticPlayerBackground ? (
@@ -296,6 +229,9 @@ const PlayerScene = () => {
             <PlayerSceneLyrics
               lines={lyrics}
               activeIndex={activeLyricIndex}
+              progressMs={progress}
+              showTranslation={showLyricTranslation}
+              karaokeEnabled={lyricsKaraokeEnabled}
               loading={lyricsLoading}
               error={lyricsError}
             />

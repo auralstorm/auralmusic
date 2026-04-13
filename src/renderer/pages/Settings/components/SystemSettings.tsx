@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 import {
   Select,
   SelectContent,
@@ -8,13 +11,13 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useSystemFont, SYSTEM_FONT_VALUE } from '@/hooks/useSystemFont'
+import { cn } from '@/lib/utils'
 import { useConfigStore } from '@/stores/config-store'
 import {
   mergeFontFamilies,
   querySystemFontFamilies,
   type SystemFontQueryStatus,
 } from '../settings-fonts'
-import { cn } from '@/lib/utils'
 
 const FONT_LABELS: Record<string, string> = {
   'Inter Variable': 'Inter',
@@ -22,8 +25,112 @@ const FONT_LABELS: Record<string, string> = {
   [SYSTEM_FONT_VALUE]: '系统默认',
 }
 
+const BYTES_IN_GB = 1024 * 1024 * 1024
+const BYTES_IN_MB = 1024 * 1024
+const MIN_CACHE_SIZE_GB = 0.5
+const MAX_CACHE_SIZE_GB = 10
+const CACHE_SIZE_STEP_GB = 0.5
+const EMPTY_CACHE_STATUS = {
+  usedBytes: 0,
+  audioCount: 0,
+  lyricsCount: 0,
+}
+
+type ToggleSettingProps = {
+  enabled: boolean
+  onToggle: () => void
+}
+
+function clampCacheSizeGb(value: number) {
+  if (!Number.isFinite(value)) {
+    return 1
+  }
+
+  return Math.min(MAX_CACHE_SIZE_GB, Math.max(MIN_CACHE_SIZE_GB, value))
+}
+
+function bytesToGb(value: number) {
+  const rawGb = value / BYTES_IN_GB
+  const rounded = Math.round(rawGb / CACHE_SIZE_STEP_GB) * CACHE_SIZE_STEP_GB
+  return clampCacheSizeGb(rounded)
+}
+
+function gbToBytes(value: number) {
+  return Math.round(clampCacheSizeGb(value) * BYTES_IN_GB)
+}
+
+function formatStorageSize(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0 MB'
+  }
+
+  if (value >= BYTES_IN_GB) {
+    return `${(value / BYTES_IN_GB).toFixed(1)} GB`
+  }
+
+  return `${Math.round(value / BYTES_IN_MB)} MB`
+}
+
+function getCacheUsagePercent(usedBytes: number, maxBytes: number) {
+  if (
+    !Number.isFinite(usedBytes) ||
+    !Number.isFinite(maxBytes) ||
+    maxBytes <= 0
+  ) {
+    return 0
+  }
+
+  return Math.min((usedBytes / maxBytes) * 100, 100)
+}
+
+function formatCacheUsagePercent(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0%'
+  }
+
+  if (value >= 99.95) {
+    return '100%'
+  }
+
+  return `${value.toFixed(1)}%`
+}
+
 function getFontLabel(fontFamily: string) {
   return FONT_LABELS[fontFamily] || fontFamily
+}
+
+function ToggleSetting({ enabled, onToggle }: ToggleSettingProps) {
+  return (
+    <button
+      type='button'
+      aria-pressed={enabled}
+      onClick={onToggle}
+      className={cn(
+        'bg-muted/60 relative h-9 w-full rounded-full px-1 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
+        enabled
+          ? 'text-primary-foreground bg-primary/90'
+          : 'text-muted-foreground'
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'bg-background absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm transition-transform duration-300',
+          enabled ? 'translate-x-full' : 'translate-x-0'
+        )}
+      />
+      <span className='relative z-10 grid h-full grid-cols-2 items-center'>
+        <span
+          className={cn('transition-colors', !enabled && 'text-foreground')}
+        >
+          关闭
+        </span>
+        <span className={cn('transition-colors', enabled && 'text-foreground')}>
+          开启
+        </span>
+      </span>
+    </button>
+  )
 }
 
 const SystemSettings = () => {
@@ -33,6 +140,13 @@ const SystemSettings = () => {
     state => state.config.autoStartEnabled
   )
   const closeBehavior = useConfigStore(state => state.config.closeBehavior)
+  const diskCacheEnabled = useConfigStore(
+    state => state.config.diskCacheEnabled
+  )
+  const diskCacheDir = useConfigStore(state => state.config.diskCacheDir)
+  const diskCacheMaxBytes = useConfigStore(
+    state => state.config.diskCacheMaxBytes
+  )
   const [systemFonts, setSystemFonts] = useState<string[]>([])
   const [systemFontsLoading, setSystemFontsLoading] = useState(false)
   const [systemFontsLoaded, setSystemFontsLoaded] = useState(false)
@@ -40,17 +154,102 @@ const SystemSettings = () => {
     null
   )
   const [queryMessage, setQueryMessage] = useState('')
-
-  const handleToggleStartChange = () => {
-    setConfig('autoStartEnabled', !autoStartEnabled)
-  }
-
-  const handleCloseBehaviorChange = (value: string) => {
-    setConfig('closeBehavior', value as 'ask' | 'minimize' | 'quit')
-    setConfig('rememberCloseChoice', value !== 'ask')
-  }
+  const [defaultCacheDir, setDefaultCacheDir] = useState('')
+  const [selectingCacheDir, setSelectingCacheDir] = useState(false)
+  const [clearingCache, setClearingCache] = useState(false)
+  const [refreshingCacheStatus, setRefreshingCacheStatus] = useState(false)
+  const [cacheSizePreviewGb, setCacheSizePreviewGb] = useState(
+    bytesToGb(diskCacheMaxBytes)
+  )
+  const [cacheStatus, setCacheStatus] = useState(EMPTY_CACHE_STATUS)
 
   const fontFamilies = mergeFontFamilies(systemFonts, currentFontFamily)
+  const resolvedCacheDir =
+    diskCacheDir.trim() || defaultCacheDir || '未获取目录'
+  const cacheUsagePercent = getCacheUsagePercent(
+    cacheStatus.usedBytes,
+    diskCacheMaxBytes
+  )
+
+  const loadCacheStatus = async (showSuccessToast = false) => {
+    if (refreshingCacheStatus) {
+      return
+    }
+
+    setRefreshingCacheStatus(true)
+    try {
+      const status = await window.electronCache.getStatus()
+      setCacheStatus(status)
+      if (showSuccessToast) {
+        toast.success('缓存状态已刷新')
+      }
+    } catch (error) {
+      if (showSuccessToast) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : '刷新缓存状态失败，请稍后重试'
+        )
+      } else {
+        console.error('Failed to load cache status:', error)
+      }
+    } finally {
+      setRefreshingCacheStatus(false)
+    }
+  }
+
+  useEffect(() => {
+    setCacheSizePreviewGb(bytesToGb(diskCacheMaxBytes))
+  }, [diskCacheMaxBytes])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDefaultCacheDir = async () => {
+      try {
+        const dir = await window.electronCache.getDefaultDirectory()
+        if (!cancelled) {
+          setDefaultCacheDir(dir)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load default cache directory:', error)
+        }
+      }
+    }
+
+    void loadDefaultCacheDir()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncCacheStatus = async () => {
+      setRefreshingCacheStatus(true)
+      try {
+        const status = await window.electronCache.getStatus()
+        if (!cancelled) {
+          setCacheStatus(status)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load cache status:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setRefreshingCacheStatus(false)
+        }
+      }
+    }
+
+    void syncCacheStatus()
+    return () => {
+      cancelled = true
+    }
+  }, [diskCacheDir])
 
   const loadSystemFonts = async () => {
     if (systemFontsLoaded || systemFontsLoading) {
@@ -58,13 +257,79 @@ const SystemSettings = () => {
     }
 
     setSystemFontsLoading(true)
-
     const result = await querySystemFontFamilies()
     setSystemFonts(result.fonts)
     setQueryStatus(result.status)
     setQueryMessage(result.message || '')
     setSystemFontsLoaded(true)
     setSystemFontsLoading(false)
+  }
+
+  const handleToggleStartChange = () => {
+    void setConfig('autoStartEnabled', !autoStartEnabled)
+  }
+
+  const handleCloseBehaviorChange = (value: string) => {
+    void setConfig('closeBehavior', value as 'ask' | 'minimize' | 'quit')
+    void setConfig('rememberCloseChoice', value !== 'ask')
+  }
+
+  const handleToggleDiskCache = () => {
+    void setConfig('diskCacheEnabled', !diskCacheEnabled)
+  }
+
+  const handleSelectCacheDir = async () => {
+    if (selectingCacheDir) {
+      return
+    }
+
+    setSelectingCacheDir(true)
+    try {
+      const selectedDir = await window.electronCache.selectDirectory()
+      if (selectedDir) {
+        await setConfig('diskCacheDir', selectedDir)
+        await loadCacheStatus()
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : '选择缓存目录失败，请稍后重试'
+      )
+    } finally {
+      setSelectingCacheDir(false)
+    }
+  }
+
+  const handleResetCacheDir = async () => {
+    await setConfig('diskCacheDir', '')
+    await loadCacheStatus()
+  }
+
+  const handleCacheSizeCommit = (values: number[]) => {
+    const value = values[0]
+    if (typeof value !== 'number') {
+      return
+    }
+
+    void setConfig('diskCacheMaxBytes', gbToBytes(value))
+  }
+
+  const handleClearCache = async () => {
+    if (clearingCache) {
+      return
+    }
+
+    setClearingCache(true)
+    try {
+      await window.electronCache.clear()
+      await loadCacheStatus()
+      toast.success('缓存已清理')
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : '清理缓存失败，请稍后重试'
+      )
+    } finally {
+      setClearingCache(false)
+    }
   }
 
   return (
@@ -106,51 +371,18 @@ const SystemSettings = () => {
         </p>
       ) : null}
       <Separator />
+
       <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
         <div className='text-muted-foreground text-sm font-medium'>
           开机自启
         </div>
-        <div className='flex items-center space-x-2'>
-          <button
-            type='button'
-            aria-pressed={autoStartEnabled}
-            onClick={handleToggleStartChange}
-            className={cn(
-              'bg-muted/60 relative h-9 w-full rounded-full px-1 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
-              autoStartEnabled
-                ? 'text-primary-foreground bg-primary/90'
-                : 'text-muted-foreground'
-            )}
-          >
-            <span
-              aria-hidden
-              className={cn(
-                'bg-background absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm transition-transform duration-300',
-                autoStartEnabled ? 'translate-x-full' : 'translate-x-0'
-              )}
-            />
-            <span className='relative z-10 grid h-full grid-cols-2 items-center'>
-              <span
-                className={cn(
-                  'transition-colors',
-                  !autoStartEnabled && 'text-foreground'
-                )}
-              >
-                关闭
-              </span>
-              <span
-                className={cn(
-                  'transition-colors',
-                  autoStartEnabled && 'text-foreground'
-                )}
-              >
-                开启
-              </span>
-            </span>
-          </button>
-        </div>
+        <ToggleSetting
+          enabled={autoStartEnabled}
+          onToggle={handleToggleStartChange}
+        />
       </div>
       <Separator />
+
       <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
         <div className='text-muted-foreground text-sm font-medium'>
           关闭行为
@@ -165,6 +397,141 @@ const SystemSettings = () => {
             <SelectItem value='quit'>直接退出</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            磁盘缓存
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            将播放过的音乐与歌词缓存到本地磁盘，提升二次播放速度
+          </p>
+        </div>
+        <ToggleSetting
+          enabled={diskCacheEnabled}
+          onToggle={handleToggleDiskCache}
+        />
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            缓存目录
+          </div>
+          <p className='text-muted-foreground max-w-md truncate text-xs'>
+            {resolvedCacheDir}
+          </p>
+        </div>
+        <div className='flex items-center justify-end gap-2'>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            disabled={selectingCacheDir}
+            onClick={handleSelectCacheDir}
+          >
+            选择目录
+          </Button>
+          <Button
+            type='button'
+            variant='ghost'
+            size='sm'
+            onClick={() => void handleResetCacheDir()}
+          >
+            默认目录
+          </Button>
+        </div>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            缓存上限
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            当前 {cacheSizePreviewGb.toFixed(1)} GB
+          </p>
+        </div>
+        <div className='flex items-center gap-3'>
+          <Slider
+            min={MIN_CACHE_SIZE_GB}
+            max={MAX_CACHE_SIZE_GB}
+            step={CACHE_SIZE_STEP_GB}
+            value={[cacheSizePreviewGb]}
+            onValueChange={values => {
+              const value = values[0]
+              if (typeof value === 'number') {
+                setCacheSizePreviewGb(clampCacheSizeGb(value))
+              }
+            }}
+            onValueCommit={handleCacheSizeCommit}
+          />
+        </div>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            缓存状态
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            已用 {formatStorageSize(cacheStatus.usedBytes)} / 上限{' '}
+            {formatStorageSize(diskCacheMaxBytes)}
+          </p>
+        </div>
+        <div className='flex items-center gap-3'>
+          <div className='bg-muted/70 h-2 min-w-0 flex-1 overflow-hidden rounded-full'>
+            <div
+              className='bg-primary h-full rounded-full transition-[width] duration-300'
+              style={{
+                width: `${Math.max(
+                  cacheUsagePercent,
+                  cacheStatus.usedBytes > 0 ? 2 : 0
+                )}%`,
+              }}
+            />
+          </div>
+          <span className='text-muted-foreground w-12 text-right text-xs tabular-nums'>
+            {formatCacheUsagePercent(cacheUsagePercent)}
+          </span>
+          <span className='text-muted-foreground text-xs whitespace-nowrap'>
+            音乐 {cacheStatus.audioCount} 首，歌词 {cacheStatus.lyricsCount} 首
+          </span>
+          <Button
+            type='button'
+            variant='ghost'
+            size='sm'
+            disabled={refreshingCacheStatus}
+            onClick={() => void loadCacheStatus(true)}
+          >
+            {refreshingCacheStatus ? '刷新中...' : '刷新'}
+          </Button>
+        </div>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            清理缓存
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            会清除所有播放过的音乐与歌词缓存
+          </p>
+        </div>
+        <Button
+          type='button'
+          variant='outline'
+          disabled={clearingCache}
+          onClick={handleClearCache}
+        >
+          {clearingCache ? '清理中...' : '清理缓存'}
+        </Button>
       </div>
       <Separator />
     </div>

@@ -150,8 +150,9 @@ export interface LyricParams {
   id: number | string
 }
 
-export function getLyric(params: LyricParams) {
-  return request.get('/lyric', {
+// 按接口文档使用 /lyric/new，返回字段中的 yrc 为逐字歌词。
+export function getLyricNew(params: LyricParams) {
+  return request.get('/lyric/new', {
     params,
   })
 }

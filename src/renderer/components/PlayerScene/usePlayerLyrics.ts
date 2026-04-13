@@ -1,0 +1,74 @@
+import { useEffect, useState } from 'react'
+import { buildLyricLines, type LyricLine } from './player-lyrics.model'
+import { fetchLyricTextBundle } from './player-lyrics.service'
+
+const EMPTY_LYRICS: LyricLine[] = []
+const NO_LYRIC_ERROR = '暂无歌词'
+
+type UsePlayerLyricsParams = {
+  isOpen: boolean
+  trackId?: number | string
+}
+
+export function usePlayerLyrics({ isOpen, trackId }: UsePlayerLyricsParams) {
+  const [lyrics, setLyrics] = useState<LyricLine[]>(EMPTY_LYRICS)
+  const [lyricsLoading, setLyricsLoading] = useState(false)
+  const [lyricsError, setLyricsError] = useState('')
+
+  useEffect(() => {
+    if (!isOpen || trackId === undefined || trackId === null) {
+      setLyrics(EMPTY_LYRICS)
+      setLyricsError('')
+      setLyricsLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    const loadLyrics = async () => {
+      setLyrics(EMPTY_LYRICS)
+      setLyricsLoading(true)
+      setLyricsError('')
+
+      try {
+        const lyricBundle = await fetchLyricTextBundle(trackId)
+        const nextLyrics = buildLyricLines(lyricBundle)
+        if (cancelled) {
+          return
+        }
+
+        setLyrics(nextLyrics)
+        setLyricsError(
+          nextLyrics.length &&
+            !JSON.stringify(nextLyrics).includes(NO_LYRIC_ERROR)
+            ? ''
+            : NO_LYRIC_ERROR
+        )
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        console.error('load lyric failed', error)
+        setLyrics(EMPTY_LYRICS)
+        setLyricsError(NO_LYRIC_ERROR)
+      } finally {
+        if (!cancelled) {
+          setLyricsLoading(false)
+        }
+      }
+    }
+
+    void loadLyrics()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, trackId])
+
+  return {
+    lyrics,
+    lyricsLoading,
+    lyricsError,
+  }
+}
