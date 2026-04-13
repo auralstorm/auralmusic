@@ -57,5 +57,9 @@
       "local": "Ctrl+M",
       "global": "Alt+Ctrl+M"
     }
-  }
+  },
+  "autoStartEnabled": true,
+  "closeBehavior": "ask",
+  "rememberCloseChoice": false,
+  "playerBackgroundMode": "off"
 }

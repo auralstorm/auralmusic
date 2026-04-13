@@ -9,7 +9,6 @@ import SystemSettings from './components/SystemSettings'
 const SETTINGS_TABS = [
   { label: '基础设置', value: 'basic' },
   { label: '播放设置', value: 'play' },
-  { label: '应用设置', value: 'application' },
   { label: '下载设置', value: 'download' },
   { label: '系统设置', value: 'system' },
   { label: '快捷键', value: 'shortcutKeys' },
@@ -65,7 +64,6 @@ const Settings = () => {
         <TabsContent value='play'>
           <PlaySettings />
         </TabsContent>
-        <TabsContent value='application'>应用设置</TabsContent>
         <TabsContent value='download'>下载管理</TabsContent>
         <TabsContent value='system'>
           <SystemSettings />

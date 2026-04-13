@@ -14,6 +14,7 @@ import PlayerSceneArtwork from './PlayerSceneArtwork'
 import PlayerSceneControls from './PlayerSceneControls'
 import PlayerSceneLyrics from './PlayerSceneLyrics'
 import PlayerSceneProgress from './PlayerSceneProgress'
+import WaterRipple3DCover from './WaterRippleCover'
 import {
   findActiveLyricIndex,
   parseLrc,
@@ -63,6 +64,9 @@ const PlayerScene = () => {
   const seekTo = usePlaybackStore(state => state.seekTo)
   const dynamicCoverEnabled = useConfigStore(
     state => state.config.dynamicCoverEnabled
+  )
+  const playerBackgroundMode = useConfigStore(
+    state => state.config.playerBackgroundMode
   )
 
   const [lyrics, setLyrics] = useState<LyricLine[]>([])
@@ -202,6 +206,11 @@ const PlayerScene = () => {
   const coverUrl = currentTrack?.coverUrl || ''
   const title = currentTrack?.name || '暂无播放歌曲'
   const artistNames = currentTrack?.artistNames || 'AuralMusic'
+  const showPlayerBackground = playerBackgroundMode !== 'off'
+  const showDynamicPlayerBackground =
+    playerBackgroundMode === 'dynamic' && Boolean(coverUrl)
+  const showStaticPlayerBackground =
+    playerBackgroundMode === 'static' && Boolean(coverUrl)
 
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange} direction='bottom'>
@@ -212,15 +221,27 @@ const PlayerScene = () => {
         </DrawerDescription>
 
         <div className='window-no-drag relative h-full overflow-hidden bg-[var(--background)]'>
-          {coverUrl ? (
+          {showDynamicPlayerBackground ? (
+            <div
+              aria-hidden='true'
+              className='absolute inset-0 scale-110 overflow-hidden opacity-[var(--player-cover-opacity)]'
+            >
+              <WaterRipple3DCover src={coverUrl} className='h-full w-full' />
+            </div>
+          ) : null}
+          {showStaticPlayerBackground ? (
             <div
               aria-hidden='true'
               className='absolute inset-0 scale-110 bg-cover bg-center opacity-[var(--player-cover-opacity)] blur-3xl'
               style={{ backgroundImage: `url("${coverUrl}")` }}
             />
           ) : null}
-          <div className='absolute inset-0 bg-[radial-gradient(circle_at_24%_42%,rgba(255,255,255,0.18),transparent_34%),linear-gradient(110deg,var(--player-top-wash),var(--player-scene-veil)_45%,var(--player-bottom-wash))]' />
-          <div className='absolute inset-y-0 right-0 w-[45vw] bg-[linear-gradient(90deg,transparent,var(--player-scene-side))]' />
+          {showPlayerBackground ? (
+            <>
+              <div className='absolute inset-0 bg-[radial-gradient(circle_at_24%_42%,rgba(255,255,255,0.18),transparent_34%),linear-gradient(110deg,var(--player-top-wash),var(--player-scene-veil)_45%,var(--player-bottom-wash))]' />
+              <div className='absolute inset-y-0 right-0 w-[45vw] bg-[linear-gradient(90deg,transparent,var(--player-scene-side))]' />
+            </>
+          ) : null}
           <div
             aria-hidden='true'
             className='window-drag absolute top-0 left-1/2 z-20 h-18 w-[42vw] max-w-[680px] min-w-[260px] -translate-x-1/2'

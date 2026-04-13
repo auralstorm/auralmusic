@@ -8,6 +8,7 @@ const { ipcMain } = electron
 
 type RegisterConfigIpcOptions = {
   onShortcutConfigChange?: () => void
+  onAutoStartConfigChange?: (enabled: boolean) => void
 }
 
 export function registerConfigIpc(options: RegisterConfigIpcOptions = {}) {
@@ -26,6 +27,10 @@ export function registerConfigIpc(options: RegisterConfigIpcOptions = {}) {
 
       if (key === 'globalShortcutEnabled' || key === 'shortcutBindings') {
         options.onShortcutConfigChange?.()
+      }
+
+      if (key === 'autoStartEnabled') {
+        options.onAutoStartConfigChange?.(value as boolean)
       }
     }
   )

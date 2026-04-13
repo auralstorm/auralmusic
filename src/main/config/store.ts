@@ -5,6 +5,7 @@ import {
   MUSIC_SOURCE_PROVIDERS,
   defaultConfig,
   normalizeDynamicCoverEnabled,
+  normalizePlayerBackgroundMode,
   type AudioQualityLevel,
   type MusicSourceProvider,
 } from './types'
@@ -154,6 +155,13 @@ function createConfigStore() {
       quality: { type: 'string', enum: AUDIO_QUALITY_LEVELS },
       globalShortcutEnabled: { type: 'boolean' },
       shortcutBindings: { type: 'object' },
+      autoStartEnabled: { type: 'boolean' },
+      closeBehavior: { type: 'string', enum: ['ask', 'minimize', 'quit'] },
+      rememberCloseChoice: { type: 'boolean' },
+      playerBackgroundMode: {
+        type: 'string',
+        enum: ['off', 'static', 'dynamic'],
+      },
     },
   })
 }
@@ -194,6 +202,18 @@ class ConfigStore {
         ConfigStore.instance.set(
           'dynamicCoverEnabled',
           normalizedDynamicCoverEnabled
+        )
+      }
+
+      const playerBackgroundMode = ConfigStore.instance.get(
+        'playerBackgroundMode'
+      )
+      const normalizedPlayerBackgroundMode =
+        normalizePlayerBackgroundMode(playerBackgroundMode)
+      if (playerBackgroundMode !== normalizedPlayerBackgroundMode) {
+        ConfigStore.instance.set(
+          'playerBackgroundMode',
+          normalizedPlayerBackgroundMode
         )
       }
 

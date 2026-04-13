@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { Play } from 'lucide-react'
 import { Plyr, type PlyrSource } from 'plyr-react'
 import 'plyr-react/plyr.css'
-import { cn } from '@/lib/utils'
 import {
   type MvDetailHeroData,
   type MvPlaybackData,
@@ -80,10 +79,10 @@ const MvDetailPlayer = ({
             </div>
             <div className='space-y-1 text-center'>
               <p className='text-sm tracking-[0.2em] text-white/70 uppercase'>
-                MV 播放区
+                MV 鎾斁鍖?
               </p>
               <p className='text-lg font-semibold'>
-                {loading ? '正在加载视频...' : '暂无可播放地址'}
+                {loading ? '姝ｅ湪鍔犺浇瑙嗛...' : '鏆傛棤鍙挱鏀惧湴鍧€'}
               </p>
             </div>
           </div>

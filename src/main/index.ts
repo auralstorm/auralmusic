@@ -1,6 +1,7 @@
 import electron, { type BrowserWindow } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import { getConfig } from './config/store'
 import {
   bootstrapAuthSession,
@@ -20,12 +21,16 @@ import {
   applyWindowTitleBarTheme,
   syncNativeThemeSource,
 } from './window/titlebar-theme'
+import { WINDOW_IPC_CHANNELS } from './window/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const { app, globalShortcut, nativeTheme, session } = electron
+const { app, globalShortcut, Menu, nativeImage, nativeTheme, session, Tray } =
+  electron
 
 let mainWindow: BrowserWindow | null = null
+let tray: InstanceType<typeof Tray> | null = null
+let isQuitting = false
 
 type AudioPermissionDetails = {
   mediaType?: string
@@ -101,6 +106,120 @@ function getPreloadPath() {
   return path.join(__dirname, '../preload/index.js')
 }
 
+function getTrayIcon() {
+  const iconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+      <rect width="64" height="64" rx="16" fill="#111111"/>
+      <path d="M18 36c3.5-7 7.5-11 14-11s10.5 4 14 11" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="24" cy="40" r="4" fill="#ffffff"/>
+      <circle cx="32" cy="27" r="4" fill="#ffffff"/>
+      <circle cx="40" cy="40" r="4" fill="#ffffff"/>
+    </svg>
+  `
+
+  const image = nativeImage.createFromDataURL(
+    `data:image/svg+xml;base64,${Buffer.from(iconSvg).toString('base64')}`
+  )
+
+  if (process.platform === 'darwin') {
+    image.setTemplateImage(true)
+  }
+
+  return image
+}
+
+function showMainWindow() {
+  if (!mainWindow) {
+    return
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function hideMainWindowToTray() {
+  mainWindow?.hide()
+}
+
+function createTray(): InstanceType<typeof Tray> {
+  if (tray) {
+    return tray
+  }
+
+  tray = new Tray(getTrayIcon())
+  tray.setToolTip('AuralMusic')
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: '显示主窗口',
+        click: () => {
+          showMainWindow()
+        },
+      },
+      {
+        label: '最小化到托盘',
+        click: () => {
+          hideMainWindowToTray()
+        },
+      },
+      { type: 'separator' },
+      {
+        label: '退出应用',
+        click: () => {
+          isQuitting = true
+          app.quit()
+        },
+      },
+    ])
+  )
+
+  tray.on('click', () => {
+    if (!mainWindow) {
+      return
+    }
+
+    if (mainWindow.isVisible()) {
+      mainWindow.focus()
+      return
+    }
+
+    showMainWindow()
+  })
+
+  tray.on('double-click', () => {
+    showMainWindow()
+  })
+
+  return tray
+}
+
+function registerWindowCloseBehavior(window: BrowserWindow) {
+  window.on('close', event => {
+    if (isQuitting) {
+      return
+    }
+
+    const closeBehavior = getConfig('closeBehavior')
+
+    if (closeBehavior === 'quit') {
+      return
+    }
+
+    event.preventDefault()
+
+    if (closeBehavior === 'minimize') {
+      hideMainWindowToTray()
+      return
+    }
+
+    window.webContents.send(WINDOW_IPC_CHANNELS.CLOSE_REQUESTED)
+  })
+}
+
 function createWindow() {
   const isMac = process.platform === 'darwin'
   const isWindows = process.platform === 'win32'
@@ -123,6 +242,7 @@ function createWindow() {
   })
 
   bindWindowStateEvents(mainWindow)
+  registerWindowCloseBehavior(mainWindow)
   mainWindow.setMenu(null)
 
   const rendererUrl = getRendererUrl()
@@ -153,11 +273,19 @@ app.whenReady().then(async () => {
     onShortcutConfigChange: () => {
       syncConfiguredGlobalShortcuts(mainWindow)
     },
+    onAutoStartConfigChange: (enabled: boolean) => {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        openAsHidden: false,
+        path: app.getPath('exe'),
+      })
+    },
   })
   registerAuthIpc()
   registerMusicSourceIpc()
   registerWindowIpc()
   registerPermissionHandlers()
+  createTray()
 
   try {
     const runtimeInfo = await startMusicApi()
@@ -165,6 +293,14 @@ app.whenReady().then(async () => {
     registerAuthRequestHeaderHook()
     await bootstrapAuthSession()
     syncNativeThemeSource(getConfig('theme'))
+
+    const autoStartEnabled = getConfig('autoStartEnabled')
+    app.setLoginItemSettings({
+      openAtLogin: autoStartEnabled,
+      openAsHidden: false,
+      path: app.getPath('exe'),
+    })
+
     createWindow()
 
     nativeTheme.on('updated', () => {
@@ -179,6 +315,11 @@ app.whenReady().then(async () => {
   }
 
   app.on('activate', () => {
+    if (mainWindow) {
+      showMainWindow()
+      return
+    }
+
     if (electron.BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
@@ -189,6 +330,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', () => {
+  isQuitting = true
+  tray?.destroy()
+  tray = null
 })
 
 app.on('will-quit', () => {

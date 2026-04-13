@@ -1,6 +1,11 @@
 import { Copy, Minus, Square, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+
 import { cn } from '@/lib/utils'
+import { useConfigStore } from '@/stores/config-store'
+
+import CloseWindowDialog from '../CloseWindowDialog'
+import { shouldShowCloseWindowDialog } from '../CloseWindowDialog/close-window.model'
 
 interface WindowControlsProps {
   className?: string
@@ -8,6 +13,8 @@ interface WindowControlsProps {
 
 const WindowControls = ({ className = '' }: WindowControlsProps) => {
   const [isMaximized, setIsMaximized] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const closeBehavior = useConfigStore(state => state.config.closeBehavior)
 
   useEffect(() => {
     let isMounted = true
@@ -28,10 +35,40 @@ const WindowControls = ({ className = '' }: WindowControlsProps) => {
     }
   }, [])
 
+  useEffect(() => {
+    const unsubscribe = window.electronWindow.onCloseRequested(() => {
+      setIsOpen(true)
+    })
+
+    return unsubscribe
+  }, [])
+
   const maximizeLabel = useMemo(
     () => (isMaximized ? '还原窗口' : '最大化窗口'),
     [isMaximized]
   )
+
+  const handleClose = () => {
+    if (shouldShowCloseWindowDialog(closeBehavior)) {
+      setIsOpen(true)
+      return
+    }
+
+    if (closeBehavior === 'minimize') {
+      handleMiniWindow()
+      return
+    }
+
+    handleCloseWindow()
+  }
+
+  const handleCloseWindow = () => {
+    void window.electronWindow.quitApp()
+  }
+
+  const handleMiniWindow = () => {
+    void window.electronWindow.hideToTray()
+  }
 
   return (
     <div className={cn('window-no-drag flex items-stretch', className)}>
@@ -59,10 +96,17 @@ const WindowControls = ({ className = '' }: WindowControlsProps) => {
         type='button'
         aria-label='关闭窗口'
         className='hover:bg-foreground/8 flex h-13 w-13 items-center justify-center rounded-[15px] transition-colors'
-        onClick={() => void window.electronWindow.close()}
+        onClick={handleClose}
       >
         <X className='size-4' />
       </button>
+
+      <CloseWindowDialog
+        open={isOpen}
+        setOpen={setIsOpen}
+        handleCloseWindow={handleCloseWindow}
+        handleMiniWindow={handleMiniWindow}
+      />
     </div>
   )
 }

@@ -6,11 +6,14 @@ export type WindowApi = {
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<boolean>
   toggleFullScreen: () => Promise<boolean>
-  close: () => Promise<void>
+  hideToTray: () => Promise<void>
+  show: () => Promise<void>
+  quitApp: () => Promise<void>
   isMaximized: () => Promise<boolean>
   isFullScreen: () => Promise<boolean>
   onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
   onFullScreenChange: (callback: (isFullScreen: boolean) => void) => () => void
+  onCloseRequested: (callback: () => void) => () => void
 }
 
 const windowApi: WindowApi = {
@@ -23,7 +26,13 @@ const windowApi: WindowApi = {
   toggleFullScreen: async () => {
     return ipcRenderer.invoke(WINDOW_IPC_CHANNELS.TOGGLE_FULLSCREEN)
   },
-  close: async () => {
+  hideToTray: async () => {
+    await ipcRenderer.invoke(WINDOW_IPC_CHANNELS.HIDE_TO_TRAY)
+  },
+  show: async () => {
+    await ipcRenderer.invoke(WINDOW_IPC_CHANNELS.SHOW)
+  },
+  quitApp: async () => {
     await ipcRenderer.invoke(WINDOW_IPC_CHANNELS.CLOSE)
   },
   isMaximized: async () => {
@@ -55,6 +64,17 @@ const windowApi: WindowApi = {
         WINDOW_IPC_CHANNELS.FULLSCREEN_CHANGED,
         listener
       )
+    }
+  },
+  onCloseRequested: callback => {
+    const listener = () => {
+      callback()
+    }
+
+    ipcRenderer.on(WINDOW_IPC_CHANNELS.CLOSE_REQUESTED, listener)
+
+    return () => {
+      ipcRenderer.removeListener(WINDOW_IPC_CHANNELS.CLOSE_REQUESTED, listener)
     }
   },
 }

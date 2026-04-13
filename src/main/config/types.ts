@@ -29,6 +29,9 @@ export const MUSIC_SOURCE_PROVIDERS = [
 
 export type MusicSourceProvider = (typeof MUSIC_SOURCE_PROVIDERS)[number]
 
+export type CloseBehavior = 'ask' | 'minimize' | 'quit'
+export type PlayerBackgroundMode = 'off' | 'static' | 'dynamic'
+
 export interface AppConfig {
   theme: 'light' | 'dark' | 'system'
   fontFamily: string
@@ -48,6 +51,10 @@ export interface AppConfig {
   quality: AudioQualityLevel
   globalShortcutEnabled: boolean
   shortcutBindings: ShortcutBindings
+  autoStartEnabled: boolean
+  closeBehavior: CloseBehavior
+  rememberCloseChoice: boolean
+  playerBackgroundMode: PlayerBackgroundMode
 }
 
 export const defaultConfig: AppConfig = {
@@ -69,10 +76,20 @@ export const defaultConfig: AppConfig = {
   quality: 'higher',
   globalShortcutEnabled: false,
   shortcutBindings: DEFAULT_SHORTCUT_BINDINGS,
+  autoStartEnabled: false,
+  closeBehavior: 'ask',
+  rememberCloseChoice: false,
+  playerBackgroundMode: 'static',
 }
 
 export function normalizeDynamicCoverEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.dynamicCoverEnabled
+}
+
+export function normalizePlayerBackgroundMode(value: unknown) {
+  return value === 'off' || value === 'dynamic' || value === 'static'
+    ? value
+    : defaultConfig.playerBackgroundMode
 }
 
 export const IPC_CHANNELS = {

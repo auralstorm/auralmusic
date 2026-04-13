@@ -5,6 +5,7 @@ import {
   MUSIC_SOURCE_PROVIDERS,
   defaultConfig,
   normalizeDynamicCoverEnabled,
+  normalizePlayerBackgroundMode,
   type AudioQualityLevel,
   type MusicSourceProvider,
 } from '../../main/config/types'
@@ -121,6 +122,20 @@ function normalizeConfig(config: AppConfig): AppConfig {
         ? config.globalShortcutEnabled
         : defaultConfig.globalShortcutEnabled,
     shortcutBindings: normalizeShortcutBindings(config.shortcutBindings),
+    autoStartEnabled:
+      typeof config.autoStartEnabled === 'boolean'
+        ? config.autoStartEnabled
+        : defaultConfig.autoStartEnabled,
+    playerBackgroundMode: normalizePlayerBackgroundMode(
+      config.playerBackgroundMode
+    ),
+    closeBehavior: ['ask', 'minimize', 'quit'].includes(config.closeBehavior)
+      ? config.closeBehavior
+      : defaultConfig.closeBehavior,
+    rememberCloseChoice:
+      typeof config.rememberCloseChoice === 'boolean'
+        ? config.rememberCloseChoice
+        : defaultConfig.rememberCloseChoice,
   }
 }
 

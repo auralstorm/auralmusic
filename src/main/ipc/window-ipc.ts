@@ -8,6 +8,19 @@ function getEventWindow(event: IpcMainInvokeEvent) {
   return electron.BrowserWindow.fromWebContents(event.sender)
 }
 
+function showWindow(window: BrowserWindow | null) {
+  if (!window) {
+    return
+  }
+
+  if (window.isMinimized()) {
+    window.restore()
+  }
+
+  window.show()
+  window.focus()
+}
+
 export function registerWindowIpc() {
   ipcMain.handle(WINDOW_IPC_CHANNELS.MINIMIZE, event => {
     const window = getEventWindow(event)
@@ -32,6 +45,16 @@ export function registerWindowIpc() {
   ipcMain.handle(WINDOW_IPC_CHANNELS.CLOSE, event => {
     const window = getEventWindow(event)
     window?.close()
+  })
+
+  ipcMain.handle(WINDOW_IPC_CHANNELS.HIDE_TO_TRAY, event => {
+    const window = getEventWindow(event)
+    window?.hide()
+  })
+
+  ipcMain.handle(WINDOW_IPC_CHANNELS.SHOW, event => {
+    const window = getEventWindow(event)
+    showWindow(window)
   })
 
   ipcMain.handle(WINDOW_IPC_CHANNELS.IS_MAXIMIZED, event => {
