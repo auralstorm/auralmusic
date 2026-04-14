@@ -1,5 +1,5 @@
 {
-  "theme": "dark",
+  "theme": "light",
   "themeColor": null,
   "fontFamily": "system-ui",
   "audioOutputDeviceId": "default",
@@ -75,11 +75,11 @@
   "diskCacheDir": "",
   "diskCacheMaxBytes": 1073741824,
   "downloadEnabled": true,
-  "downloadQuality": "higher",
+  "downloadQuality": "jymaster",
   "downloadSkipExisting": true,
   "downloadDir": "F:\\code-demo\\auralmusic\\downloads",
   "downloadConcurrency": 3,
-  "downloadFileNamePattern": "artist-song",
+  "downloadFileNamePattern": "song-artist",
   "downloadEmbedCover": true,
   "downloadEmbedLyrics": true,
   "downloadEmbedTranslatedLyrics": false

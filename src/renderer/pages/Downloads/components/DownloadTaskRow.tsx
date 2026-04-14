@@ -25,7 +25,7 @@ const DownloadTaskRow = ({
   const canOpenFolder = canOpenDownloadTaskFolder(task)
 
   return (
-    <article className='grid gap-4 rounded-[24px] border border-white/10 bg-black/20 px-5 py-4 shadow-sm backdrop-blur-md lg:grid-cols-[minmax(0,2fr)_120px_120px_120px_auto] lg:items-center'>
+    <article className='bg-primary/5 grid gap-4 rounded-[15px] px-5 py-4 lg:grid-cols-[minmax(0,2fr)_120px_120px_120px_auto] lg:items-center'>
       <div className='min-w-0'>
         <p className='text-foreground truncate text-sm font-semibold'>
           {task.songName}

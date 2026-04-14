@@ -154,8 +154,9 @@ function SettingCheckboxRow({
   return (
     <Label
       className={cn(
-        'hover:bg-muted/35 flex cursor-pointer items-start gap-3 rounded-2xl px-3 py-2.5 transition-colors',
-        disabled && 'cursor-not-allowed opacity-60'
+        'border-border/70! bg-muted/20 hover:bg-muted/35 flex cursor-pointer items-start gap-3 rounded-2xl border! px-3 py-2.5 transition-colors',
+        disabled && 'cursor-not-allowed opacity-60',
+        checked && 'border-primary!'
       )}
     >
       <Checkbox
@@ -446,9 +447,6 @@ const DownloadSettings = () => {
           <div className='text-muted-foreground text-sm font-medium'>
             文件命名方式
           </div>
-          <p className='text-muted-foreground text-xs'>
-            用 checkbox 风格呈现，但交互上保持单选。
-          </p>
         </div>
         <div role='radiogroup' className='space-y-3'>
           {FILE_NAME_PATTERN_OPTIONS.map(option => (
