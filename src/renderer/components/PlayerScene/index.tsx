@@ -1,5 +1,5 @@
 import { Maximize2, Minimize2, X } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 
 import {
   Drawer,
@@ -7,15 +7,17 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { useResolvedDarkTheme } from '@/hooks/useResolvedDarkTheme'
 import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
+import PlayerSceneAmllBackground from './PlayerSceneAmllBackground'
+import PlayerSceneAmllBackgroundOverlay from './PlayerSceneAmllBackgroundOverlay'
 import PlayerSceneArtwork from './PlayerSceneArtwork'
+import PlayerSceneAmllLyrics from './PlayerSceneAmllLyrics'
 import PlayerSceneControls from './PlayerSceneControls'
-import PlayerSceneLyrics from './PlayerSceneLyrics'
 import PlayerSceneProgress from './PlayerSceneProgress'
-import { findActiveLyricIndex } from './player-lyrics.model'
+import { resolveAmllBackgroundState } from './player-background-amll.model'
 import { usePlayerLyrics } from './usePlayerLyrics'
-import WaterRipple3DCover from './WaterRippleCover'
 
 const PlayerScene = () => {
   const currentTrack = usePlaybackStore(state => state.currentTrack)
@@ -50,13 +52,10 @@ const PlayerScene = () => {
     isOpen,
     trackId: currentTrack?.id,
   })
+  const isDarkTheme = useResolvedDarkTheme()
 
   const hasTrack = Boolean(currentTrack)
   const isPlaying = status === 'playing' || status === 'loading'
-  const activeLyricIndex = useMemo(
-    () => findActiveLyricIndex(lyrics, progress),
-    [lyrics, progress]
-  )
 
   useEffect(() => {
     if (!isOpen) {
@@ -135,11 +134,11 @@ const PlayerScene = () => {
   const coverUrl = currentTrack?.coverUrl || ''
   const title = currentTrack?.name || '暂无播放歌曲'
   const artistNames = currentTrack?.artistNames || 'AuralMusic'
-  const showPlayerBackground = playerBackgroundMode !== 'off'
-  const showDynamicPlayerBackground =
-    playerBackgroundMode === 'dynamic' && Boolean(coverUrl)
-  const showStaticPlayerBackground =
-    playerBackgroundMode === 'static' && Boolean(coverUrl)
+  const amllBackgroundState = resolveAmllBackgroundState(
+    playerBackgroundMode,
+    coverUrl
+  )
+  const showPlayerBackground = amllBackgroundState.enabled
 
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange} direction='bottom'>
@@ -150,31 +149,18 @@ const PlayerScene = () => {
         </DrawerDescription>
 
         <div className='window-no-drag relative h-full overflow-hidden bg-[var(--background)]'>
-          {showDynamicPlayerBackground ? (
-            <div
-              aria-hidden='true'
-              className='absolute inset-0 scale-110 overflow-hidden opacity-[var(--player-cover-opacity)]'
-            >
-              <WaterRipple3DCover
-                src={coverUrl}
-                blurEnabled={true}
-                className='h-full w-full'
-              />
-            </div>
-          ) : null}
-          {showStaticPlayerBackground ? (
-            <div
-              aria-hidden='true'
-              className='absolute inset-0 scale-110 bg-cover bg-center opacity-[var(--player-cover-opacity)] blur-3xl'
-              style={{ backgroundImage: `url("${coverUrl}")` }}
-            />
-          ) : null}
-          {showPlayerBackground ? (
-            <>
-              <div className='absolute inset-0 bg-[radial-gradient(circle_at_24%_42%,rgba(255,255,255,0.18),transparent_34%),linear-gradient(110deg,var(--player-top-wash),var(--player-scene-veil)_45%,var(--player-bottom-wash))]' />
-              <div className='absolute inset-y-0 right-0 w-[45vw] bg-[linear-gradient(90deg,transparent,var(--player-scene-side))]' />
-            </>
-          ) : null}
+          <PlayerSceneAmllBackground
+            coverUrl={coverUrl}
+            playing={amllBackgroundState.playing}
+            hasLyrics={lyrics.length > 0}
+            enabled={amllBackgroundState.enabled}
+            staticMode={amllBackgroundState.staticMode}
+          />
+          <PlayerSceneAmllBackgroundOverlay
+            enabled={showPlayerBackground}
+            staticMode={amllBackgroundState.staticMode}
+            isDarkTheme={isDarkTheme}
+          />
           <div
             aria-hidden='true'
             className='window-drag absolute top-0 left-1/2 z-20 h-18 w-[42vw] max-w-[680px] min-w-[260px] -translate-x-1/2'
@@ -226,12 +212,12 @@ const PlayerScene = () => {
               />
             </div>
 
-            <PlayerSceneLyrics
+            <PlayerSceneAmllLyrics
               lines={lyrics}
-              activeIndex={activeLyricIndex}
               progressMs={progress}
               showTranslation={showLyricTranslation}
               karaokeEnabled={lyricsKaraokeEnabled}
+              playing={isPlaying}
               loading={lyricsLoading}
               error={lyricsError}
             />
