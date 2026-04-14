@@ -3,6 +3,10 @@ import electron from 'electron'
 import { getConfig } from '../config/store.ts'
 import { DownloadService } from '../download/download-service.ts'
 import { DOWNLOAD_IPC_CHANNELS } from '../download/download-types.ts'
+import {
+  getPersistedDownloadTasks,
+  setPersistedDownloadTasks,
+} from '../download/store.ts'
 
 type DownloadIpcRegistrationOptions = {
   ipcMain?: {
@@ -39,6 +43,10 @@ function createDefaultDownloadService(
 ) {
   return new DownloadService({
     defaultRootDir: appGetPath('downloads'),
+    readPersistedTasks: () => getPersistedDownloadTasks(),
+    writePersistedTasks: tasks => {
+      setPersistedDownloadTasks(tasks)
+    },
     readConfig: () => ({
       downloadDir: getConfig('downloadDir'),
       downloadQuality: getConfig('downloadQuality'),

@@ -1,0 +1,23 @@
+{
+  "tasks": [
+    {
+      "id": "download-1776184810518-qibb975p",
+      "songId": 29572501,
+      "songName": "Blank Space",
+      "artistName": "Taylor Swift",
+      "coverUrl": "http://p3.music.126.net/3KDqQ9XW2Khj5Ia4tRqAAw==/18771962022688349.jpg",
+      "albumName": "1989 (Deluxe)",
+      "requestedQuality": "jymaster",
+      "resolvedQuality": "jymaster",
+      "status": "completed",
+      "progress": 100,
+      "errorMessage": null,
+      "targetPath": "C:\\Users\\s1769\\Downloads\\Blank Space - Taylor Swift.mp3",
+      "note": "Embedded MP3 metadata.",
+      "warningMessage": null,
+      "createdAt": 1776184810518,
+      "updatedAt": 1776184811203,
+      "completedAt": 1776184811203
+    }
+  ]
+}

@@ -272,3 +272,95 @@ test('DownloadService respects concurrency and can remove queued tasks before th
 
   await rm(root, { recursive: true, force: true })
 })
+
+test('DownloadService persists completed tasks and restores them across service instances', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  let persistedTasks: DownloadTask[] = []
+
+  const createService = () =>
+    new DownloadService({
+      defaultRootDir: root,
+      now: createNowSequence(),
+      createTaskId: () => 'task-persisted-completed',
+      readPersistedTasks: () => persistedTasks,
+      writePersistedTasks: tasks => {
+        persistedTasks = tasks.map(task => ({ ...task }))
+      },
+      resolveSongUrl: async () => ({
+        url: 'https://cdn.example.com/persisted.mp3',
+      }),
+      downloadFetcher: async () => {
+        return new Response(Buffer.from('persisted-audio'), {
+          status: 200,
+          headers: {
+            'content-type': 'audio/mpeg',
+          },
+        })
+      },
+    })
+
+  const firstService = createService()
+  const task = await firstService.enqueueSongDownload({
+    songId: 'persisted-song',
+    songName: 'Persisted Song',
+    artistName: 'Persisted Artist',
+    requestedQuality: 'higher',
+  })
+
+  const completed = await waitForTaskStatus(firstService, task.id, 'completed')
+
+  assert.equal(persistedTasks.length, 1)
+  assert.equal(persistedTasks[0]?.id, completed.id)
+  assert.equal(persistedTasks[0]?.status, 'completed')
+  assert.equal(persistedTasks[0]?.targetPath, completed.targetPath)
+
+  const restoredService = createService()
+  const restoredTasks = restoredService.getTasks()
+
+  assert.equal(restoredTasks.length, 1)
+  assert.equal(restoredTasks[0]?.id, completed.id)
+  assert.equal(restoredTasks[0]?.status, 'completed')
+  assert.equal(restoredTasks[0]?.targetPath, completed.targetPath)
+
+  await rm(root, { recursive: true, force: true })
+})
+
+test('DownloadService marks persisted active tasks as failed when restoring after restart', () => {
+  const now = createNowSequence(2_000)
+  const persistedTasks: DownloadTask[] = [
+    {
+      id: 'task-interrupted',
+      songId: 'song-1',
+      songName: 'Interrupted Song',
+      artistName: 'Interrupted Artist',
+      coverUrl: '',
+      albumName: null,
+      requestedQuality: 'higher',
+      resolvedQuality: null,
+      status: 'downloading',
+      progress: 42,
+      errorMessage: null,
+      targetPath: 'F:\\downloads\\interrupted.mp3',
+      note: null,
+      warningMessage: null,
+      createdAt: 100,
+      updatedAt: 120,
+      completedAt: null,
+    },
+  ]
+
+  const service = new DownloadService({
+    defaultRootDir: 'F:\\downloads',
+    now,
+    readPersistedTasks: () => persistedTasks,
+    writePersistedTasks: () => undefined,
+  })
+
+  const restoredTask = service.getTasks()[0]
+
+  assert.ok(restoredTask)
+  assert.equal(restoredTask?.status, 'failed')
+  assert.equal(restoredTask?.progress, 42)
+  assert.match(restoredTask?.errorMessage ?? '', /restart|interrupted/i)
+  assert.ok(restoredTask?.completedAt)
+})

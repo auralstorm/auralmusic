@@ -20,6 +20,8 @@ type DownloadServiceOptions = {
   concurrency?: number
   now?: () => number
   createTaskId?: () => string
+  readPersistedTasks?: () => DownloadTask[]
+  writePersistedTasks?: (tasks: DownloadTask[]) => void
   readConfig?: () => Partial<DownloadRuntimeConfig>
   resolveSongUrl?: (
     input: ResolveSongUrlInput
@@ -58,6 +60,10 @@ function createDefaultTaskId() {
 
 function cloneTask(task: DownloadTask): DownloadTask {
   return { ...task }
+}
+
+function cloneTasks(tasks: DownloadTask[]) {
+  return tasks.map(cloneTask)
 }
 
 function sanitizeFileName(value: string) {
@@ -140,6 +146,100 @@ function toErrorMessage(error: unknown) {
   }
 
   return String(error)
+}
+
+function normalizePersistedTask(task: unknown): DownloadTask | null {
+  const value = task as Partial<DownloadTask> | null | undefined
+
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  if (!value.id || !value.songName || !value.artistName) {
+    return null
+  }
+
+  const status = value.status
+  const safeStatus =
+    status === 'queued' ||
+    status === 'downloading' ||
+    status === 'completed' ||
+    status === 'failed' ||
+    status === 'skipped'
+      ? status
+      : 'failed'
+
+  return {
+    id: String(value.id),
+    songId: value.songId ?? '',
+    songName: String(value.songName),
+    artistName: String(value.artistName),
+    coverUrl: typeof value.coverUrl === 'string' ? value.coverUrl : '',
+    albumName:
+      value.albumName === null || typeof value.albumName === 'string'
+        ? value.albumName
+        : null,
+    requestedQuality:
+      typeof value.requestedQuality === 'string'
+        ? value.requestedQuality
+        : 'higher',
+    resolvedQuality:
+      value.resolvedQuality === null ||
+      typeof value.resolvedQuality === 'string'
+        ? value.resolvedQuality
+        : null,
+    status: safeStatus,
+    progress:
+      typeof value.progress === 'number' && Number.isFinite(value.progress)
+        ? Math.min(100, Math.max(0, value.progress))
+        : 0,
+    errorMessage:
+      value.errorMessage === null || typeof value.errorMessage === 'string'
+        ? value.errorMessage
+        : null,
+    targetPath: typeof value.targetPath === 'string' ? value.targetPath : '',
+    note:
+      value.note === null || typeof value.note === 'string' ? value.note : null,
+    warningMessage:
+      value.warningMessage === null || typeof value.warningMessage === 'string'
+        ? value.warningMessage
+        : null,
+    createdAt:
+      typeof value.createdAt === 'number' && Number.isFinite(value.createdAt)
+        ? value.createdAt
+        : 0,
+    updatedAt:
+      typeof value.updatedAt === 'number' && Number.isFinite(value.updatedAt)
+        ? value.updatedAt
+        : 0,
+    completedAt:
+      value.completedAt === null ||
+      (typeof value.completedAt === 'number' &&
+        Number.isFinite(value.completedAt))
+        ? value.completedAt
+        : null,
+  }
+}
+
+function restorePersistedTask(
+  task: DownloadTask,
+  now: () => number
+): DownloadTask {
+  if (task.status !== 'queued' && task.status !== 'downloading') {
+    return task
+  }
+
+  const recoveredAt = now()
+
+  return {
+    ...task,
+    status: 'failed',
+    errorMessage:
+      task.errorMessage ||
+      'Download was interrupted because the application restarted before completion.',
+    completedAt: recoveredAt,
+    updatedAt: recoveredAt,
+  }
 }
 
 function readSongDetailMetadata(payload: unknown): DownloadTaskMetadata {
@@ -232,6 +332,8 @@ export class DownloadService {
   private readonly fixedConcurrency: number | undefined
   private readonly now: () => number
   private readonly createTaskId: () => string
+  private readonly readPersistedTasks?: () => DownloadTask[]
+  private readonly writePersistedTasks?: (tasks: DownloadTask[]) => void
   private readonly readConfig?: () => Partial<DownloadRuntimeConfig>
   private readonly resolveSongUrl?: DownloadServiceOptions['resolveSongUrl']
   private readonly fetchMetadata?: DownloadServiceOptions['fetchMetadata']
@@ -250,6 +352,8 @@ export class DownloadService {
     this.fixedConcurrency = options.concurrency
     this.now = options.now ?? Date.now
     this.createTaskId = options.createTaskId ?? createDefaultTaskId
+    this.readPersistedTasks = options.readPersistedTasks
+    this.writePersistedTasks = options.writePersistedTasks
     this.readConfig = options.readConfig
     this.resolveSongUrl = options.resolveSongUrl
     this.fetchMetadata = options.fetchMetadata
@@ -257,6 +361,7 @@ export class DownloadService {
     this.embedMetadata = options.embedMetadata
     this.openPath = options.openPath
     this.showItemInFolder = options.showItemInFolder
+    this.restorePersistedTasks()
   }
 
   getDefaultDirectory(configuredDir = '') {
@@ -382,9 +487,29 @@ export class DownloadService {
 
   private emitTasksChanged() {
     const tasks = this.getTasks()
+    this.writePersistedTasks?.(cloneTasks(tasks))
     for (const listener of this.listeners) {
       listener(tasks)
     }
+  }
+
+  private restorePersistedTasks() {
+    const persistedTasks = this.readPersistedTasks?.() ?? []
+    if (!persistedTasks.length) {
+      return
+    }
+
+    for (const candidate of persistedTasks) {
+      const normalizedTask = normalizePersistedTask(candidate)
+      if (!normalizedTask) {
+        continue
+      }
+
+      const restoredTask = restorePersistedTask(normalizedTask, this.now)
+      this.tasks.set(restoredTask.id, restoredTask)
+    }
+
+    this.writePersistedTasks?.(cloneTasks(this.getTasks()))
   }
 
   private updateTask(taskId: string, updater: (task: DownloadTask) => void) {
