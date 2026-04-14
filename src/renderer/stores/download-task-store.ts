@@ -24,7 +24,12 @@ function normalizeDownloadTask(
 
   return {
     taskId: task.id,
+    songId: task.songId,
     songName: task.songName,
+    artistName: task.artistName,
+    coverUrl: task.coverUrl,
+    albumName: task.albumName,
+    targetPath: task.targetPath,
     status: task.status,
     progress: task.progress,
     quality: task.resolvedQuality || task.requestedQuality || '-',

@@ -249,28 +249,40 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
 
       try {
         let result = null
+        const localSourceUrl = currentTrack.sourceUrl?.trim()
 
-        for (const unblock of createSongUrlRequestAttempts(
-          unblockRef.current
-        )) {
-          const response = await getSongUrlV1({
+        if (localSourceUrl) {
+          result = {
             id: currentTrack.id,
-            level: qualityRef.current,
-            unblock,
-          })
-
-          result = normalizeSongUrlV1Response(response.data)
-
-          if (cancelled) {
-            return
-          }
-
-          if (result?.url) {
-            break
+            url: localSourceUrl,
+            time: 0,
+            br: 0,
           }
         }
 
-        if (!result?.url) {
+        if (!result) {
+          for (const unblock of createSongUrlRequestAttempts(
+            unblockRef.current
+          )) {
+            const response = await getSongUrlV1({
+              id: currentTrack.id,
+              level: qualityRef.current,
+              unblock,
+            })
+
+            result = normalizeSongUrlV1Response(response.data)
+
+            if (cancelled) {
+              return
+            }
+
+            if (result?.url) {
+              break
+            }
+          }
+        }
+
+        if (!result?.url && !localSourceUrl) {
           result = await resolveTrackWithLxMusicSource({
             track: currentTrack,
             quality: qualityRef.current,
@@ -295,15 +307,17 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
         }
 
         let resolvedAudioUrl = result.url
-        try {
-          const cacheKey = `audio:${currentTrack.id}:${qualityRef.current}:${result.url}`
-          const cachedResult = await window.electronCache.resolveAudioSource(
-            cacheKey,
-            result.url
-          )
-          resolvedAudioUrl = cachedResult.url || result.url
-        } catch (error) {
-          console.error('resolve cached audio source failed', error)
+        if (!localSourceUrl) {
+          try {
+            const cacheKey = `audio:${currentTrack.id}:${qualityRef.current}:${result.url}`
+            const cachedResult = await window.electronCache.resolveAudioSource(
+              cacheKey,
+              result.url
+            )
+            resolvedAudioUrl = cachedResult.url || result.url
+          } catch (error) {
+            console.error('resolve cached audio source failed', error)
+          }
         }
 
         audio.pause()

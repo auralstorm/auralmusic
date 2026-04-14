@@ -14,6 +14,10 @@ import { registerDownloadIpc } from './ipc/download-ipc'
 import { registerMusicSourceIpc } from './ipc/music-source-ipc'
 import { registerWindowIpc, bindWindowStateEvents } from './ipc/window-ipc'
 import { applyMusicApiRuntimeEnv } from './music-api-runtime'
+import {
+  registerLocalMediaProtocol,
+  registerLocalMediaScheme,
+} from './protocol/local-media'
 import { startMusicApi } from './server'
 import {
   clearConfiguredGlobalShortcuts,
@@ -30,6 +34,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const { app, globalShortcut, Menu, nativeImage, nativeTheme, session, Tray } =
   electron
+
+registerLocalMediaScheme()
 
 let mainWindow: BrowserWindow | null = null
 let tray: InstanceType<typeof Tray> | null = null
@@ -292,6 +298,7 @@ app.whenReady().then(async () => {
       isQuitting = true
     },
   })
+  registerLocalMediaProtocol()
   registerPermissionHandlers()
   createTray()
 

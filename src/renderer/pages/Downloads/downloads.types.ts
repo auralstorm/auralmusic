@@ -7,7 +7,12 @@ export type DownloadTaskStatus =
 
 export interface DownloadTask {
   taskId: string
+  songId?: number | string
   songName: string
+  artistName?: string
+  coverUrl?: string
+  albumName?: string | null
+  targetPath?: string
   status: DownloadTaskStatus
   progress: number
   quality: string

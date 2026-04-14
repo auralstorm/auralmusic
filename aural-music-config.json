@@ -70,7 +70,7 @@
   "autoStartEnabled": false,
   "closeBehavior": "ask",
   "rememberCloseChoice": false,
-  "playerBackgroundMode": "dynamic",
+  "playerBackgroundMode": "static",
   "diskCacheEnabled": true,
   "diskCacheDir": "",
   "diskCacheMaxBytes": 1073741824,

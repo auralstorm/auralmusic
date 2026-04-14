@@ -19,6 +19,7 @@ export type PlaybackTrack = {
   albumName: string
   coverUrl: string
   duration: number
+  sourceUrl?: string
 }
 
 export type PlaybackQueueSnapshot = {
@@ -147,6 +148,10 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
         : '未知专辑',
     coverUrl: typeof track.coverUrl === 'string' ? track.coverUrl : '',
     duration: typeof track.duration === 'number' ? track.duration : 0,
+    sourceUrl:
+      typeof track.sourceUrl === 'string' && track.sourceUrl.trim()
+        ? track.sourceUrl.trim()
+        : undefined,
   }
 }
 

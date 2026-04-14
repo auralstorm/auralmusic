@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import DownloadsPageView from './components/DownloadsPageView'
+import { buildDownloadTaskPlaybackTrack } from './download-playback.model'
 import { filterDownloadTasks } from './downloads.model'
 import type { DownloadTaskFilterValue } from './downloads.types'
 import { useDownloadTaskStore } from '@/stores/download-task-store'
+import { usePlaybackStore } from '@/stores/playback-store'
 
 const Downloads = () => {
   const [activeFilter, setActiveFilter] =
@@ -12,6 +14,7 @@ const Downloads = () => {
     state => state.startSubscription
   )
   const stopSubscription = useDownloadTaskStore(state => state.stopSubscription)
+  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
 
   useEffect(() => {
     void startSubscription()
@@ -32,7 +35,14 @@ const Downloads = () => {
       tasks={visibleTasks}
       onFilterChange={setActiveFilter}
       onOpenFile={taskId => {
-        void window.electronDownload.openDownloadedFile(taskId)
+        const task = tasks.find(item => item.taskId === taskId)
+        const playbackTrack = task ? buildDownloadTaskPlaybackTrack(task) : null
+
+        if (!playbackTrack) {
+          return
+        }
+
+        playQueueFromIndex([playbackTrack], 0)
       }}
       onOpenFolder={taskId => {
         void window.electronDownload.openDownloadedFileFolder(taskId)

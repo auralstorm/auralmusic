@@ -65,7 +65,7 @@ const DownloadTaskRow = ({
           onClick={() => onOpenFile(task.taskId)}
         >
           <Play />
-          打开文件
+          点击播放
         </Button>
         <Button
           type='button'

@@ -8,7 +8,12 @@ import {
 
 type MockDownloadTask = {
   taskId: string
+  songId?: number | string
   songName: string
+  artistName?: string
+  coverUrl?: string
+  albumName?: string | null
+  targetPath?: string
   status: 'queued' | 'downloading' | 'completed' | 'failed' | 'skipped'
   progress: number
   quality: string
@@ -37,7 +42,17 @@ function resetStore() {
 test('download task store refreshes tasks from electron bridge', async () => {
   resetStore()
 
-  const tasks = [createTask('task-1', { status: 'downloading', progress: 48 })]
+  const tasks = [
+    createTask('task-1', {
+      songId: 1001,
+      artistName: 'Artist 1',
+      coverUrl: 'cover-1.jpg',
+      albumName: 'Album 1',
+      targetPath: 'F:\\downloads\\task-1.mp3',
+      status: 'downloading',
+      progress: 48,
+    }),
+  ]
 
   globalThis.window = Object.assign(globalThis.window ?? {}, {
     electronDownload: {
@@ -53,6 +68,10 @@ test('download task store refreshes tasks from electron bridge', async () => {
 
   assert.equal(useDownloadTaskStore.getState().initialized, true)
   assert.deepEqual(useDownloadTaskStore.getState().tasks, tasks)
+  assert.equal(
+    useDownloadTaskStore.getState().tasks[0]?.targetPath,
+    tasks[0]?.targetPath
+  )
 })
 
 test('download task store subscribes to task changes and replaces stale listeners', async () => {

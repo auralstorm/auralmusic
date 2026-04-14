@@ -69,6 +69,31 @@ test('appendToQueue appends tracks without interrupting current playback', () =>
   assert.equal(state.queue[3]?.id, 4)
 })
 
+test('playQueueFromIndex preserves local source urls on playback tracks', () => {
+  usePlaybackStore.getState().resetPlayback()
+
+  usePlaybackStore.getState().playQueueFromIndex(
+    [
+      {
+        id: 10,
+        name: 'Local Track',
+        artistNames: 'Local Artist',
+        albumName: 'Downloads',
+        coverUrl: 'cover-local',
+        duration: 0,
+        sourceUrl: 'file:///F:/downloads/local-track.mp3',
+      },
+    ],
+    0
+  )
+
+  const state = usePlaybackStore.getState()
+  assert.equal(
+    state.currentTrack?.sourceUrl,
+    'file:///F:/downloads/local-track.mp3'
+  )
+})
+
 test('appendToQueue seeds the queue without auto-playing when idle', () => {
   usePlaybackStore.getState().resetPlayback()
 
