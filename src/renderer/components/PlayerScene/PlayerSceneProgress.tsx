@@ -57,7 +57,7 @@ const PlayerSceneProgress = ({
         disabled={disabled || duration <= 0}
         onValueChange={handleValueChange}
         onValueCommit={handleValueCommit}
-        className='[&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:bg-primary [&_[data-slot=slider-thumb]]:size-3.5 [&_[data-slot=slider-thumb]]:border-white/40 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-white/18'
+        className='[&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:bg-primary [&_[data-slot=slider-track]]:bg-primary/10 [&_[data-slot=slider-thumb]]:size-3.5 [&_[data-slot=slider-thumb]]:border-white/40 [&_[data-slot=slider-track]]:h-1.5'
       />
       <div className='flex items-center justify-between text-xs font-medium text-[var(--player-soft)] tabular-nums'>
         <span>{formatTime(value)}</span>

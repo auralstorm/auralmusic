@@ -127,9 +127,9 @@ const LibraryTabsSection = ({
             {activeTab === 'playlists' && playlistSource === 'my' ? (
               <Button
                 type='button'
-                variant='outline'
+                variant='ghost'
                 onClick={onOpenCreatePlaylist}
-                className='absolute right-0 h-10 rounded-[16px] border-neutral-200 bg-white px-5 text-base font-semibold text-neutral-700 shadow-[0_10px_24px_rgba(15,23,42,0.04)]'
+                className='text-primary/50 absolute right-0 h-10 rounded-[16px] px-5 text-base font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.04)]'
               >
                 <Plus className='mr-2 size-4' />
                 新建歌单
