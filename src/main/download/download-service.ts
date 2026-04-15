@@ -10,6 +10,7 @@ import {
   resolveAuthRequestHeaders,
 } from '../auth/request-header.ts'
 import {
+  DOWNLOAD_QUALITY_FALLBACK_CHAIN,
   createDownloadQualityFallbackChain,
   type DownloadRuntimeConfig,
   type DownloadTask,
@@ -111,6 +112,20 @@ function normalizeExtension(extension: string | null | undefined) {
   return extension.startsWith('.')
     ? extension.toLowerCase()
     : `.${extension.toLowerCase()}`
+}
+
+function isLowerQuality(
+  candidate: AudioQualityLevel,
+  requested: AudioQualityLevel
+) {
+  const requestedIndex = DOWNLOAD_QUALITY_FALLBACK_CHAIN.indexOf(requested)
+  const candidateIndex = DOWNLOAD_QUALITY_FALLBACK_CHAIN.indexOf(candidate)
+
+  return (
+    requestedIndex >= 0 &&
+    candidateIndex >= 0 &&
+    candidateIndex > requestedIndex
+  )
 }
 
 function inferExtensionFromUrl(sourceUrl: string) {
@@ -567,12 +582,16 @@ export class DownloadService {
 
     try {
       const resolved = await this.resolveDownloadSource(taskId)
-      const resolvedQuality = resolved.quality ?? task.requestedQuality
+      const resolvedQuality =
+        resolved.payload.resolvedQuality ??
+        resolved.quality ??
+        task.requestedQuality
       const targetDirectory = this.getDefaultDirectory(
         resolved.payload.directory || runtimeConfig.downloadDir
       )
       const initialExtension =
         normalizeExtension(resolved.fileExtension) ||
+        normalizeExtension(resolved.payload.fileExtension) ||
         inferExtensionFromUrl(resolved.url)
       let targetPath = path.join(
         targetDirectory,
@@ -586,7 +605,10 @@ export class DownloadService {
       this.updateTask(taskId, currentTask => {
         currentTask.resolvedQuality = resolvedQuality
         currentTask.targetPath = targetPath
-        if (resolvedQuality !== currentTask.requestedQuality) {
+        if (
+          resolvedQuality !== currentTask.requestedQuality &&
+          isLowerQuality(resolvedQuality, currentTask.requestedQuality)
+        ) {
           currentTask.note = `Download downgraded from ${currentTask.requestedQuality} to ${resolvedQuality}.`
         }
       })
@@ -731,7 +753,8 @@ export class DownloadService {
     if (payload.sourceUrl) {
       return {
         url: payload.sourceUrl,
-        quality,
+        quality: payload.resolvedQuality ?? quality,
+        fileExtension: payload.fileExtension ?? null,
       } satisfies ResolvedSongDownload
     }
 

@@ -301,6 +301,88 @@ test('DownloadService prefers official download urls and sends auth cookie to mu
   }
 })
 
+test('DownloadService preserves renderer pre-resolved source metadata when sourceUrl is provided', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const attemptedRequests: string[] = []
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(),
+    createTaskId: () => 'task-pre-resolved-source',
+    downloadFetcher: async (input, init) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      attemptedRequests.push(url)
+
+      if (
+        url.includes('/song/download/url/v1') ||
+        url.includes('/song/url/v1')
+      ) {
+        throw new Error(`legacy resolver should not be called: ${url}`)
+      }
+
+      return new Response(Buffer.from('pre-resolved-audio'), {
+        status: 200,
+        headers: {
+          'content-type': 'application/octet-stream',
+          'content-length': '18',
+        },
+      })
+    },
+  })
+
+  const task = await service.enqueueSongDownload({
+    songId: '4',
+    songName: 'Pre-resolved Song',
+    artistName: 'Renderer Artist',
+    requestedQuality: 'higher',
+    sourceUrl: 'https://cdn.example.com/pre-resolved-track',
+    resolvedQuality: 'lossless',
+    fileExtension: '.flac',
+  })
+
+  const completed = await waitForTaskStatus(service, task.id, 'completed')
+
+  assert.equal(completed.resolvedQuality, 'lossless')
+  assert.ok(completed.targetPath.endsWith('.flac'))
+  assert.equal(completed.note, null)
+  assert.deepEqual(attemptedRequests, [
+    'https://cdn.example.com/pre-resolved-track',
+  ])
+
+  await rm(root, { recursive: true, force: true })
+})
+
+test('DownloadService falls back to request quality and response type when renderer metadata is missing', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(),
+    createTaskId: () => 'task-pre-resolved-source-fallback',
+    downloadFetcher: async () => {
+      return new Response(Buffer.from('fallback-audio'), {
+        status: 200,
+        headers: {
+          'content-type': 'audio/mpeg',
+        },
+      })
+    },
+  })
+
+  const task = await service.enqueueSongDownload({
+    songId: '5',
+    songName: 'Fallback Song',
+    artistName: 'Renderer Artist',
+    requestedQuality: 'higher',
+    sourceUrl: 'https://cdn.example.com/fallback-track',
+  })
+
+  const completed = await waitForTaskStatus(service, task.id, 'completed')
+
+  assert.equal(completed.resolvedQuality, 'higher')
+  assert.ok(completed.targetPath.endsWith('.mp3'))
+
+  await rm(root, { recursive: true, force: true })
+})
+
 test('DownloadService skips same-name files that already exist', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
   const existingPath = path.join(root, 'existing-track.mp3')
