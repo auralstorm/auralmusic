@@ -1,25 +1,6 @@
 {
   "tasks": [
     {
-      "id": "download-1776235369781-jaj2a61u",
-      "songId": 1420971901,
-      "songName": "Forever",
-      "artistName": "Justin Bieber / Post Malone / Clever",
-      "coverUrl": "https://p3.music.126.net/arL022NQ94WEv97FzlwTgA==/109951164707732979.jpg",
-      "albumName": "Changes",
-      "requestedQuality": "jymaster",
-      "resolvedQuality": "jymaster",
-      "status": "completed",
-      "progress": 100,
-      "errorMessage": null,
-      "targetPath": "C:\\Users\\s1769\\Downloads\\Forever - Justin Bieber Post Malone Clever.mp3",
-      "note": "Embedded MP3 metadata.",
-      "warningMessage": null,
-      "createdAt": 1776235369781,
-      "updatedAt": 1776235375066,
-      "completedAt": 1776235375066
-    },
-    {
       "id": "download-1776186161211-7c4rb6z3",
       "songId": 2104642745,
       "songName": "雀台",
