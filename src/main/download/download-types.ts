@@ -77,6 +77,7 @@ export type ResolvedSongDownload = {
 }
 
 export type DownloadRuntimeConfig = {
+  musicSourceEnabled: boolean
   downloadDir: string
   downloadQuality: AudioQualityLevel
   downloadSkipExisting: boolean

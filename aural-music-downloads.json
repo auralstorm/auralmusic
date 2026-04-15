@@ -1,6 +1,25 @@
 {
   "tasks": [
     {
+      "id": "download-1776186161211-7c4rb6z3",
+      "songId": 2104642745,
+      "songName": "雀台",
+      "artistName": "加木 / 暴躁的兔子",
+      "coverUrl": "http://p3.music.126.net/p832V6QSVYE4ZhIN02NrWQ==/109951169276586477.jpg",
+      "albumName": "雀台",
+      "requestedQuality": "jymaster",
+      "resolvedQuality": "jymaster",
+      "status": "completed",
+      "progress": 100,
+      "errorMessage": null,
+      "targetPath": "C:\\Users\\s1769\\Downloads\\雀台 - 加木 暴躁的兔子.mp3",
+      "note": "Embedded MP3 metadata.",
+      "warningMessage": null,
+      "createdAt": 1776186161211,
+      "updatedAt": 1776186162385,
+      "completedAt": 1776186162385
+    },
+    {
       "id": "download-1776184810518-qibb975p",
       "songId": 29572501,
       "songName": "Blank Space",

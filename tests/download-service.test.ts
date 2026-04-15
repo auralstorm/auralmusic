@@ -120,6 +120,187 @@ test('DownloadService falls down the quality chain and completes an mp3 download
   await rm(root, { recursive: true, force: true })
 })
 
+test('DownloadService retries song url resolution with unblock=true when music source is enabled', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const attemptedUrls: string[] = []
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(),
+    createTaskId: () => 'task-unblock-retry',
+    readConfig: () => ({
+      musicSourceEnabled: true,
+    }),
+    downloadFetcher: async input => {
+      const url = typeof input === 'string' ? input : input.toString()
+      attemptedUrls.push(url)
+
+      if (url.includes('/song/download/url/v1')) {
+        return Response.json({
+          data: {
+            url: '',
+          },
+        })
+      }
+
+      if (url.includes('/song/url/v1')) {
+        const unblockEnabled =
+          new URL(url).searchParams.get('unblock') === 'true'
+        return Response.json({
+          data: [
+            {
+              id: 1,
+              url: unblockEnabled
+                ? 'https://cdn.example.com/full-track.mp3'
+                : '',
+            },
+          ],
+        })
+      }
+
+      return new Response(Buffer.from('full-track-audio'), {
+        status: 200,
+        headers: {
+          'content-type': 'audio/mpeg',
+        },
+      })
+    },
+  })
+
+  const previousBaseUrl = process.env.AURAL_MUSIC_API_BASE_URL
+  process.env.AURAL_MUSIC_API_BASE_URL = 'https://music.example.com'
+
+  try {
+    const task = await service.enqueueSongDownload({
+      songId: '1',
+      songName: 'Unlocked Song',
+      artistName: 'Unlocked Artist',
+      requestedQuality: 'higher',
+    })
+
+    const completed = await waitForTaskStatus(service, task.id, 'completed')
+
+    assert.equal(completed.status, 'completed')
+    assert.deepEqual(
+      attemptedUrls.filter(
+        url =>
+          url.includes('/song/download/url/v1') || url.includes('/song/url/v1')
+      ),
+      [
+        'https://music.example.com/song/download/url/v1?id=1&level=higher',
+        'https://music.example.com/song/url/v1?id=1&level=higher&unblock=false',
+        'https://music.example.com/song/url/v1?id=1&level=higher&unblock=true',
+      ]
+    )
+  } finally {
+    if (previousBaseUrl === undefined) {
+      delete process.env.AURAL_MUSIC_API_BASE_URL
+    } else {
+      process.env.AURAL_MUSIC_API_BASE_URL = previousBaseUrl
+    }
+
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('DownloadService prefers official download urls and sends auth cookie to music api requests', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const attemptedRequests: Array<{
+    url: string
+    cookieHeader: string
+  }> = []
+
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(),
+    createTaskId: () => 'task-official-download-url',
+    getAuthSession: () => ({
+      userId: 1,
+      nickname: 'tester',
+      avatarUrl: '',
+      cookie: 'MUSIC_U=vip-cookie; os=pc',
+      loginMethod: 'email',
+      updatedAt: Date.now(),
+    }),
+    downloadFetcher: async (input, init) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      const headers = new Headers(init?.headers)
+
+      if (url.startsWith('https://music.example.com/')) {
+        attemptedRequests.push({
+          url,
+          cookieHeader: headers.get('Cookie') || '',
+        })
+      }
+
+      if (url.includes('/song/download/url/v1')) {
+        return Response.json({
+          data: {
+            url: 'https://cdn.example.com/official-track.flac',
+          },
+        })
+      }
+
+      if (url.includes('/song/url/v1')) {
+        return Response.json({
+          data: [
+            {
+              id: 1,
+              url: 'https://cdn.example.com/playback-track.mp3',
+            },
+          ],
+        })
+      }
+
+      return new Response(Buffer.from('official-audio'), {
+        status: 200,
+        headers: {
+          'content-type': 'audio/flac',
+        },
+      })
+    },
+  })
+
+  const previousBaseUrl = process.env.AURAL_MUSIC_API_BASE_URL
+  process.env.AURAL_MUSIC_API_BASE_URL = 'https://music.example.com'
+
+  try {
+    const task = await service.enqueueSongDownload({
+      songId: '11',
+      songName: 'Official Track',
+      artistName: 'VIP Artist',
+      requestedQuality: 'higher',
+    })
+
+    const completed = await waitForTaskStatus(service, task.id, 'completed')
+
+    assert.equal(completed.status, 'completed')
+    assert.ok(completed.targetPath.endsWith('.flac'))
+    assert.ok(attemptedRequests.length >= 1)
+    assert.equal(
+      attemptedRequests[0]?.url,
+      'https://music.example.com/song/download/url/v1?id=11&level=higher'
+    )
+    assert.match(attemptedRequests[0]?.cookieHeader ?? '', /MUSIC_U=vip-cookie/)
+    assert.ok(
+      attemptedRequests.every(item =>
+        /MUSIC_U=vip-cookie/.test(item.cookieHeader)
+      )
+    )
+    assert.doesNotMatch(
+      attemptedRequests.map(item => item.url).join('\n'),
+      /song\/url\/v1/
+    )
+  } finally {
+    if (previousBaseUrl === undefined) {
+      delete process.env.AURAL_MUSIC_API_BASE_URL
+    } else {
+      process.env.AURAL_MUSIC_API_BASE_URL = previousBaseUrl
+    }
+
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('DownloadService skips same-name files that already exist', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
   const existingPath = path.join(root, 'existing-track.mp3')

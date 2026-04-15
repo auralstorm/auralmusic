@@ -1,9 +1,9 @@
 Packaging assets live in this directory.
 
-Expected icon files:
+Current icon layout:
 
-- `icon.ico` for Windows builds
-- `icon.icns` for macOS builds
-- `icon.png` for Linux builds
+- `icons/icon.ico` for Windows builds
+- `icons/png/` for Linux builds
+- `icon.icns` for macOS builds when that target is needed
 
 Do not place application source code here.

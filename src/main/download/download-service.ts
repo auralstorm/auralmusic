@@ -4,7 +4,8 @@ import NodeID3 from 'node-id3'
 
 import type { AudioQualityLevel } from '../config/types.ts'
 import { readMusicApiBaseUrlFromEnv } from '../music-api-runtime.ts'
-import { normalizeSongUrlV1Response } from '../../shared/playback.ts'
+import type { AuthSession } from '../../shared/auth.ts'
+import { resolveAuthRequestHeaders } from '../auth/request-header.ts'
 import {
   createDownloadQualityFallbackChain,
   type DownloadRuntimeConfig,
@@ -14,6 +15,7 @@ import {
   type ResolvedSongDownload,
   type SongDownloadPayload,
 } from './download-types.ts'
+import { createDownloadSourceResolver } from './download-source-resolver.ts'
 
 type DownloadServiceOptions = {
   defaultRootDir: string
@@ -23,6 +25,7 @@ type DownloadServiceOptions = {
   readPersistedTasks?: () => DownloadTask[]
   writePersistedTasks?: (tasks: DownloadTask[]) => void
   readConfig?: () => Partial<DownloadRuntimeConfig>
+  getAuthSession?: () => AuthSession | null
   resolveSongUrl?: (
     input: ResolveSongUrlInput
   ) => Promise<ResolvedSongDownload | null>
@@ -335,6 +338,7 @@ export class DownloadService {
   private readonly readPersistedTasks?: () => DownloadTask[]
   private readonly writePersistedTasks?: (tasks: DownloadTask[]) => void
   private readonly readConfig?: () => Partial<DownloadRuntimeConfig>
+  private readonly getAuthSession?: () => AuthSession | null
   private readonly resolveSongUrl?: DownloadServiceOptions['resolveSongUrl']
   private readonly fetchMetadata?: DownloadServiceOptions['fetchMetadata']
   private readonly downloadFetcher: typeof fetch
@@ -355,6 +359,7 @@ export class DownloadService {
     this.readPersistedTasks = options.readPersistedTasks
     this.writePersistedTasks = options.writePersistedTasks
     this.readConfig = options.readConfig
+    this.getAuthSession = options.getAuthSession
     this.resolveSongUrl = options.resolveSongUrl
     this.fetchMetadata = options.fetchMetadata
     this.downloadFetcher = options.downloadFetcher ?? fetch
@@ -470,6 +475,7 @@ export class DownloadService {
     const config = this.readConfig?.() || {}
 
     return {
+      musicSourceEnabled: config.musicSourceEnabled ?? false,
       downloadDir: config.downloadDir || '',
       downloadQuality: config.downloadQuality || 'higher',
       downloadSkipExisting: config.downloadSkipExisting ?? true,
@@ -726,30 +732,16 @@ export class DownloadService {
       } satisfies ResolvedSongDownload
     }
 
-    const baseURL = readMusicApiBaseUrlFromEnv()
-    if (!baseURL) {
-      return null
-    }
+    const resolver = createDownloadSourceResolver({
+      fetcher: this.downloadFetcher,
+      getAuthSession: this.getAuthSession,
+    })
 
-    const url = new URL('/song/url/v1', `${baseURL}/`)
-    url.searchParams.set('id', String(payload.songId))
-    url.searchParams.set('level', quality)
-    url.searchParams.set('unblock', 'false')
-
-    const response = await this.downloadFetcher(url.toString())
-    if (!response.ok) {
-      return null
-    }
-
-    const result = normalizeSongUrlV1Response(await response.json())
-    if (!result?.url) {
-      return null
-    }
-
-    return {
-      url: result.url,
+    return resolver({
+      payload,
       quality,
-    }
+      runtimeConfig: this.getRuntimeConfig(),
+    })
   }
 
   private async applyMetadata(
@@ -890,13 +882,17 @@ export class DownloadService {
       lyricUrl.searchParams.set('id', String(payload.songId))
 
       const [detailResult, lyricResult] = await Promise.allSettled([
-        this.downloadFetcher(detailUrl.toString()).then(async response => {
+        this.downloadFetcher(detailUrl.toString(), {
+          headers: this.createMusicApiRequestHeaders(detailUrl.toString()),
+        }).then(async response => {
           if (!response.ok) {
             throw new Error(`song detail failed: ${response.status}`)
           }
           return response.json()
         }),
-        this.downloadFetcher(lyricUrl.toString()).then(async response => {
+        this.downloadFetcher(lyricUrl.toString(), {
+          headers: this.createMusicApiRequestHeaders(lyricUrl.toString()),
+        }).then(async response => {
           if (!response.ok) {
             throw new Error(`lyric failed: ${response.status}`)
           }
@@ -926,5 +922,26 @@ export class DownloadService {
     } catch {
       return false
     }
+  }
+
+  private createMusicApiRequestHeaders(requestUrl: string) {
+    const baseURL = readMusicApiBaseUrlFromEnv()
+    if (!baseURL) {
+      return {}
+    }
+
+    let authOrigin: string | undefined
+    try {
+      authOrigin = new URL(baseURL).origin
+    } catch {
+      authOrigin = undefined
+    }
+
+    return resolveAuthRequestHeaders({
+      authOrigin,
+      authSession: this.getAuthSession?.() ?? null,
+      requestHeaders: {},
+      requestUrl,
+    })
   }
 }

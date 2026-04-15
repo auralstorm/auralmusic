@@ -11,10 +11,10 @@ files:
 asar: true
 
 win:
-  icon: build/icon.ico
+  icon: build/icons/icon.ico
 
 mac:
   icon: build/icon.icns
 
 linux:
-  icon: build/icon.png
+  icon: build/icons/png
