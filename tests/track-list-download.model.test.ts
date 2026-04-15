@@ -7,14 +7,18 @@ import {
 } from '../src/renderer/components/TrackList/track-list-download.model.ts'
 
 test('handleTrackDownload resolves source before enqueueing and forwards resolved fields', async () => {
-  let resolvedPayload:
+  let resolvedInput:
     | {
-        songId: number
-        songName: string
-        artistName: string
-        coverUrl: string
-        albumName?: string
+        track: {
+          id: number
+          name: string
+          artistNames: string
+          albumName: string
+          coverUrl: string
+          duration: number
+        }
         requestedQuality: string
+        policy: string
       }
     | undefined
   let enqueuedPayload:
@@ -43,8 +47,8 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
     },
     coverUrl: 'fallback-cover.jpg',
     downloadEnabled: true,
-    resolveDownloadSource: async payload => {
-      resolvedPayload = payload
+    resolveDownloadSource: async input => {
+      resolvedInput = input
       return {
         url: 'https://cdn.example.com/track.flac',
         quality: 'lossless',
@@ -61,13 +65,17 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
   })
 
   assert.equal(result, true)
-  assert.deepEqual(resolvedPayload, {
-    songId: 8,
-    songName: 'Download Me',
-    artistName: 'Singer A',
-    coverUrl: 'fallback-cover.jpg',
-    albumName: 'Album',
+  assert.deepEqual(resolvedInput, {
+    track: {
+      id: 8,
+      name: 'Download Me',
+      artistNames: 'Singer A',
+      albumName: 'Album',
+      coverUrl: 'fallback-cover.jpg',
+      duration: 0,
+    },
     requestedQuality: 'higher',
+    policy: 'fallback',
   })
   assert.deepEqual(enqueuedPayload, {
     songId: 8,

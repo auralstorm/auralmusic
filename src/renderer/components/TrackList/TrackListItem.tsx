@@ -14,7 +14,6 @@ import {
   handleTrackDownload,
   TRACK_DOWNLOAD_TOASTS,
 } from './track-list-download.model'
-import { createDownloadSourceResolver } from '../../services/download/download-source-resolver'
 
 export interface songProps {
   artists?: Artist[] | null
@@ -157,22 +156,6 @@ const TrackListItem = ({
         coverUrl,
         requestedQuality: downloadQuality,
         downloadEnabled,
-        resolveDownloadSource: async payload => {
-          const resolveDownloadSource = createDownloadSourceResolver()
-
-          return resolveDownloadSource({
-            track: {
-              id: item.id,
-              name: item.name,
-              artistNames: artistName,
-              albumName: item.albumName || '',
-              coverUrl: item.coverUrl || coverUrl || '',
-              duration: item.duration,
-            },
-            requestedQuality: payload.requestedQuality,
-            policy: 'fallback',
-          })
-        },
         enqueueSongDownload: payload =>
           electronDownload.enqueueSongDownload(payload),
         toastError: message => {

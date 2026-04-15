@@ -60,6 +60,10 @@ test('handleTrackDownload enqueues the song when download is enabled', async () 
         coverUrl: string
         albumName?: string
         requestedQuality: string
+        sourceUrl?: string
+        resolvedQuality?: string
+        sourceProvider?: string
+        fileExtension?: string | null
       }
     | undefined
 
@@ -72,6 +76,25 @@ test('handleTrackDownload enqueues the song when download is enabled', async () 
     },
     downloadEnabled: true,
     coverUrl: '',
+    resolveDownloadSource: async input => {
+      assert.deepEqual(input.track, {
+        id: 8,
+        name: 'Download Me',
+        artistNames: 'Singer A',
+        albumName: '',
+        coverUrl: '',
+        duration: 0,
+      })
+      assert.equal(input.requestedQuality, 'higher')
+      assert.equal(input.policy, 'fallback')
+
+      return {
+        url: 'https://cdn.example.com/download-me.flac',
+        quality: 'lossless',
+        provider: 'official-download',
+        fileExtension: '.flac',
+      }
+    },
     enqueueSongDownload: async context => {
       receivedContext = context
     },
@@ -86,5 +109,9 @@ test('handleTrackDownload enqueues the song when download is enabled', async () 
     coverUrl: '',
     albumName: undefined,
     requestedQuality: 'higher',
+    sourceUrl: 'https://cdn.example.com/download-me.flac',
+    resolvedQuality: 'lossless',
+    sourceProvider: 'official-download',
+    fileExtension: '.flac',
   })
 })

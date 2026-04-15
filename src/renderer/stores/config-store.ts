@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import {
-  AppConfig,
   AUDIO_QUALITY_LEVELS,
   MUSIC_SOURCE_PROVIDERS,
   defaultConfig,
@@ -22,20 +21,21 @@ import {
   normalizePlayerBackgroundMode,
   normalizeRememberPlaybackSession,
   normalizeShowLyricTranslation,
+  type AppConfig,
   type AudioQualityLevel,
   type MusicSourceProvider,
-} from '../../main/config/types'
+} from '../../main/config/types.ts'
 import {
   normalizeImportedLxMusicSource,
   normalizeImportedLxMusicSources,
   resolveActiveLxMusicSourceScriptId,
-} from '../../shared/lx-music-source'
-import { normalizeShortcutBindings } from '../../shared/shortcut-keys'
+} from '../../shared/lx-music-source.ts'
+import { normalizeShortcutBindings } from '../../shared/shortcut-keys.ts'
 import {
   normalizePlaybackMode,
   normalizePlaybackVolume,
-} from '../../shared/playback'
-import { normalizeThemeColor } from '../theme/theme-color'
+} from '../../shared/playback.ts'
+import { normalizeThemeColor } from '../theme/theme-color.ts'
 
 function normalizeQuality(value: unknown): AudioQualityLevel {
   if (value === 'high') {
