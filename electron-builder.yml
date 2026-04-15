@@ -3,8 +3,9 @@ productName: AuralMusic
 
 directories:
   output: dist
+  buildResources: build # 确保指向包含 icons 的目录
 
-# 👇 👇 👇 核心：只保留中文 + 英文（你可以自己增删）
+# 仅保留需要的 Electron 语言资源，减小安装包体积。
 electronLanguages:
   # - en
   # - zh-CN
@@ -18,7 +19,34 @@ asar: true
 win:
   icon: build/icons/icon.ico
   target: nsis
-  signAndEditExecutable: true #避免 rcedit 报错
+  # 保留可执行文件图标与版本信息写入，避免 Windows 资源编辑时报错。
+  signAndEditExecutable: true
+
+nsis:
+  # 改为辅助安装模式，安装器会显示向导页面，而不是双击后直接完成安装。
+  oneClick: false
+
+  # 允许用户在安装过程中手动选择安装目录。
+  allowToChangeInstallationDirectory: true
+
+  # 允许在需要时弹出提权，而不是静默失败。
+  allowElevation: true
+
+  # 默认按当前用户安装，避免每次都强制要求管理员权限。
+  # 如果后续需要“为所有用户安装”，再改成 true。
+  perMachine: false
+
+  # 安装时提供桌面快捷方式能力。
+  createDesktopShortcut: true
+
+  # 安装时创建开始菜单快捷方式。
+  createStartMenuShortcut: true
+
+  # 将开始菜单快捷方式归类到单独目录，避免散落在根菜单中。
+  menuCategory: AuralMusic
+
+  # 卸载时自动删除安装目录下由安装器生成的残留文件。
+  deleteAppDataOnUninstall: false
 
 mac:
   icon: build/icon.icns

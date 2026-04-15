@@ -3,7 +3,7 @@ import electron from 'electron'
 import { SYSTEM_FONTS_IPC_CHANNELS } from '../../shared/ipc/system-fonts.ts'
 
 type FontListOptions = {
-  disableQuoting?: boolean
+  disableQuoting: boolean
 }
 
 type SystemFontsIpcRegistrationOptions = {
