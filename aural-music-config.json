@@ -70,7 +70,7 @@
   "autoStartEnabled": false,
   "closeBehavior": "ask",
   "rememberCloseChoice": false,
-  "playerBackgroundMode": "static",
+  "playerBackgroundMode": "off",
   "diskCacheEnabled": true,
   "diskCacheDir": "",
   "diskCacheMaxBytes": 1073741824,
@@ -82,5 +82,6 @@
   "downloadFileNamePattern": "song-artist",
   "downloadEmbedCover": true,
   "downloadEmbedLyrics": true,
-  "downloadEmbedTranslatedLyrics": false
+  "downloadEmbedTranslatedLyrics": false,
+  "downloadQualityPolicy": "fallback"
 }
