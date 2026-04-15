@@ -6,7 +6,7 @@ import {
   type DownloadSourceResolverDeps,
 } from '../src/renderer/services/download/download-source-resolver.ts'
 
-test('createDownloadSourceResolver falls back from thrown official endpoints to LX under strict policy', async () => {
+test('createDownloadSourceResolver falls back from official endpoints to LX and returns effective quality', async () => {
   const calls: string[] = []
 
   const deps: DownloadSourceResolverDeps = {
@@ -48,7 +48,7 @@ test('createDownloadSourceResolver falls back from thrown official endpoints to 
       duration: 200000,
     },
     requestedQuality: 'lossless',
-    policy: 'strict',
+    policy: 'fallback',
   })
 
   assert.deepEqual(result, {
@@ -63,6 +63,57 @@ test('createDownloadSourceResolver falls back from thrown official endpoints to 
     'song-url:lossless:true',
     'lx',
   ])
+})
+
+test('createDownloadSourceResolver returns official playback when download is empty', async () => {
+  const calls: string[] = []
+
+  const deps: DownloadSourceResolverDeps = {
+    getSongDownloadUrlV1: async params => {
+      calls.push(`song-download:${params.level}`)
+      return { data: { data: { url: '' } } }
+    },
+    getSongUrlV1: async params => {
+      calls.push(`song-url:${params.level}:${params.unblock}`)
+      return {
+        data: { data: [{ id: 2, url: 'https://cdn.example.com/track.mp3' }] },
+      }
+    },
+    resolveTrackWithLxMusicSource: async () => {
+      calls.push('lx')
+      return null
+    },
+    getConfig: () => ({
+      quality: 'higher',
+      musicSourceEnabled: true,
+      luoxueSourceEnabled: true,
+      musicSourceProviders: ['lxMusic'],
+      activeLuoxueMusicSourceScriptId: 'script-1',
+      luoxueMusicSourceScripts: [{ id: 'script-1' }] as never,
+    }),
+  }
+
+  const resolveDownloadSource = createDownloadSourceResolver(deps)
+  const result = await resolveDownloadSource({
+    track: {
+      id: 3,
+      name: 'Playback Song',
+      artistNames: 'Artist',
+      albumName: 'Album',
+      coverUrl: '',
+      duration: 180000,
+    },
+    requestedQuality: 'higher',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/track.mp3',
+    quality: 'higher',
+    provider: 'official-playback',
+    fileExtension: '.mp3',
+  })
+  assert.deepEqual(calls, ['song-download:higher', 'song-url:higher:false'])
 })
 
 test('createDownloadSourceResolver derives extension from official download payload', async () => {
