@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 type AvatarCoverProps = {
   url: string

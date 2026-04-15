@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { SimilarArtistItem } from '@/pages/Artists/artist-detail.model'
+import type { ArtistSimilarItem } from '@/pages/Artists/artist-detail.model'
 
 interface SimilarArtistsProps {
-  artists: SimilarArtistItem[]
+  artists: ArtistSimilarItem[]
 }
 
 const SimilarArtists = ({ artists }: SimilarArtistsProps) => {
@@ -31,9 +31,7 @@ const SimilarArtists = ({ artists }: SimilarArtistsProps) => {
               />
               <div className='mt-4 space-y-1'>
                 <h3 className='truncate text-lg font-bold'>{artist.name}</h3>
-                <p className='text-muted-foreground text-sm'>
-                  {artist.musicSize ?? 0} �׸��� �� {artist.albumSize ?? 0} ��ר��
-                </p>
+                <p className='text-muted-foreground text-sm'>相似歌手</p>
               </div>
             </Link>
           ))}

@@ -1,5 +1,8 @@
 import { readMusicApiBaseUrlFromEnv } from '../music-api-runtime.ts'
-import { resolveAuthRequestHeaders } from '../auth/request-header.ts'
+import {
+  normalizeRequestHeadersForFetch,
+  resolveAuthRequestHeaders,
+} from '../auth/request-header.ts'
 import type { AuthSession } from '../../shared/auth.ts'
 import {
   createSongUrlRequestAttempts,
@@ -67,12 +70,14 @@ function createRequestHeaders(
   authOrigin: string | undefined,
   authSession: AuthSession | null
 ) {
-  return resolveAuthRequestHeaders({
-    authOrigin,
-    authSession,
-    requestHeaders: {},
-    requestUrl,
-  })
+  return normalizeRequestHeadersForFetch(
+    resolveAuthRequestHeaders({
+      authOrigin,
+      authSession,
+      requestHeaders: {},
+      requestUrl,
+    })
+  )
 }
 
 export function createDownloadSourceResolver(

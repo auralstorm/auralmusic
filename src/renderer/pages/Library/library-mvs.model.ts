@@ -36,30 +36,32 @@ export interface LibraryMvPage {
 
 function unwrapSubscribedMvsBody(
   response?: RawSubscribedMvsBody | RawMvItem[] | null
-): RawSubscribedMvsBody | RawMvItem[] {
+): {
+  mvs: RawMvItem[]
+  more?: boolean
+  hasMore?: boolean
+  count?: number
+} {
   if (!response) {
-    return {}
+    return { mvs: [] }
   }
 
   if (Array.isArray(response)) {
-    return response
+    return { mvs: response }
   }
 
-  if (
-    Array.isArray(response.mvs) ||
-    Array.isArray(response.data) ||
-    typeof response.more === 'boolean' ||
-    typeof response.hasMore === 'boolean' ||
-    typeof response.count === 'number'
-  ) {
-    return response
-  }
+  const nested =
+    response.data && typeof response.data === 'object'
+      ? unwrapSubscribedMvsBody(response.data)
+      : { mvs: [] as RawMvItem[] }
 
-  if (response.data && typeof response.data === 'object') {
-    return unwrapSubscribedMvsBody(response.data)
+  return {
+    mvs: Array.isArray(response.mvs) ? response.mvs : nested.mvs,
+    more: typeof response.more === 'boolean' ? response.more : nested.more,
+    hasMore:
+      typeof response.hasMore === 'boolean' ? response.hasMore : nested.hasMore,
+    count: typeof response.count === 'number' ? response.count : nested.count,
   }
-
-  return response
 }
 
 function formatMVArtistNames(artistName?: string, artists?: RawMvArtist[]) {
@@ -104,16 +106,7 @@ export function normalizeLibraryMvPage(
   { limit, offset }: NormalizeLibraryMvPageOptions = { limit: 25, offset: 0 }
 ): LibraryMvPage {
   const body = unwrapSubscribedMvsBody(response)
-  if (Array.isArray(body.data)) {
-    return {
-      list: body.data,
-      hasMore: body.data.length >= limit,
-    }
-  }
-
-  const list = normalizeMvList(
-    body.mvs ?? (Array.isArray(data) ? data : undefined)
-  )
+  const list = normalizeMvList(body.mvs)
 
   if (typeof body.more === 'boolean') {
     return {

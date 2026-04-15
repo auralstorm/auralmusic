@@ -7,6 +7,10 @@ interface ResolveAuthRequestHeadersOptions {
   requestUrl: string
 }
 
+function isCookieHeaderName(headerName: string) {
+  return headerName.toLowerCase() === 'cookie'
+}
+
 function isAuthRequest(requestUrl: string, authOrigin?: string) {
   if (!authOrigin) {
     return false
@@ -23,8 +27,8 @@ function resolveCookieHeaderName(
   requestHeaders: ResolveAuthRequestHeadersOptions['requestHeaders']
 ) {
   return (
-    Object.keys(requestHeaders).find(
-      headerName => headerName.toLowerCase() === 'cookie'
+    Object.keys(requestHeaders).find(headerName =>
+      isCookieHeaderName(headerName)
     ) ?? 'Cookie'
   )
 }
@@ -84,4 +88,25 @@ export function resolveAuthRequestHeaders({
     ...requestHeaders,
     [cookieHeaderName]: mergedCookieHeader,
   }
+}
+
+export function normalizeRequestHeadersForFetch(
+  requestHeaders: Record<string, string | string[] | undefined>
+) {
+  const headers: Record<string, string> = {}
+
+  for (const [headerName, headerValue] of Object.entries(requestHeaders)) {
+    if (typeof headerValue === 'string') {
+      headers[headerName] = headerValue
+      continue
+    }
+
+    if (Array.isArray(headerValue) && headerValue.length > 0) {
+      headers[headerName] = headerValue.join(
+        isCookieHeaderName(headerName) ? '; ' : ', '
+      )
+    }
+  }
+
+  return headers
 }

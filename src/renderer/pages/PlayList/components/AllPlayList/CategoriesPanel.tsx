@@ -1,12 +1,32 @@
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
 
-const CategoriesPanel = ({ categoryData, className, currentCat, onSelect }) => {
-  // 分组数据：按【语种、风格、场景、情感、主题】归类
-  const groupedCategories = useMemo(() => {
-    const { sub = [], categories = {} } = categoryData
+interface PlaylistCategoryItem {
+  name: string
+  category?: number
+}
 
-    // 1. 生成数字 -> 分类名的映射
+interface PlaylistCategories {
+  sub?: PlaylistCategoryItem[]
+  categories?: Record<string, string>
+}
+
+interface CategoriesPanelProps {
+  categoryData?: PlaylistCategories
+  className?: string
+  currentCat?: string | null
+  onSelect?: (categoryName: string) => void
+}
+
+const CategoriesPanel = ({
+  categoryData,
+  className,
+  currentCat,
+  onSelect,
+}: CategoriesPanelProps) => {
+  const groupedCategories = useMemo(() => {
+    const { sub = [], categories = {} } = categoryData ?? {}
+
     const catIdToName = Object.entries(categories).reduce(
       (map, [key, name]) => {
         map[Number(key)] = name
@@ -15,28 +35,26 @@ const CategoriesPanel = ({ categoryData, className, currentCat, onSelect }) => {
       {} as Record<number, string>
     )
 
-    // 2. 初始化空分组
     const grouped = Object.values(categories).reduce(
-      (res, name) => {
-        res[name] = []
-        return res
+      (result, name) => {
+        result[name] = []
+        return result
       },
-      {} as Record<string, typeof sub>
+      {} as Record<string, PlaylistCategoryItem[]>
     )
 
-    // 3. 遍历 sub 塞入对应分组
     sub.forEach(item => {
-      const catName = catIdToName[item.category]
-      if (catName) grouped[catName].push(item)
+      const catName = item.category ? catIdToName[item.category] : undefined
+      if (catName) {
+        grouped[catName].push(item)
+      }
     })
 
     return grouped
   }, [categoryData])
 
-  console.log('groupedCategories', groupedCategories)
   return (
     <div className={cn('bg-background w-full space-y-8 p-4', className)}>
-      {/* 遍历每个分类 */}
       {Object.entries(groupedCategories).map(([categoryName, list]) => (
         <div key={categoryName} className='flex'>
           <h3 className='mr-[30px] mb-2 text-lg font-bold'>{categoryName}</h3>
@@ -46,9 +64,9 @@ const CategoriesPanel = ({ categoryData, className, currentCat, onSelect }) => {
                 key={item.name}
                 className={cn(
                   'hover:bg-primary/20 cursor-pointer rounded px-3 py-1 text-center transition-colors',
-                  currentCat == item.name && 'bg-primary/20 font-semibold'
+                  currentCat === item.name && 'bg-primary/20 font-semibold'
                 )}
-                onClick={() => onSelect && onSelect(item.name)}
+                onClick={() => onSelect?.(item.name)}
               >
                 {item.name}
               </span>

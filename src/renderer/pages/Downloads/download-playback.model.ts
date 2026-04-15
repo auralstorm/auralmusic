@@ -1,4 +1,4 @@
-import type { PlaybackTrack } from '../../../../shared/playback.ts'
+import type { PlaybackTrack } from '../../../shared/playback.ts'
 import { createLocalMediaUrl } from '../../../shared/local-media.ts'
 import type { DownloadTask } from './downloads.types'
 

@@ -13,12 +13,9 @@ interface LibraryHeroProps {
 const LibraryHero = ({
   songs,
   songCount,
-  coverImgUrl,
+  coverImgUrl: _coverImgUrl,
   onOpenLikedSongs,
 }: LibraryHeroProps) => {
-  const featuredSong = songs[0] || {}
-  const heroCoverUrl = coverImgUrl || featuredSong.coverUrl || ''
-
   return (
     <section className='space-y-6'>
       <div className='grid grid-cols-[1fr_2fr] gap-5'>

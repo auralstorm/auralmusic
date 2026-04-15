@@ -17,8 +17,8 @@ export function useImageColor(url: string, colorCount = 5) {
       try {
         const color = await getColor(img)
         const colors = await getPalette(img, { colorCount: colorCount })
-        setDominant(color)
-        setPalette(colors)
+        setDominant(color?.array() ?? null)
+        setPalette(colors?.map(item => item.array()) ?? [])
       } catch (err) {
         console.log(err)
       } finally {

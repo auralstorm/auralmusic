@@ -1,9 +1,9 @@
 {
-  "theme": "dark",
+  "theme": "light",
   "themeColor": null,
   "fontFamily": "Source Han Serif SC",
   "audioOutputDeviceId": "default",
-  "playbackVolume": 52,
+  "playbackVolume": 23,
   "playbackMode": "repeat-all",
   "playbackSpeed": 1,
   "rememberPlaybackSession": false,

@@ -1,9 +1,5 @@
 import { Play } from 'lucide-react'
-import {
-  formatMvDuration,
-  formatMvPublishDate,
-  type SimilarMvItem,
-} from '../../mv-detail.model'
+import { formatMvDuration, type SimilarMvItem } from '../../mv-detail.model'
 
 interface SimilarMvCardProps {
   item: SimilarMvItem

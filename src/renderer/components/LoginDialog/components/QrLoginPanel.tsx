@@ -16,7 +16,6 @@ const QrLoginPanel = () => {
 
   const [qrView, setQrView] = useState<QrViewState | null>(null)
   const [qrStatus, setQrStatus] = useState<QrPanelStatus>('loading')
-  const [expiresAt, setExpiresAt] = useState<number | null>(null)
   const expiryTimerRef = useRef<number | null>(null)
 
   const clearExpiryTimer = useCallback(() => {
@@ -30,7 +29,6 @@ const QrLoginPanel = () => {
     clearExpiryTimer()
     setQrView(null)
     setQrStatus('loading')
-    setExpiresAt(null)
   }, [clearExpiryTimer])
 
   const markExpired = useCallback(() => {
@@ -41,7 +39,6 @@ const QrLoginPanel = () => {
   const scheduleExpiry = useCallback(
     (nextExpiresAt: number) => {
       clearExpiryTimer()
-      setExpiresAt(nextExpiresAt)
 
       const delay = Math.max(nextExpiresAt - Date.now(), 0)
       expiryTimerRef.current = window.setTimeout(() => {

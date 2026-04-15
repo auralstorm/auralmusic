@@ -5,7 +5,10 @@ import NodeID3 from 'node-id3'
 import type { AudioQualityLevel } from '../config/types.ts'
 import { readMusicApiBaseUrlFromEnv } from '../music-api-runtime.ts'
 import type { AuthSession } from '../../shared/auth.ts'
-import { resolveAuthRequestHeaders } from '../auth/request-header.ts'
+import {
+  normalizeRequestHeadersForFetch,
+  resolveAuthRequestHeaders,
+} from '../auth/request-header.ts'
 import {
   createDownloadQualityFallbackChain,
   type DownloadRuntimeConfig,
@@ -937,11 +940,13 @@ export class DownloadService {
       authOrigin = undefined
     }
 
-    return resolveAuthRequestHeaders({
-      authOrigin,
-      authSession: this.getAuthSession?.() ?? null,
-      requestHeaders: {},
-      requestUrl,
-    })
+    return normalizeRequestHeadersForFetch(
+      resolveAuthRequestHeaders({
+        authOrigin,
+        authSession: this.getAuthSession?.() ?? null,
+        requestHeaders: {},
+        requestUrl,
+      })
+    )
   }
 }

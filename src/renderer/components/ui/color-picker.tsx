@@ -25,7 +25,7 @@ const ColorPickerHex = React.forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof HexColorPicker>, 'onChange'> &
     ColorPickerProps
->(({ className, style, ...props }, ref) => (
+>(({ className, style, ...props }, _ref) => (
   <HexColorPicker
     className={cn(
       'aural-color-picker w-full rounded-none border-0 bg-transparent [&_.react-colorful__hue]:mt-3 [&_.react-colorful__hue]:h-6 [&_.react-colorful__hue]:rounded-full [&_.react-colorful__hue-pointer]:size-7 [&_.react-colorful__hue-pointer]:border-2 [&_.react-colorful__hue-pointer]:border-white [&_.react-colorful__hue-pointer]:bg-transparent [&_.react-colorful__hue-pointer]:shadow-none [&_.react-colorful__interactive]:rounded-[18px] [&_.react-colorful__pointer]:size-8 [&_.react-colorful__pointer]:border-[3px] [&_.react-colorful__pointer]:border-white [&_.react-colorful__pointer]:bg-transparent [&_.react-colorful__pointer]:shadow-none [&_.react-colorful__saturation]:rounded-[18px]',

@@ -1,4 +1,4 @@
-import type { PlaybackTrack } from '../../../../shared/playback.ts'
+import type { PlaybackTrack } from '../../../shared/playback.ts'
 
 export type SearchType = 'song' | 'album' | 'playlist' | 'mv'
 
