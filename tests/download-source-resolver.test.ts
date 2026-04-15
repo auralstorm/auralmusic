@@ -116,6 +116,67 @@ test('createDownloadSourceResolver returns official playback when download is em
   assert.deepEqual(calls, ['song-download:higher', 'song-url:higher:false'])
 })
 
+test('createDownloadSourceResolver uses the default API loader for official download', async () => {
+  const calls: string[] = []
+
+  const deps: DownloadSourceResolverDeps = {
+    loadSongApiListModule: async () => {
+      calls.push('load-api')
+      return {
+        getSongDownloadUrlV1: async params => {
+          calls.push(`song-download:${params.level}`)
+          return {
+            data: {
+              data: {
+                url: 'https://cdn.example.com/default-official.flac',
+              },
+            },
+          }
+        },
+        getSongUrlV1: async () => {
+          throw new Error('playback fallback should not run')
+        },
+      }
+    },
+    getSongUrlV1: async () => {
+      throw new Error('playback fallback should not run')
+    },
+    resolveTrackWithLxMusicSource: async () => {
+      throw new Error('lx fallback should not run')
+    },
+    getConfig: () => ({
+      quality: 'lossless',
+      musicSourceEnabled: true,
+      luoxueSourceEnabled: true,
+      musicSourceProviders: ['lxMusic'],
+      activeLuoxueMusicSourceScriptId: 'script-1',
+      luoxueMusicSourceScripts: [{ id: 'script-1' }] as never,
+    }),
+  }
+
+  const resolveDownloadSource = createDownloadSourceResolver(deps)
+  const result = await resolveDownloadSource({
+    track: {
+      id: 4,
+      name: 'Default Official Song',
+      artistNames: 'Artist',
+      albumName: 'Album',
+      coverUrl: '',
+      duration: 180000,
+    },
+    requestedQuality: 'lossless',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/default-official.flac',
+    quality: 'lossless',
+    provider: 'official-download',
+    fileExtension: '.flac',
+  })
+  assert.deepEqual(calls, ['load-api', 'song-download:lossless'])
+})
+
 test('createDownloadSourceResolver derives extension from official download payload', async () => {
   const deps: DownloadSourceResolverDeps = {
     getSongDownloadUrlV1: async params => {
@@ -126,7 +187,7 @@ test('createDownloadSourceResolver derives extension from official download payl
         data: {
           data: {
             url: 'https://cdn.example.com/official-track',
-            encodeType: 'flac24bit',
+            encodeType: 'aac',
           },
         },
       }
@@ -165,6 +226,6 @@ test('createDownloadSourceResolver derives extension from official download payl
     url: 'https://cdn.example.com/official-track',
     quality: 'higher',
     provider: 'official-download',
-    fileExtension: '.flac',
+    fileExtension: '.aac',
   })
 })

@@ -22,6 +22,12 @@ export type DownloadSourceResolverDeps = {
   }) => Promise<{ data: unknown }>
   resolveTrackWithLxMusicSource?: typeof resolveTrackWithLxMusicSource
   getConfig?: () => AppConfig
+  loadSongApiListModule?: () => Promise<DownloadSourceApiListModule>
+}
+
+type DownloadSourceApiListModule = {
+  getSongUrlV1: GetSongUrlV1
+  getSongDownloadUrlV1: GetSongDownloadUrlV1
 }
 
 type ResolveDownloadSourceOptions = {
@@ -48,47 +54,32 @@ type GetSongDownloadUrlV1 = (params: {
   level: AudioQualityLevel
 }) => Promise<{ data: unknown }>
 
-let getSongUrlV1ModulePromise: Promise<
-  typeof import('../../api/list.ts')
-> | null = null
-
-let getSongDownloadUrlV1ModulePromise: Promise<
-  typeof import('../../api/list.ts')
-> | null = null
-
 let configStoreModulePromise: Promise<
   typeof import('../../stores/config-store.ts')
 > | null = null
 
-async function getDefaultSongUrlV1(): Promise<GetSongUrlV1> {
-  if (!getSongUrlV1ModulePromise) {
-    getSongUrlV1ModulePromise = import('../../api/list.ts')
+let apiListModulePromise: Promise<DownloadSourceApiListModule> | null = null
+
+async function loadDefaultSongApiListModule(): Promise<DownloadSourceApiListModule> {
+  if (!apiListModulePromise) {
+    apiListModulePromise = import('../../api/list.ts')
   }
 
-  const module = await getSongUrlV1ModulePromise
-  return module.getSongUrlV1 as GetSongUrlV1
+  return apiListModulePromise
 }
 
-async function getDefaultSongDownloadUrlV1(): Promise<GetSongDownloadUrlV1> {
-  if (!getSongDownloadUrlV1ModulePromise) {
-    getSongDownloadUrlV1ModulePromise = import('../../api/list.ts')
-  }
-
-  const module = await getSongDownloadUrlV1ModulePromise
-  return module.getSongDownloadUrlV1 as GetSongDownloadUrlV1
+async function getDefaultSongUrlV1(
+  loadSongApiListModule: () => Promise<DownloadSourceApiListModule> = loadDefaultSongApiListModule
+) {
+  const module = await loadSongApiListModule()
+  return module.getSongUrlV1
 }
 
-async function getDefaultConfig(): Promise<AppConfig> {
-  if (!configStoreModulePromise) {
-    configStoreModulePromise = import('../../stores/config-store.ts')
-  }
-
-  const module = await configStoreModulePromise
-  return module.useConfigStore.getState().config
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object'
+async function getDefaultSongDownloadUrlV1(
+  loadSongApiListModule: () => Promise<DownloadSourceApiListModule> = loadDefaultSongApiListModule
+) {
+  const module = await loadSongApiListModule()
+  return module.getSongDownloadUrlV1
 }
 
 function normalizeFileExtension(value: string | null | undefined) {
@@ -109,7 +100,11 @@ function normalizeFileExtension(value: string | null | undefined) {
     return '.mp3'
   }
 
-  if (normalized.includes('m4a') || normalized.includes('aac')) {
+  if (normalized.includes('aac')) {
+    return '.aac'
+  }
+
+  if (normalized.includes('m4a')) {
     return '.m4a'
   }
 
@@ -122,6 +117,19 @@ function normalizeFileExtension(value: string | null | undefined) {
   }
 
   return `.${normalized}`
+}
+
+async function getDefaultConfig(): Promise<AppConfig> {
+  if (!configStoreModulePromise) {
+    configStoreModulePromise = import('../../stores/config-store.ts')
+  }
+
+  const module = await configStoreModulePromise
+  return module.useConfigStore.getState().config
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object'
 }
 
 function inferFileExtensionFromUrl(sourceUrl: string) {
@@ -169,15 +177,23 @@ export function createDownloadSourceResolver(
   const getConfig = deps.getConfig ?? getDefaultConfig
   const resolveTrackWithLxMusicSourceFn =
     deps.resolveTrackWithLxMusicSource ?? resolveTrackWithLxMusicSource
-  const getSongDownloadUrl =
-    deps.getSongDownloadUrlV1 ?? getDefaultSongDownloadUrlV1
+  const loadSongApiListModule =
+    deps.loadSongApiListModule ?? loadDefaultSongApiListModule
 
   return async function resolveDownloadSource(
     options: ResolveDownloadSourceOptions
   ): Promise<ResolvedDownloadSource | null> {
     const config = await getConfig()
     const level = options.requestedQuality
-    const getSongUrl = deps.getSongUrlV1 ?? (await getDefaultSongUrlV1())
+    const getSongUrl =
+      deps.getSongUrlV1 ?? (await getDefaultSongUrlV1(loadSongApiListModule))
+    const getSongDownloadUrl =
+      deps.getSongDownloadUrlV1 ??
+      (await getDefaultSongDownloadUrlV1(loadSongApiListModule))
+
+    if (options.policy !== 'strict' && options.policy !== 'fallback') {
+      return null
+    }
 
     try {
       const downloadResponse = await getSongDownloadUrl({
