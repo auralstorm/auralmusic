@@ -55,7 +55,7 @@ test('createDownloadSourceResolver falls back from official endpoints to LX and 
     url: 'https://cdn.example.com/full.flac',
     quality: 'lossless',
     provider: 'lxMusic',
-    fileExtension: null,
+    fileExtension: '.flac',
   })
   assert.deepEqual(calls, [
     'song-download:lossless',
@@ -63,4 +63,57 @@ test('createDownloadSourceResolver falls back from official endpoints to LX and 
     'song-url:lossless:true',
     'lx',
   ])
+})
+
+test('createDownloadSourceResolver derives extension from official download payload', async () => {
+  const deps: DownloadSourceResolverDeps = {
+    getSongDownloadUrlV1: async params => {
+      assert.equal(params.level, 'higher')
+      assert.equal(params.id, 2)
+
+      return {
+        data: {
+          data: {
+            url: 'https://cdn.example.com/official-track',
+            encodeType: 'flac24bit',
+          },
+        },
+      }
+    },
+    getSongUrlV1: async () => {
+      throw new Error('playback fallback should not run')
+    },
+    resolveTrackWithLxMusicSource: async () => {
+      throw new Error('lx fallback should not run')
+    },
+    getConfig: () => ({
+      quality: 'lossless',
+      musicSourceEnabled: true,
+      luoxueSourceEnabled: true,
+      musicSourceProviders: ['lxMusic'],
+      activeLuoxueMusicSourceScriptId: 'script-1',
+      luoxueMusicSourceScripts: [{ id: 'script-1' }] as never,
+    }),
+  }
+
+  const resolveDownloadSource = createDownloadSourceResolver(deps)
+  const result = await resolveDownloadSource({
+    track: {
+      id: 2,
+      name: 'Official Song',
+      artistNames: 'Artist',
+      albumName: 'Album',
+      coverUrl: '',
+      duration: 180000,
+    },
+    requestedQuality: 'higher',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/official-track',
+    quality: 'higher',
+    provider: 'official-download',
+    fileExtension: '.flac',
+  })
 })
