@@ -1,258 +1,121 @@
+import { isAuthenticatedForMusicResolution } from '../../../shared/music-source/auth-state.ts'
+import { buildResolverPolicy } from '../../../shared/music-source/policy.ts'
 import type {
-  AppConfig,
-  AudioQualityLevel,
-} from '../../../main/config/types.ts'
-import {
-  createDownloadQualityFallbackChain,
-  type DownloadSourceProvider,
-} from '../../../main/download/download-types.ts'
-import { normalizeSongUrlV1Response } from '../../../shared/playback.ts'
-import {
-  getSongDownloadUrlV1 as defaultGetSongDownloadUrlV1,
-  getSongUrlV1 as defaultGetSongUrlV1,
-} from '../../api/list.ts'
-import { useConfigStore } from '../../stores/config-store.ts'
-import { resolveTrackWithLxMusicSource } from '../music-source/lx-playback-resolver.ts'
-
-export type DownloadResolutionPolicy = 'strict' | 'fallback'
-
-export type ResolvedDownloadSource = {
-  url: string
-  quality: AudioQualityLevel
-  provider: DownloadSourceProvider
-  fileExtension: string | null
-}
-
-export type DownloadSourceResolverDeps = {
-  getSongUrlV1?: GetSongUrlV1
-  getSongDownloadUrlV1?: (params: {
-    id: number | string
-    level: AudioQualityLevel
-  }) => Promise<{ data: unknown }>
-  resolveTrackWithLxMusicSource?: typeof resolveTrackWithLxMusicSource
-  getConfig?: () => AppConfig
-  loadSongApiListModule?: () => Promise<DownloadSourceApiListModule>
-}
-
-type DownloadSourceApiListModule = {
-  getSongUrlV1: GetSongUrlV1
-  getSongDownloadUrlV1: GetSongDownloadUrlV1
-}
+  MusicResolverId,
+  ResolveContext,
+} from '../../../shared/music-source/types.ts'
+import { createDownloadQualityFallbackChain } from '../../../main/download/download-types.ts'
+import { createBuiltinUnblockDownloadProvider } from './providers/builtin-unblock-download-provider.ts'
+import { createCustomApiDownloadProvider } from './providers/custom-api-download-provider.ts'
+import { createLxDownloadProvider } from './providers/lx-download-provider.ts'
+import { createOfficialDownloadProvider } from './providers/official-download-provider.ts'
+import type {
+  DownloadResolverConfig,
+  DownloadResolutionPolicy,
+  DownloadResolverProvider,
+  DownloadSourceResolverDeps,
+  DownloadTrack,
+  ResolvedDownloadSource,
+} from './providers/types.ts'
 
 type ResolveDownloadSourceOptions = {
-  track: {
-    id: number
-    name: string
-    artistNames: string
-    albumName: string
-    coverUrl: string
-    duration: number
-  }
-  requestedQuality: AudioQualityLevel
+  track: DownloadTrack
+  requestedQuality: Parameters<typeof createDownloadQualityFallbackChain>[0]
   policy: DownloadResolutionPolicy
 }
 
-type GetSongUrlV1 = (params: {
-  id: number | string
-  level: AudioQualityLevel
-  unblock: boolean
-}) => Promise<{ data: unknown }>
+type MaybePromise<T> = T | Promise<T>
 
-type GetSongDownloadUrlV1 = (params: {
-  id: number | string
-  level: AudioQualityLevel
-}) => Promise<{ data: unknown }>
-
-async function loadDefaultSongApiListModule(): Promise<DownloadSourceApiListModule> {
+function createDefaultProviders(): Record<
+  MusicResolverId,
+  DownloadResolverProvider
+> {
   return {
-    getSongUrlV1: defaultGetSongUrlV1,
-    getSongDownloadUrlV1: defaultGetSongDownloadUrlV1,
+    official: createOfficialDownloadProvider(),
+    builtinUnblock: createBuiltinUnblockDownloadProvider(),
+    lxMusic: createLxDownloadProvider(),
+    customApi: createCustomApiDownloadProvider(),
   }
 }
 
-async function getDefaultSongUrlV1(
-  loadSongApiListModule: () => Promise<DownloadSourceApiListModule> = loadDefaultSongApiListModule
-) {
-  const module = await loadSongApiListModule()
-  return module.getSongUrlV1
-}
-
-async function getDefaultSongDownloadUrlV1(
-  loadSongApiListModule: () => Promise<DownloadSourceApiListModule> = loadDefaultSongApiListModule
-) {
-  const module = await loadSongApiListModule()
-  return module.getSongDownloadUrlV1
-}
-
-function normalizeFileExtension(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase().replace(/^\./, '')
-  if (!normalized) {
-    return null
-  }
-
-  if (normalized.includes('flac')) {
-    return '.flac'
-  }
-
-  if (normalized.includes('mp3')) {
-    return '.mp3'
-  }
-
-  if (normalized.includes('aac')) {
-    return '.aac'
-  }
-
-  if (normalized.includes('m4a')) {
-    return '.m4a'
-  }
-
-  if (normalized.includes('ogg')) {
-    return '.ogg'
-  }
-
-  if (normalized.includes('wav')) {
-    return '.wav'
-  }
-
-  return `.${normalized}`
-}
-
-async function getDefaultConfig(): Promise<AppConfig> {
+async function getDefaultConfig(): Promise<DownloadResolverConfig> {
+  const { useConfigStore } = await import('../../stores/config-store.ts')
   return useConfigStore.getState().config
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object'
+async function getDefaultIsAuthenticated(): Promise<boolean> {
+  const { useAuthStore } = await import('../../stores/auth-store.ts')
+  const authState = useAuthStore.getState()
+  return isAuthenticatedForMusicResolution({
+    loginStatus: authState.loginStatus,
+    userId: authState.user?.userId ?? authState.session?.userId ?? null,
+    cookie: authState.session?.cookie ?? null,
+  })
 }
 
-function inferFileExtensionFromUrl(sourceUrl: string) {
-  try {
-    const pathname = new URL(sourceUrl).pathname
-    const match = pathname.match(/\.([a-z0-9]+)$/i)
-    return match ? `.${match[1].toLowerCase()}` : null
-  } catch {
-    const match = sourceUrl.match(/\.([a-z0-9]+)(?:$|[?#])/i)
-    return match ? `.${match[1].toLowerCase()}` : null
-  }
-}
-
-function readOfficialDownloadUrl(payload: unknown) {
-  if (!isRecord(payload)) {
-    return null
-  }
-
-  const root = isRecord(payload.data) ? payload.data : payload
-  const nested = isRecord(root.data) ? root.data : root
-  const url = typeof nested.url === 'string' ? nested.url.trim() : ''
-
-  if (!url) {
-    return null
-  }
-
-  const extension =
-    normalizeFileExtension(
-      typeof nested.encodeType === 'string'
-        ? nested.encodeType
-        : typeof nested.type === 'string'
-          ? nested.type
-          : null
-    ) || inferFileExtensionFromUrl(url)
-
+function toResolveContext(
+  isAuthenticated: boolean,
+  config: DownloadResolverConfig
+): ResolveContext {
   return {
-    url,
-    fileExtension: extension,
+    scene: 'download',
+    isAuthenticated,
+    config: {
+      musicSourceEnabled: config.musicSourceEnabled,
+      musicSourceProviders: config.musicSourceProviders,
+      luoxueSourceEnabled: config.luoxueSourceEnabled,
+      customMusicApiEnabled: config.customMusicApiEnabled,
+      customMusicApiUrl: config.customMusicApiUrl,
+    },
   }
 }
+
+export type {
+  DownloadResolutionPolicy,
+  DownloadSourceResolverDeps,
+  ResolvedDownloadSource,
+} from './providers/types.ts'
 
 export function createDownloadSourceResolver(
   deps: DownloadSourceResolverDeps = {}
 ) {
   const getConfig = deps.getConfig ?? getDefaultConfig
-  const resolveTrackWithLxMusicSourceFn =
-    deps.resolveTrackWithLxMusicSource ?? resolveTrackWithLxMusicSource
-  const loadSongApiListModule =
-    deps.loadSongApiListModule ?? loadDefaultSongApiListModule
+  const getIsAuthenticated =
+    deps.getIsAuthenticated ?? getDefaultIsAuthenticated
+  const providers = createDefaultProviders()
 
   return async function resolveDownloadSource(
     options: ResolveDownloadSourceOptions
   ): Promise<ResolvedDownloadSource | null> {
-    const config = await getConfig()
-    const getSongUrl =
-      deps.getSongUrlV1 ?? (await getDefaultSongUrlV1(loadSongApiListModule))
-    const getSongDownloadUrl =
-      deps.getSongDownloadUrlV1 ??
-      (await getDefaultSongDownloadUrlV1(loadSongApiListModule))
-
     if (options.policy !== 'strict' && options.policy !== 'fallback') {
       return null
     }
 
+    const config = await getConfig()
+    const isAuthenticated = await (
+      getIsAuthenticated as () => MaybePromise<boolean>
+    )()
+    const context = toResolveContext(isAuthenticated, config)
+    const resolverPolicy = buildResolverPolicy(context)
     const levels =
       options.policy === 'strict'
         ? [options.requestedQuality]
         : createDownloadQualityFallbackChain(options.requestedQuality)
 
     for (const level of levels) {
-      try {
-        const downloadResponse = await getSongDownloadUrl({
-          id: options.track.id,
-          level,
-        })
-        const officialDownload = readOfficialDownloadUrl(downloadResponse.data)
-
-        if (officialDownload) {
-          return {
-            url: officialDownload.url,
-            quality: level,
-            provider: 'official-download',
-            fileExtension: officialDownload.fileExtension,
-          }
-        }
-      } catch {
-        // Fall through to playback and LX resolution.
-      }
-
-      const unblockAttempts = config.musicSourceEnabled
-        ? [false, true]
-        : [false]
-      for (const unblock of unblockAttempts) {
-        try {
-          const playbackResponse = await getSongUrl({
-            id: options.track.id,
-            level,
-            unblock,
-          })
-          const playback = normalizeSongUrlV1Response(playbackResponse.data)
-
-          if (playback?.url) {
-            return {
-              url: playback.url,
-              quality: level,
-              provider: 'official-playback',
-              fileExtension: inferFileExtensionFromUrl(playback.url),
-            }
-          }
-        } catch {
-          // Fall through to the next unblock attempt or LX resolution.
-        }
-      }
-
-      const lxResult = await resolveTrackWithLxMusicSourceFn({
-        track: options.track,
-        quality: level,
-        config,
-      })
-
-      if (lxResult?.url) {
-        return {
-          url: lxResult.url,
+      for (const resolverId of resolverPolicy.resolverOrder) {
+        const provider = providers[resolverId]
+        const result = await provider.resolve({
+          track: options.track,
           quality: level,
-          provider: 'lxMusic',
-          fileExtension: inferFileExtensionFromUrl(lxResult.url),
+          context,
+          policy: resolverPolicy,
+          config,
+          deps,
+        })
+
+        if (result?.url) {
+          return result
         }
       }
     }

@@ -4,10 +4,10 @@ import {
   resolveAuthRequestHeaders,
 } from '../auth/request-header.ts'
 import type { AuthSession } from '../../shared/auth.ts'
-import {
-  createSongUrlRequestAttempts,
-  normalizeSongUrlV1Response,
-} from '../../shared/playback.ts'
+import { isAuthenticatedForMusicResolution } from '../../shared/music-source/auth-state.ts'
+import { normalizeSongUrlV1Response } from '../../shared/playback.ts'
+import { buildResolverPolicy } from '../../shared/music-source/policy.ts'
+import type { ResolveContext } from '../../shared/music-source/types.ts'
 import type {
   DownloadRuntimeConfig,
   ResolvedSongDownload,
@@ -80,6 +80,26 @@ function createRequestHeaders(
   )
 }
 
+function buildResolveContext(
+  runtimeConfig: DownloadRuntimeConfig,
+  authSession: AuthSession | null
+): ResolveContext {
+  return {
+    scene: 'download',
+    isAuthenticated: isAuthenticatedForMusicResolution({
+      userId: authSession?.userId ?? null,
+      cookie: authSession?.cookie ?? null,
+    }),
+    config: {
+      musicSourceEnabled: runtimeConfig.musicSourceEnabled,
+      musicSourceProviders: runtimeConfig.musicSourceProviders ?? [],
+      luoxueSourceEnabled: runtimeConfig.luoxueSourceEnabled ?? false,
+      customMusicApiEnabled: runtimeConfig.customMusicApiEnabled ?? false,
+      customMusicApiUrl: runtimeConfig.customMusicApiUrl ?? '',
+    },
+  }
+}
+
 export function createDownloadSourceResolver(
   options: CreateDownloadSourceResolverOptions = {}
 ) {
@@ -106,41 +126,82 @@ export function createDownloadSourceResolver(
 
     const authOrigin = resolveAuthOrigin(baseURL)
     const authSession = getAuthSession()
+    const context = buildResolveContext(runtimeConfig, authSession)
+    const resolverPolicy = buildResolverPolicy(context)
 
-    const officialDownloadUrl = new URL('/song/download/url/v1', `${baseURL}/`)
-    officialDownloadUrl.searchParams.set('id', String(payload.songId))
-    officialDownloadUrl.searchParams.set('level', quality)
+    for (const resolverId of resolverPolicy.resolverOrder) {
+      if (resolverId === 'builtinUnblock') {
+        if (!resolverPolicy.builtinPlatforms.length) {
+          continue
+        }
 
-    const officialDownloadResponse = await fetcher(
-      officialDownloadUrl.toString(),
-      {
-        headers: createRequestHeaders(
-          officialDownloadUrl.toString(),
-          authOrigin,
-          authSession
-        ),
-      }
-    )
+        const playbackUrl = new URL('/song/url/v1', `${baseURL}/`)
+        playbackUrl.searchParams.set('id', String(payload.songId))
+        playbackUrl.searchParams.set('level', quality)
+        playbackUrl.searchParams.set('unblock', 'true')
 
-    if (officialDownloadResponse.ok) {
-      const officialDownloadResult = normalizeSongDownloadUrlResponse(
-        await officialDownloadResponse.json()
-      )
-      if (officialDownloadResult?.url) {
+        const playbackResponse = await fetcher(playbackUrl.toString(), {
+          headers: createRequestHeaders(
+            playbackUrl.toString(),
+            authOrigin,
+            authSession
+          ),
+        })
+        if (!playbackResponse.ok) {
+          continue
+        }
+
+        const playbackResult = normalizeSongUrlV1Response(
+          await playbackResponse.json()
+        )
+        if (!playbackResult?.url) {
+          continue
+        }
+
         return {
-          ...officialDownloadResult,
+          url: playbackResult.url,
           quality,
         }
       }
-    }
 
-    for (const unblock of createSongUrlRequestAttempts(
-      runtimeConfig.musicSourceEnabled
-    )) {
+      if (resolverId !== 'official') {
+        continue
+      }
+
+      const officialDownloadUrl = new URL(
+        '/song/download/url/v1',
+        `${baseURL}/`
+      )
+      officialDownloadUrl.searchParams.set('id', String(payload.songId))
+      officialDownloadUrl.searchParams.set('level', quality)
+
+      const officialDownloadResponse = await fetcher(
+        officialDownloadUrl.toString(),
+        {
+          headers: createRequestHeaders(
+            officialDownloadUrl.toString(),
+            authOrigin,
+            authSession
+          ),
+        }
+      )
+
+      if (officialDownloadResponse.ok) {
+        const officialDownloadResult = normalizeSongDownloadUrlResponse(
+          await officialDownloadResponse.json()
+        )
+        if (officialDownloadResult?.url) {
+          return {
+            ...officialDownloadResult,
+            quality,
+          }
+        }
+      }
+
       const playbackUrl = new URL('/song/url/v1', `${baseURL}/`)
       playbackUrl.searchParams.set('id', String(payload.songId))
       playbackUrl.searchParams.set('level', quality)
-      playbackUrl.searchParams.set('unblock', String(unblock))
+      playbackUrl.searchParams.set('unblock', 'false')
 
       const playbackResponse = await fetcher(playbackUrl.toString(), {
         headers: createRequestHeaders(

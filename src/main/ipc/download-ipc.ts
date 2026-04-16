@@ -48,6 +48,11 @@ function createDefaultDownloadService(
       setPersistedDownloadTasks(tasks)
     },
     readConfig: () => ({
+      musicSourceEnabled: getConfig('musicSourceEnabled'),
+      musicSourceProviders: getConfig('musicSourceProviders'),
+      luoxueSourceEnabled: getConfig('luoxueSourceEnabled'),
+      customMusicApiEnabled: getConfig('customMusicApiEnabled'),
+      customMusicApiUrl: getConfig('customMusicApiUrl'),
       downloadDir: getConfig('downloadDir'),
       downloadQuality: getConfig('downloadQuality'),
       downloadQualityPolicy: getConfig('downloadQualityPolicy'),

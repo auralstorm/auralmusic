@@ -2,6 +2,7 @@ import type {
   AudioQualityLevel,
   DownloadFileNamePattern,
   DownloadQualityPolicy,
+  MusicSourceProvider,
 } from '../config/types.ts'
 export { DOWNLOAD_IPC_CHANNELS } from '../../shared/ipc/download.ts'
 
@@ -20,7 +21,9 @@ export const DOWNLOAD_QUALITY_FALLBACK_CHAIN = [
 export type DownloadSourceProvider =
   | 'official-download'
   | 'official-playback'
+  | 'builtin-unblock'
   | 'lxMusic'
+  | 'custom-api'
 
 export type DownloadTaskStatus =
   | 'queued'
@@ -88,6 +91,10 @@ export type ResolvedSongDownload = {
 
 export type DownloadRuntimeConfig = {
   musicSourceEnabled: boolean
+  musicSourceProviders?: MusicSourceProvider[]
+  luoxueSourceEnabled?: boolean
+  customMusicApiEnabled?: boolean
+  customMusicApiUrl?: string
   downloadDir: string
   downloadQuality: AudioQualityLevel
   downloadQualityPolicy: DownloadQualityPolicy

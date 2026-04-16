@@ -494,6 +494,10 @@ export class DownloadService {
 
     return {
       musicSourceEnabled: config.musicSourceEnabled ?? false,
+      musicSourceProviders: config.musicSourceProviders ?? [],
+      luoxueSourceEnabled: config.luoxueSourceEnabled ?? false,
+      customMusicApiEnabled: config.customMusicApiEnabled ?? false,
+      customMusicApiUrl: config.customMusicApiUrl ?? '',
       downloadDir: config.downloadDir || '',
       downloadQuality: config.downloadQuality || 'higher',
       downloadQualityPolicy: config.downloadQualityPolicy || 'fallback',

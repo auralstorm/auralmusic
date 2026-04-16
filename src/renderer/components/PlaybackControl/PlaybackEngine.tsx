@@ -1,20 +1,17 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { toast } from 'sonner'
-import { getSongUrlV1 } from '@/api/list'
 import { applyAudioOutputDevice } from '@/lib/audio-output'
-import { resolveTrackWithLxMusicSource } from '@/services/music-source/lx-playback-resolver'
+import { resolvePlaybackSource } from '@/services/music-source/playback-source-resolver'
 import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import {
   applyPlaybackSpeedToAudio,
   normalizePlaybackSpeedValue,
 } from '@/pages/Settings/components/playback-speed.model'
-import {
-  createSongUrlRequestAttempts,
-  normalizeSongUrlV1Response,
-} from '../../../shared/playback.ts'
 
 const PLAYBACK_UNAVAILABLE_MESSAGE = '暂时无法播放'
+
+const STALE_PLAYBACK_REQUEST = Symbol('STALE_PLAYBACK_REQUEST')
 
 interface PlaybackEngineRef {
   getAudioElement: () => HTMLAudioElement | null
@@ -59,12 +56,38 @@ async function applyPersistedProgress(
   audio.currentTime = nextTime
 }
 
+function isPlaybackRequestStale(
+  expectedRequestId: number,
+  expectedTrackId: number,
+  cancelled: boolean
+) {
+  if (cancelled) {
+    return true
+  }
+
+  const latestState = usePlaybackStore.getState()
+
+  return (
+    latestState.requestId !== expectedRequestId ||
+    latestState.currentTrack?.id !== expectedTrackId
+  )
+}
+
+function throwIfPlaybackRequestStale(
+  expectedRequestId: number,
+  expectedTrackId: number,
+  cancelled: boolean
+) {
+  if (isPlaybackRequestStale(expectedRequestId, expectedTrackId, cancelled)) {
+    throw STALE_PLAYBACK_REQUEST
+  }
+}
+
 const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const volumeRef = useRef(70)
   const configRef = useRef(useConfigStore.getState().config)
   const qualityRef = useRef(useConfigStore.getState().config.quality)
-  const unblockRef = useRef(useConfigStore.getState().config.musicSourceEnabled)
   const playbackSpeedRef = useRef(
     normalizePlaybackSpeedValue(useConfigStore.getState().config.playbackSpeed)
   )
@@ -80,9 +103,6 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const seekPosition = usePlaybackStore(state => state.seekPosition)
   const config = useConfigStore(state => state.config)
   const quality = useConfigStore(state => state.config.quality)
-  const musicSourceEnabled = useConfigStore(
-    state => state.config.musicSourceEnabled
-  )
   const playbackSpeed = useConfigStore(state => state.config.playbackSpeed)
   const audioOutputDeviceId = useConfigStore(
     state => state.config.audioOutputDeviceId
@@ -103,10 +123,6 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   useEffect(() => {
     qualityRef.current = quality
   }, [quality])
-
-  useEffect(() => {
-    unblockRef.current = musicSourceEnabled
-  }, [musicSourceEnabled])
 
   useEffect(() => {
     const normalizedPlaybackSpeed = normalizePlaybackSpeedValue(playbackSpeed)
@@ -261,44 +277,27 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
         }
 
         if (!result) {
-          for (const unblock of createSongUrlRequestAttempts(
-            unblockRef.current
-          )) {
-            const response = await getSongUrlV1({
-              id: currentTrack.id,
-              level: qualityRef.current,
-              unblock,
-            })
-
-            result = normalizeSongUrlV1Response(response.data)
-
-            if (cancelled) {
-              return
-            }
-
-            if (result?.url) {
-              break
-            }
-          }
-        }
-
-        if (!result?.url && !localSourceUrl) {
-          result = await resolveTrackWithLxMusicSource({
+          result = await resolvePlaybackSource({
             track: currentTrack,
-            quality: qualityRef.current,
-            config: configRef.current,
+            config: {
+              ...configRef.current,
+              quality: qualityRef.current,
+            },
           })
+
+          throwIfPlaybackRequestStale(
+            expectedRequestId,
+            expectedTrackId,
+            cancelled
+          )
         }
 
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled
+        )
         const latestState = usePlaybackStore.getState()
-
-        if (
-          cancelled ||
-          latestState.requestId !== expectedRequestId ||
-          latestState.currentTrack?.id !== expectedTrackId
-        ) {
-          return
-        }
 
         if (!result?.url) {
           latestState.markPlaybackError(PLAYBACK_UNAVAILABLE_MESSAGE)
@@ -314,12 +313,25 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
               cacheKey,
               result.url
             )
+            throwIfPlaybackRequestStale(
+              expectedRequestId,
+              expectedTrackId,
+              cancelled
+            )
             resolvedAudioUrl = cachedResult.url || result.url
           } catch (error) {
+            if (error === STALE_PLAYBACK_REQUEST) {
+              throw error
+            }
             console.error('resolve cached audio source failed', error)
           }
         }
 
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled
+        )
         audio.pause()
         audio.src = resolvedAudioUrl
         audio.currentTime = 0
@@ -331,12 +343,28 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
         if (restoreProgress > 0) {
           try {
             await applyPersistedProgress(audio, restoreProgress)
+            throwIfPlaybackRequestStale(
+              expectedRequestId,
+              expectedTrackId,
+              cancelled
+            )
             usePlaybackStore.getState().setProgress(restoreProgress)
           } catch (error) {
+            if (error === STALE_PLAYBACK_REQUEST) {
+              throw error
+            }
             console.error('restore playback progress failed', error)
             usePlaybackStore.getState().setProgress(0)
           } finally {
-            usePlaybackStore.getState().clearPendingRestoreProgress()
+            if (
+              !isPlaybackRequestStale(
+                expectedRequestId,
+                expectedTrackId,
+                cancelled
+              )
+            ) {
+              usePlaybackStore.getState().clearPendingRestoreProgress()
+            }
           }
         } else {
           latestState.setProgress(0)
@@ -344,7 +372,15 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
 
         try {
           await applyAudioOutputDevice(audio, audioOutputDeviceIdRef.current)
+          throwIfPlaybackRequestStale(
+            expectedRequestId,
+            expectedTrackId,
+            cancelled
+          )
         } catch (error) {
+          if (error === STALE_PLAYBACK_REQUEST) {
+            throw error
+          }
           console.error('apply audio output device failed', error)
           toast.error('音频输出设备切换失败，将使用默认输出设备播放')
         }
@@ -362,10 +398,23 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
           return
         }
 
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled
+        )
         await audio.play()
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled
+        )
         usePlaybackStore.getState().markPlaybackPlaying()
       } catch (error) {
-        if (cancelled) {
+        if (
+          error === STALE_PLAYBACK_REQUEST ||
+          isPlaybackRequestStale(expectedRequestId, expectedTrackId, cancelled)
+        ) {
           return
         }
 

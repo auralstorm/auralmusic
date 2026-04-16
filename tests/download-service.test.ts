@@ -129,6 +129,7 @@ test('DownloadService retries song url resolution with unblock=true when music s
     createTaskId: () => 'task-unblock-retry',
     readConfig: () => ({
       musicSourceEnabled: true,
+      musicSourceProviders: ['migu'],
     }),
     downloadFetcher: async input => {
       const url = typeof input === 'string' ? input : input.toString()
@@ -185,11 +186,7 @@ test('DownloadService retries song url resolution with unblock=true when music s
         url =>
           url.includes('/song/download/url/v1') || url.includes('/song/url/v1')
       ),
-      [
-        'https://music.example.com/song/download/url/v1?id=1&level=higher',
-        'https://music.example.com/song/url/v1?id=1&level=higher&unblock=false',
-        'https://music.example.com/song/url/v1?id=1&level=higher&unblock=true',
-      ]
+      ['https://music.example.com/song/url/v1?id=1&level=higher&unblock=true']
     )
   } finally {
     if (previousBaseUrl === undefined) {
