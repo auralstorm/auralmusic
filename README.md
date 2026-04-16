@@ -232,3 +232,9 @@ F:\code-demo\AuralMusic\aural-music-downloads.json
 F:\code-demo\AuralMusic\aural-music-config.json
 F:\code-demo\AuralMusic\aural-music-auth.json
 当前系统中，这三块信息存储的方式还是项目中的json文件，梳理使用better-sqlite3 + zustand 方案
+
+未登录状态下：
+下载的音乐没有格式
+
+登录/未登录模式下：
+下载列表播放本地音乐也播放不了
