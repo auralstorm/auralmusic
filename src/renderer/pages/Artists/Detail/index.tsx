@@ -19,6 +19,12 @@ import ArtistLatestRelease from './components/ArtistLatestRelease'
 import ArtistMediaTabs from './components/ArtistMediaTabs'
 import ArtistTopSongs from './components/ArtistTopSongs'
 import {
+  resolveArtistAlbumImages,
+  resolveArtistMvImages,
+  resolveArtistProfileImage,
+  resolveSimilarArtistImages,
+} from './artist-image-cache'
+import {
   EMPTY_ARTIST_DESCRIPTION,
   normalizeSimilarArtists,
   toArtistListItem,
@@ -276,9 +282,13 @@ const ArtistDetail = () => {
 
       const response = await getArtistAlbums({ id: artistId, limit, offset })
       const albums = normalizeAlbums(response)
+      const resolvedAlbums = await resolveArtistAlbumImages(
+        window.electronCache,
+        albums
+      )
 
       return {
-        list: albums,
+        list: resolvedAlbums,
         hasMore: albums.length >= limit,
       }
     },
@@ -293,9 +303,10 @@ const ArtistDetail = () => {
 
       const response = await getArtistMvs({ id: artistId, limit, offset })
       const mvs = normalizeMvs(response)
+      const resolvedMvs = await resolveArtistMvImages(window.electronCache, mvs)
 
       return {
-        list: mvs,
+        list: resolvedMvs,
         hasMore: mvs.length >= limit,
       }
     },
@@ -351,9 +362,19 @@ const ArtistDetail = () => {
           return
         }
 
+        const similarArtists = await resolveSimilarArtistImages(
+          window.electronCache,
+          artistId,
+          normalizeSimilarArtists(response.data)
+        )
+
+        if (!isActive) {
+          return
+        }
+
         setState(previous => ({
           ...previous,
-          similarArtists: normalizeSimilarArtists(response.data),
+          similarArtists,
         }))
       } catch (fetchError) {
         if (!isActive) {
@@ -385,9 +406,18 @@ const ArtistDetail = () => {
           return
         }
 
+        const profile = await resolveArtistProfileImage(
+          window.electronCache,
+          normalizeArtistProfile(detailResponse)
+        )
+
+        if (!isActive) {
+          return
+        }
+
         setState(previous => ({
           ...previous,
-          profile: normalizeArtistProfile(detailResponse),
+          profile,
           topSongs: normalizeTopSongs(topSongsResponse),
           description: normalizeDescription(descResponse),
         }))
