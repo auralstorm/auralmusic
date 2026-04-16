@@ -51,3 +51,23 @@ export function buildDownloadTaskPlaybackTrack(
     sourceUrl,
   }
 }
+
+export function buildDownloadTaskPlaybackQueue(
+  tasks: DownloadTask[],
+  selectedTaskId: string
+) {
+  const playableEntries = tasks
+    .filter(task => task.status === 'completed')
+    .flatMap(task => {
+      const track = buildDownloadTaskPlaybackTrack(task)
+      return track ? [{ taskId: task.taskId, track }] : []
+    })
+
+  return {
+    tracks: playableEntries.map(entry => entry.track),
+    startIndex: Math.max(
+      0,
+      playableEntries.findIndex(entry => entry.taskId === selectedTaskId)
+    ),
+  }
+}

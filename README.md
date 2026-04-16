@@ -160,11 +160,6 @@ pnpm build:linux
 
 If you want, I can also add a short `CONTRIBUTING.md` for team collaboration rules.
 
-未登录的情况下走游客登录模式
-
-3. 游客登录
-   说明 : 直接调用此接口, 可获取游客 cookie,如果遇到其他接口未登录状态报 400 状态码需要验证的错误,可使用此接口获取游客 cookie 避免报错
-
 接口地址 : /register/anonimous
 
 播放私人fm时，底部控制栏切歌和私人FM卡片切哥逻辑不一致
@@ -180,6 +175,11 @@ MV 播放器全屏按钮失效
 
 bug: 歌曲播放到结尾，播放器整体会上移动
 
-打开下载的歌曲会自动跳转网易云，如何让它在当前播放器直接播放
+打开下载的歌曲,目前切换不了歌和进度， 这一套逻辑梳理下
 
-完成参考Alger 剩下的下载逻辑
+F:\code-demo\AuralMusic\aural-music-downloads.json
+F:\code-demo\AuralMusic\aural-music-config.json
+F:\code-demo\AuralMusic\aural-music-auth.json
+当前系统中，这三块信息存储的方式还是项目中的json文件，梳理使用better-sqlite3 + zustand 方案
+
+当前系统在未登录时，不要先走官方api,不然没登陆状态下，听到的歌很多是试听部分
