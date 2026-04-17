@@ -40,6 +40,7 @@ const PlaylistDetailHero = ({
       onToggleFavorite={onToggleFavorite}
       onPlay={onPlay}
       moreActions={moreActions}
+      isResize={false}
     />
   )
 }

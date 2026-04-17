@@ -22,6 +22,7 @@ interface MediaDetailHeroProps {
   onPlay?: () => void
   onToggleFavorite?: () => void
   moreActions?: ReactNode
+  isResize?: boolean
 }
 
 const FALLBACK_TEXT: Record<MediaDetailHeroType, string> = {
@@ -53,19 +54,23 @@ const MediaDetailHero = ({
   onPlay,
   onToggleFavorite,
   moreActions,
+  isResize = true,
 }: MediaDetailHeroProps) => {
   const [idleFavoriteText, activeFavoriteText] = FAVORITE_TEXT[type]
 
+  const url = isResize
+    ? resizeImageUrl(
+        coverUrl,
+        imageSizes.detailCover.width,
+        imageSizes.detailCover.height
+      )
+    : coverUrl
   return (
     <section className='grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start'>
       <div className='relative'>
         {coverUrl ? (
           <AvatarCover
-            url={resizeImageUrl(
-              coverUrl,
-              imageSizes.detailCover.width,
-              imageSizes.detailCover.height
-            )}
+            url={url}
             isAutoHovered
             wrapperClass='aspect-square w-full max-w-[320px]'
             shadowClassName='top-3 left-3 scale-95'

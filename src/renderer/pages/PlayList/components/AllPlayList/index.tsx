@@ -6,6 +6,7 @@ import CoverCard from '@/components/CoverCard'
 import { geTopPlayList } from '@/api/list'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import { AllPlayListSkeleton } from '../PlayListSkeletons'
+import { shouldShowInitialPlaylistSkeleton } from './playlist-loading.model'
 
 const SHOW_CAT_COUNT = 8
 
@@ -87,6 +88,10 @@ const AllPlaylist = ({
   const onClickMore = () => {
     setIsShow(!isShow)
   }
+  const showInitialSkeleton = shouldShowInitialPlaylistSkeleton(
+    loading,
+    playLists.length
+  )
 
   return (
     <div className='relative'>
@@ -120,7 +125,7 @@ const AllPlaylist = ({
         />
       )}
 
-      {loading ? (
+      {showInitialSkeleton ? (
         <AllPlayListSkeleton />
       ) : (
         <div className='3xl:grid-cols-6 4xl:grid-cols-7 grid grid-cols-4 gap-6 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5'>
