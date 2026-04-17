@@ -6,23 +6,40 @@ const routeComponentsSource = readFileSync(
   new URL('../src/renderer/router/routeComponents.tsx', import.meta.url),
   'utf8'
 )
+const rendererEntrySource = readFileSync(
+  new URL('../src/renderer/main.tsx', import.meta.url),
+  'utf8'
+)
 
-const keepAliveRouteComponents = [
+const routeComponents = [
   ['Home', '@/pages/Home'],
-  ['Albums', '@/pages/Albums'],
-  ['Artists', '@/pages/Artists'],
+  ['DailySongs', '@/pages/DailySongs'],
+  ['Library', '@/pages/Library'],
+  ['LikedSongs', '@/pages/LikedSongs'],
+  ['Settings', '@/pages/Settings'],
+  ['Downloads', '@/pages/Downloads'],
+  ['Charts', '@/pages/Charts'],
   ['PlayList', '@/pages/PlayList'],
+  ['PlaylistDetail', '@/pages/PlayList/Detail'],
+  ['MvDetail', '@/pages/Mv/Detail'],
+  ['Artists', '@/pages/Artists'],
+  ['ArtistDetail', '@/pages/Artists/Detail'],
+  ['Albums', '@/pages/Albums'],
+  ['AlbumDetail', '@/pages/Albums/Detail'],
 ] as const
 
-test('keep-alive route components are loaded synchronously', () => {
-  for (const [componentName, importPath] of keepAliveRouteComponents) {
+test('route components are loaded synchronously', () => {
+  assert.doesNotMatch(routeComponentsSource, /\blazy\s*\(/)
+  assert.doesNotMatch(routeComponentsSource, /from\s+['"]react['"]/)
+
+  for (const [componentName, importPath] of routeComponents) {
     assert.match(
       routeComponentsSource,
       new RegExp(`import\\s+${componentName}\\s+from\\s+['"]${importPath}['"]`)
     )
-    assert.doesNotMatch(
-      routeComponentsSource,
-      new RegExp(`export\\s+const\\s+${componentName}\\s*=\\s*lazy\\s*\\(`)
-    )
   }
+})
+
+test('renderer entry does not wrap eager routes in Suspense', () => {
+  assert.doesNotMatch(rendererEntrySource, /Suspense/)
 })

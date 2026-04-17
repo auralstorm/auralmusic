@@ -1,18 +1,31 @@
-import { lazy } from 'react'
 import Home from '@/pages/Home'
+import DailySongs from '@/pages/DailySongs'
+import Library from '@/pages/Library'
+import LikedSongs from '@/pages/LikedSongs'
+import Settings from '@/pages/Settings'
+import Downloads from '@/pages/Downloads'
+import Charts from '@/pages/Charts'
 import PlayList from '@/pages/PlayList'
+import PlaylistDetail from '@/pages/PlayList/Detail'
+import MvDetail from '@/pages/Mv/Detail'
 import Artists from '@/pages/Artists'
+import ArtistDetail from '@/pages/Artists/Detail'
 import Albums from '@/pages/Albums'
+import AlbumDetail from '@/pages/Albums/Detail'
 
-export { Home, PlayList, Artists, Albums }
-
-export const DailySongs = lazy(() => import('@/pages/DailySongs'))
-export const Library = lazy(() => import('@/pages/Library'))
-export const LikedSongs = lazy(() => import('@/pages/LikedSongs'))
-export const Settings = lazy(() => import('@/pages/Settings'))
-export const Downloads = lazy(() => import('@/pages/Downloads'))
-export const Charts = lazy(() => import('@/pages/Charts'))
-export const PlaylistDetail = lazy(() => import('@/pages/PlayList/Detail'))
-export const MvDetail = lazy(() => import('@/pages/Mv/Detail'))
-export const ArtistDetail = lazy(() => import('@/pages/Artists/Detail'))
-export const AlbumDetail = lazy(() => import('@/pages/Albums/Detail'))
+export {
+  Home,
+  DailySongs,
+  Library,
+  LikedSongs,
+  Settings,
+  Downloads,
+  Charts,
+  PlayList,
+  PlaylistDetail,
+  MvDetail,
+  Artists,
+  ArtistDetail,
+  Albums,
+  AlbumDetail,
+}
