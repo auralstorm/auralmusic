@@ -10,6 +10,7 @@ import {
 import { applyAudioOutputDevice } from '../../lib/audio-output.ts'
 import {
   classifyPlaybackRuntimeError,
+  isEqualizerGraphCompatibleSourceUrl,
   normalizePlaybackOutputDeviceId,
   shouldReuseLoadedSource,
 } from './playback-runtime.model.ts'
@@ -25,6 +26,7 @@ export interface PlaybackRuntime {
   setPlaybackRate: (rate: number) => void
   setOutputDevice: (deviceId: string) => Promise<boolean>
   applyEqualizer: (config: EqualizerConfig) => void
+  requiresEqualizerCompatibleSource: () => boolean
 }
 
 export function createPlaybackRuntime(options?: {
@@ -70,6 +72,31 @@ export function createPlaybackRuntime(options?: {
     return equalizerGraph
   }
 
+  const canUseEqualizerGraphForLoadedSource = () => {
+    return isEqualizerGraphCompatibleSourceUrl(loadedSource)
+  }
+
+  const shouldUseEqualizerGraph = () => {
+    return equalizerConfig.enabled && canUseEqualizerGraphForLoadedSource()
+  }
+
+  const resumeEqualizerGraphForActivePlayback = (
+    graph: EqualizerGraph | null
+  ) => {
+    if (!graph) {
+      return
+    }
+
+    const audio = getAudio()
+    if (audio.paused) {
+      return
+    }
+
+    void graph.resume().catch(error => {
+      console.error('resume equalizer graph failed', error)
+    })
+  }
+
   return {
     getAudioElement: () => getAudio(),
     async loadSource(url) {
@@ -82,6 +109,9 @@ export function createPlaybackRuntime(options?: {
       }
 
       const audio = getAudio()
+      audio.crossOrigin = isEqualizerGraphCompatibleSourceUrl(url)
+        ? 'anonymous'
+        : null
       audio.pause()
       audio.removeAttribute('src')
       audio.currentTime = 0
@@ -91,8 +121,12 @@ export function createPlaybackRuntime(options?: {
     },
     async play() {
       const audio = getAudio()
-      if (equalizerConfig.enabled) {
-        await ensureEqualizerGraph().resume()
+      const graph = shouldUseEqualizerGraph()
+        ? ensureEqualizerGraph()
+        : equalizerGraph
+
+      if (graph) {
+        await graph.resume()
       }
       await audio.play()
     },
@@ -124,10 +158,12 @@ export function createPlaybackRuntime(options?: {
       const audio = getAudio()
       const normalizedDeviceId = normalizePlaybackOutputDeviceId(deviceId)
 
-      if (equalizerConfig.enabled) {
+      if (shouldUseEqualizerGraph() || equalizerGraph) {
         try {
-          const applied =
-            await ensureEqualizerGraph().setOutputDevice(normalizedDeviceId)
+          const graph = shouldUseEqualizerGraph()
+            ? ensureEqualizerGraph()
+            : equalizerGraph
+          const applied = await graph?.setOutputDevice(normalizedDeviceId)
 
           if (applied) {
             return true
@@ -146,11 +182,22 @@ export function createPlaybackRuntime(options?: {
     },
     applyEqualizer(config) {
       equalizerConfig = normalizeEqualizerConfig(config)
-      if (!equalizerConfig.enabled && !equalizerGraph) {
+      if (!shouldUseEqualizerGraph() && !equalizerGraph) {
         return
       }
 
-      ensureEqualizerGraph().update(equalizerConfig)
+      if (shouldUseEqualizerGraph()) {
+        ensureEqualizerGraph().update(equalizerConfig)
+      } else {
+        equalizerGraph?.update({
+          ...equalizerConfig,
+          enabled: false,
+        })
+      }
+      resumeEqualizerGraphForActivePlayback(equalizerGraph)
+    },
+    requiresEqualizerCompatibleSource() {
+      return equalizerConfig.enabled || Boolean(equalizerGraph)
     },
   }
 }

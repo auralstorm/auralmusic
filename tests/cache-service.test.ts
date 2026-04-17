@@ -49,7 +49,7 @@ test('CacheService resolves default cache directory when config dir is empty', a
   await rm(root, { recursive: true, force: true })
 })
 
-test('CacheService returns the original audio url on first fetch and reuses local file later', async () => {
+test('CacheService returns an app-local audio url on first fetch and reuses local file later', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-cache-test-'))
   let fetchCount = 0
   const service = new CacheService({
@@ -71,8 +71,8 @@ test('CacheService returns the original audio url on first fetch and reuses loca
     cacheDir: '',
     maxBytes: MB,
   })
-  assert.equal(first.fromCache, false)
-  assert.equal(first.url, 'https://cdn.example.com/song-1.mp3')
+  assert.equal(first.fromCache, true)
+  assert.ok(first.url.startsWith('auralmusic-media://'))
   assert.equal(fetchCount, 1)
 
   const second = await service.resolveAudioSource({
@@ -83,7 +83,7 @@ test('CacheService returns the original audio url on first fetch and reuses loca
     maxBytes: MB,
   })
   assert.equal(second.fromCache, true)
-  assert.ok(second.url.startsWith('file:///'))
+  assert.ok(second.url.startsWith('auralmusic-media://'))
   assert.equal(fetchCount, 1)
 
   await rm(root, { recursive: true, force: true })
@@ -249,9 +249,9 @@ test('CacheService evicts least recently used entries when size exceeds limit', 
   })
 
   assert.equal(cachedB.fromCache, true)
-  assert.ok(cachedB.url.startsWith('file:///'))
-  assert.equal(evictedA.fromCache, false)
-  assert.equal(evictedA.url, 'https://cdn.example.com/a.mp3')
+  assert.ok(cachedB.url.startsWith('auralmusic-media://'))
+  assert.equal(evictedA.fromCache, true)
+  assert.ok(evictedA.url.startsWith('auralmusic-media://'))
   assert.equal(fetchCount, 4)
 
   await rm(root, { recursive: true, force: true })

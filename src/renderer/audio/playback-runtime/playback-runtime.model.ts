@@ -1,3 +1,4 @@
+import { LOCAL_MEDIA_PROTOCOL } from '../../../shared/local-media.ts'
 import { DEFAULT_AUDIO_OUTPUT_DEVICE_ID } from '../../lib/audio-output.ts'
 
 export const DEFAULT_PLAYBACK_RUNTIME_ERROR = 'play_failed'
@@ -15,6 +16,23 @@ export function normalizePlaybackOutputDeviceId(deviceId: string) {
 
 export function shouldReuseLoadedSource(currentUrl: string, nextUrl: string) {
   return Boolean(currentUrl) && currentUrl === nextUrl
+}
+
+export function isEqualizerGraphCompatibleSourceUrl(sourceUrl: string) {
+  if (!sourceUrl.trim()) {
+    return false
+  }
+
+  try {
+    const url = new URL(sourceUrl)
+    return (
+      url.protocol === `${LOCAL_MEDIA_PROTOCOL}:` ||
+      url.protocol === 'blob:' ||
+      url.protocol === 'data:'
+    )
+  } catch {
+    return false
+  }
 }
 
 export function classifyPlaybackRuntimeError(

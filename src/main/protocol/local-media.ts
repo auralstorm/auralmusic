@@ -182,6 +182,9 @@ export function resolveLocalMediaResponseHeaders(
 ) {
   const headers: Record<string, string> = {
     'accept-ranges': 'bytes',
+    'access-control-allow-headers': 'Range',
+    'access-control-allow-methods': 'GET, HEAD',
+    'access-control-allow-origin': '*',
     'content-length': String(
       options.range?.contentLength ?? Math.max(0, Math.floor(options.fileSize))
     ),

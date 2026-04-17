@@ -18,6 +18,7 @@ import {
   normalizeDownloadSkipExisting,
   normalizeDynamicCoverEnabled,
   normalizeEnhancedSourceModules,
+  normalizeEqualizerConfigValue,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
@@ -98,6 +99,7 @@ function normalizeConfig(config: AppConfig): AppConfig {
     playbackVolume: normalizePlaybackVolume(config.playbackVolume),
     playbackMode: normalizePlaybackMode(config.playbackMode),
     playbackSpeed: normalizePlaybackSpeed(config.playbackSpeed),
+    equalizer: normalizeEqualizerConfigValue(config.equalizer),
     rememberPlaybackSession: normalizeRememberPlaybackSession(
       config.rememberPlaybackSession
     ),

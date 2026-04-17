@@ -31,6 +31,8 @@ import {
   resolvePlaybackSpeedCommitValue,
   resolvePlaybackSpeedSliderValue,
 } from './playback-speed.model'
+import { resolveEqualizerPresetLabel } from './equalizer-settings.model'
+import EqualizerSettingsDialog from './EqualizerSettingsDialog'
 import MusicSourceSettingsDialog from './MusicSourceSettingsDialog'
 
 const AUDIO_OUTPUT_STATUS_LABEL: Partial<
@@ -108,6 +110,7 @@ const PlaySettings = () => {
     DEFAULT_AUDIO_OUTPUT_DEVICE_ID
   const audioQuality = useConfigStore(state => state.config.quality)
   const playbackSpeed = useConfigStore(state => state.config.playbackSpeed)
+  const equalizer = useConfigStore(state => state.config.equalizer)
   const rememberPlaybackSession = useConfigStore(
     state => state.config.rememberPlaybackSession
   )
@@ -133,6 +136,7 @@ const PlaySettings = () => {
     number | null
   >(null)
   const [testing, setTesting] = useState(false)
+  const [equalizerDialogOpen, setEqualizerDialogOpen] = useState(false)
   const [musicSourceDialogOpen, setMusicSourceDialogOpen] = useState(false)
   const [queryStatus, setQueryStatus] =
     useState<AudioOutputDeviceQueryStatus | null>(null)
@@ -271,6 +275,41 @@ const PlaySettings = () => {
             ))}
           </SelectContent>
         </Select>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(220px,280px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            均衡器
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            {equalizer.enabled
+              ? `已启用，当前预设 ${resolveEqualizerPresetLabel(equalizer.presetId)}`
+              : `已关闭，保留 ${resolveEqualizerPresetLabel(equalizer.presetId)} 配置`}
+          </p>
+        </div>
+        <div className='flex items-center gap-2'>
+          <ToggleSetting
+            enabled={equalizer.enabled}
+            disabled={isConfigLoading}
+            onToggle={() =>
+              void setConfig('equalizer', {
+                ...equalizer,
+                enabled: !equalizer.enabled,
+              })
+            }
+          />
+          <Button
+            type='button'
+            variant='outline'
+            className='h-9 shrink-0'
+            disabled={isConfigLoading}
+            onClick={() => setEqualizerDialogOpen(true)}
+          >
+            调整
+          </Button>
+        </div>
       </div>
       <Separator />
 
@@ -460,6 +499,10 @@ const PlaySettings = () => {
       <MusicSourceSettingsDialog
         open={musicSourceDialogOpen}
         onOpenChange={setMusicSourceDialogOpen}
+      />
+      <EqualizerSettingsDialog
+        open={equalizerDialogOpen}
+        onOpenChange={setEqualizerDialogOpen}
       />
     </div>
   )

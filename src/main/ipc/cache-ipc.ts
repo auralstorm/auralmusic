@@ -2,7 +2,10 @@ import electron from 'electron'
 import path from 'node:path'
 
 import { CacheService } from '../cache/cache-service.ts'
-import { CACHE_IPC_CHANNELS } from '../cache/cache-types.ts'
+import {
+  CACHE_IPC_CHANNELS,
+  type ResolveAudioSourceOptions,
+} from '../cache/cache-types.ts'
 import { getConfig } from '../config/store.ts'
 import type { AppConfig } from '../config/types.ts'
 
@@ -116,11 +119,17 @@ export function createCacheIpc(options: CacheIpcRegistrationOptions = {}) {
 
       ipcMain.handle(
         CACHE_IPC_CHANNELS.RESOLVE_AUDIO_SOURCE,
-        async (_event, cacheKey: string, sourceUrl: string) => {
+        async (
+          _event,
+          cacheKey: string,
+          sourceUrl: string,
+          options?: ResolveAudioSourceOptions
+        ) => {
+          const forceCache = options?.force === true
           return cacheService.resolveAudioSource({
             cacheKey,
             sourceUrl,
-            enabled: getConfigValue('diskCacheEnabled'),
+            enabled: forceCache || getConfigValue('diskCacheEnabled'),
             cacheDir: getConfigValue('diskCacheDir'),
             maxBytes: getConfigValue('diskCacheMaxBytes'),
           })

@@ -7,11 +7,13 @@ import {
   normalizeDiskCacheDir,
   normalizeDiskCacheEnabled,
   normalizeDiskCacheMaxBytes,
+  normalizeEqualizerConfigValue,
   normalizeLyricsKaraokeEnabled,
   normalizeRememberPlaybackSession,
   normalizePlaybackSpeed,
   normalizeShowLyricTranslation,
 } from '../src/main/config/types.ts'
+import { DEFAULT_EQUALIZER_CONFIG } from '../src/shared/equalizer.ts'
 
 test('new config defaults are safe for playback, lyrics, and cache', () => {
   assert.equal(defaultConfig.playbackSpeed, 1)
@@ -21,6 +23,7 @@ test('new config defaults are safe for playback, lyrics, and cache', () => {
   assert.equal(defaultConfig.diskCacheEnabled, false)
   assert.equal(defaultConfig.diskCacheDir, '')
   assert.equal(defaultConfig.diskCacheMaxBytes, 1024 * 1024 * 1024)
+  assert.deepEqual(defaultConfig.equalizer, DEFAULT_EQUALIZER_CONFIG)
 })
 
 test('normalizePlaybackSpeed clamps to the supported range and falls back for invalid values', () => {
@@ -84,4 +87,23 @@ test('normalizeDownloadDir keeps non-empty custom paths and trims blank values',
   assert.equal(normalizeDownloadDir('D:\\Music'), 'D:\\Music')
   assert.equal(normalizeDownloadDir('   '), '')
   assert.equal(normalizeDownloadDir(undefined), '')
+})
+
+test('normalizeEqualizerConfigValue clamps equalizer settings and falls back for invalid payloads', () => {
+  assert.deepEqual(
+    normalizeEqualizerConfigValue(undefined),
+    DEFAULT_EQUALIZER_CONFIG
+  )
+
+  const normalized = normalizeEqualizerConfigValue({
+    enabled: true,
+    presetId: 'rock',
+    preamp: -99,
+    bands: [{ frequency: 31, gain: 99 }],
+  })
+
+  assert.equal(normalized.enabled, true)
+  assert.equal(normalized.presetId, 'rock')
+  assert.equal(normalized.preamp, -12)
+  assert.equal(normalized.bands[0]?.gain, 12)
 })

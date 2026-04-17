@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { toast } from 'sonner'
 import { playbackRuntime } from '@/audio/playback-runtime/playback-runtime'
+import { isEqualizerGraphCompatibleSourceUrl } from '@/audio/playback-runtime/playback-runtime.model'
 import { resolvePlaybackSource } from '@/services/music-source/playback-source-resolver.ts'
 import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
@@ -16,6 +17,13 @@ const STALE_PLAYBACK_REQUEST = Symbol('STALE_PLAYBACK_REQUEST')
 
 interface PlaybackEngineRef {
   getAudioElement: () => HTMLAudioElement | null
+}
+
+type CurrentPlaybackSource = {
+  trackId: number
+  sourceUrl: string
+  loadedUrl: string
+  cacheKey: string | null
 }
 
 async function applyPersistedProgress(
@@ -88,6 +96,8 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const volumeRef = useRef(70)
   const configRef = useRef(useConfigStore.getState().config)
   const qualityRef = useRef(useConfigStore.getState().config.quality)
+  const equalizerRef = useRef(useConfigStore.getState().config.equalizer)
+  const currentPlaybackSourceRef = useRef<CurrentPlaybackSource | null>(null)
   const playbackSpeedRef = useRef(
     normalizePlaybackSpeedValue(useConfigStore.getState().config.playbackSpeed)
   )
@@ -126,8 +136,79 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   }, [quality])
 
   useEffect(() => {
-    playbackRuntime.applyEqualizer(equalizer)
+    equalizerRef.current = equalizer
+    let cancelled = false
+
+    const applyEqualizer = async () => {
+      if (equalizer.enabled) {
+        await ensureEqualizerCompatibleCurrentSource(() => cancelled)
+      }
+
+      if (!cancelled) {
+        playbackRuntime.applyEqualizer(equalizer)
+      }
+    }
+
+    void applyEqualizer()
+
+    return () => {
+      cancelled = true
+    }
   }, [equalizer])
+
+  const ensureEqualizerCompatibleCurrentSource = async (
+    isCancelled: () => boolean
+  ) => {
+    const source = currentPlaybackSourceRef.current
+    if (
+      !source ||
+      !source.cacheKey ||
+      isEqualizerGraphCompatibleSourceUrl(source.loadedUrl)
+    ) {
+      return
+    }
+
+    try {
+      const cachedResult = await window.electronCache.resolveAudioSource(
+        source.cacheKey,
+        source.sourceUrl,
+        { force: true }
+      )
+      if (isCancelled() || currentPlaybackSourceRef.current !== source) {
+        return
+      }
+
+      const nextUrl = cachedResult.url || source.sourceUrl
+      if (!isEqualizerGraphCompatibleSourceUrl(nextUrl)) {
+        return
+      }
+
+      const audio = playbackRuntime.getAudioElement()
+      const wasPlaying = !audio.paused
+      const progressMs = Number.isFinite(audio.currentTime)
+        ? audio.currentTime * 1000
+        : 0
+
+      await playbackRuntime.loadSource(nextUrl)
+      currentPlaybackSourceRef.current = {
+        ...source,
+        loadedUrl: nextUrl,
+      }
+
+      if (progressMs > 0) {
+        await applyPersistedProgress(
+          playbackRuntime.getAudioElement(),
+          progressMs
+        )
+      }
+
+      if (wasPlaying) {
+        await playbackRuntime.play()
+      }
+    } catch (error) {
+      console.error('resolve equalizer compatible audio source failed', error)
+    }
+  }
 
   useEffect(() => {
     const normalizedPlaybackSpeed = normalizePlaybackSpeedValue(playbackSpeed)
@@ -253,6 +334,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
       if (usePlaybackStore.getState().shouldAutoPlayOnLoad) {
         usePlaybackStore.getState().markPlaybackLoading()
       }
+      currentPlaybackSourceRef.current = null
       playbackRuntime.stop()
 
       try {
@@ -298,12 +380,19 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
         }
 
         let resolvedAudioUrl = result.url
+        let resolvedAudioCacheKey: string | null = null
         if (!localSourceUrl) {
           try {
             const cacheKey = `audio:${currentTrack.id}:${qualityRef.current}:${result.url}`
+            resolvedAudioCacheKey = cacheKey
             const cachedResult = await window.electronCache.resolveAudioSource(
               cacheKey,
-              result.url
+              result.url,
+              {
+                force:
+                  equalizerRef.current.enabled ||
+                  playbackRuntime.requiresEqualizerCompatibleSource(),
+              }
             )
             throwIfPlaybackRequestStale(
               expectedRequestId,
@@ -325,6 +414,12 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
           cancelled
         )
         await playbackRuntime.loadSource(resolvedAudioUrl)
+        currentPlaybackSourceRef.current = {
+          trackId: currentTrack.id,
+          sourceUrl: result.url,
+          loadedUrl: resolvedAudioUrl,
+          cacheKey: resolvedAudioCacheKey,
+        }
         const audio = playbackRuntime.getAudioElement()
         playbackRuntime.setVolume(volumeRef.current / 100)
         playbackRuntime.setPlaybackRate(playbackSpeedRef.current)

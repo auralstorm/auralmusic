@@ -39,6 +39,10 @@ export type ResolveAudioSourceResult = {
   fromCache: boolean
 }
 
+export type ResolveAudioSourceOptions = {
+  force?: boolean
+}
+
 export type ResolveImageSourceParams = CacheRuntimeConfig & {
   cacheKey: string
   sourceUrl: string

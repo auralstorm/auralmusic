@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { CACHE_IPC_CHANNELS } from '../../shared/ipc/cache.ts'
 import type {
   CacheStatus,
+  ResolveAudioSourceOptions,
   ResolveAudioSourceResult,
   ResolveImageSourceResult,
 } from '../../main/cache/cache-types'
@@ -13,7 +14,8 @@ export type CacheApi = {
   clear: () => Promise<void>
   resolveAudioSource: (
     cacheKey: string,
-    sourceUrl: string
+    sourceUrl: string,
+    options?: ResolveAudioSourceOptions
   ) => Promise<ResolveAudioSourceResult>
   resolveImageSource: (
     cacheKey: string,
@@ -36,11 +38,12 @@ const cacheApi: CacheApi = {
   clear: async () => {
     return ipcRenderer.invoke(CACHE_IPC_CHANNELS.CLEAR)
   },
-  resolveAudioSource: async (cacheKey, sourceUrl) => {
+  resolveAudioSource: async (cacheKey, sourceUrl, options) => {
     return ipcRenderer.invoke(
       CACHE_IPC_CHANNELS.RESOLVE_AUDIO_SOURCE,
       cacheKey,
-      sourceUrl
+      sourceUrl,
+      options
     )
   },
   resolveImageSource: async (cacheKey, sourceUrl) => {

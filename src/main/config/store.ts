@@ -23,6 +23,7 @@ import {
   normalizeDownloadSkipExisting,
   normalizeDynamicCoverEnabled,
   normalizeEnhancedSourceModules,
+  normalizeEqualizerConfigValue,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
@@ -39,6 +40,7 @@ import {
   normalizeImportedLxMusicSources,
   resolveActiveLxMusicSourceScriptId,
 } from '../../shared/lx-music-source.ts'
+import { EQ_BANDS } from '../../shared/equalizer.ts'
 import { normalizeShortcutBindings } from '../../shared/shortcut-keys.ts'
 import {
   PLAYBACK_MODE_SEQUENCE,
@@ -118,6 +120,29 @@ const CONFIG_STORE_SCHEMA = {
   playbackVolume: { type: 'number', minimum: 0, maximum: 100 },
   playbackMode: { type: 'string', enum: PLAYBACK_MODE_SEQUENCE },
   playbackSpeed: { type: 'number', minimum: 0.5, maximum: 2 },
+  equalizer: {
+    type: 'object',
+    properties: {
+      enabled: { type: 'boolean' },
+      presetId: { type: 'string' },
+      preamp: { type: 'number', minimum: -12, maximum: 12 },
+      bands: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            frequency: {
+              type: 'number',
+              enum: EQ_BANDS.map(band => band.frequency),
+            },
+            gain: { type: 'number', minimum: -12, maximum: 12 },
+          },
+          required: ['frequency', 'gain'],
+        },
+      },
+    },
+    required: ['enabled', 'presetId', 'preamp', 'bands'],
+  },
   rememberPlaybackSession: { type: 'boolean' },
   dynamicCoverEnabled: { type: 'boolean' },
   showLyricTranslation: { type: 'boolean' },
@@ -257,6 +282,12 @@ class ConfigStore {
       const normalizedPlaybackSpeed = normalizePlaybackSpeed(playbackSpeed)
       if (playbackSpeed !== normalizedPlaybackSpeed) {
         ConfigStore.instance.set('playbackSpeed', normalizedPlaybackSpeed)
+      }
+
+      const equalizer = ConfigStore.instance.get('equalizer')
+      const normalizedEqualizer = normalizeEqualizerConfigValue(equalizer)
+      if (JSON.stringify(equalizer) !== JSON.stringify(normalizedEqualizer)) {
+        ConfigStore.instance.set('equalizer', normalizedEqualizer)
       }
 
       const rememberPlaybackSession = ConfigStore.instance.get(

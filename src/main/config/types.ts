@@ -2,6 +2,11 @@ import { IPC_CHANNELS } from '../../shared/ipc/config.ts'
 import type { ImportedLxMusicSource } from '../../shared/lx-music-source.ts'
 import type { PlaybackMode } from '../../shared/playback.ts'
 import {
+  DEFAULT_EQUALIZER_CONFIG,
+  normalizeEqualizerConfig,
+  type EqualizerConfig,
+} from '../../shared/equalizer.ts'
+import {
   DEFAULT_SHORTCUT_BINDINGS,
   type ShortcutBindings,
 } from '../../shared/shortcut-keys.ts'
@@ -68,6 +73,7 @@ export interface AppConfig {
   playbackVolume: number
   playbackMode: PlaybackMode
   playbackSpeed: number
+  equalizer: EqualizerConfig
   rememberPlaybackSession: boolean
   dynamicCoverEnabled: boolean
   showLyricTranslation: boolean
@@ -112,6 +118,7 @@ export const defaultConfig: AppConfig = {
   playbackVolume: 70,
   playbackMode: 'repeat-all',
   playbackSpeed: 1.0,
+  equalizer: DEFAULT_EQUALIZER_CONFIG,
   rememberPlaybackSession: false,
   dynamicCoverEnabled: true,
   showLyricTranslation: false,
@@ -164,6 +171,10 @@ export function normalizePlaybackSpeed(value: unknown) {
   }
 
   return Math.min(MAX_PLAYBACK_SPEED, Math.max(MIN_PLAYBACK_SPEED, value))
+}
+
+export function normalizeEqualizerConfigValue(value: unknown) {
+  return normalizeEqualizerConfig(value)
 }
 
 export function normalizePlayerBackgroundMode(value: unknown) {

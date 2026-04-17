@@ -61,6 +61,9 @@ test('resolveLocalMediaResponseHeaders returns range-friendly headers for full a
     }),
     {
       'accept-ranges': 'bytes',
+      'access-control-allow-headers': 'Range',
+      'access-control-allow-methods': 'GET, HEAD',
+      'access-control-allow-origin': '*',
       'content-length': '2048',
       'content-type': 'audio/mpeg',
     }
@@ -79,6 +82,9 @@ test('resolveLocalMediaResponseHeaders returns range-friendly headers for full a
     }),
     {
       'accept-ranges': 'bytes',
+      'access-control-allow-headers': 'Range',
+      'access-control-allow-methods': 'GET, HEAD',
+      'access-control-allow-origin': '*',
       'content-length': '512',
       'content-range': 'bytes 512-1023/2048',
       'content-type': 'audio/flac',
