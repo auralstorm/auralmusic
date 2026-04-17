@@ -11,6 +11,7 @@ test('createTrayController builds playback menu and dispatches tray commands', (
   const contextMenus: any[] = []
   const listeners = new Map<string, () => void>()
   const commands: unknown[] = []
+  const iconPaths: string[] = []
   let showWindowCalls = 0
   let quitCalls = 0
 
@@ -35,10 +36,21 @@ test('createTrayController builds playback menu and dispatches tray commands', (
       buildFromTemplate: template => ({ template }),
     } as never,
     nativeImage: {
+      createFromPath: (iconPath: string) => {
+        iconPaths.push(iconPath)
+        return {
+          isEmpty: () => false,
+          setTemplateImage: () => undefined,
+        }
+      },
       createFromDataURL: () => ({
+        isEmpty: () => false,
         setTemplateImage: () => undefined,
       }),
     } as never,
+    appPath: 'F:\\code-demo\\AuralMusic',
+    resourcesPath: 'F:\\code-demo\\AuralMusic',
+    pathExists: iconPath => iconPath.endsWith('build\\icons\\icon.ico'),
     platform: 'win32',
     showMainWindow: () => {
       showWindowCalls += 1
@@ -52,6 +64,10 @@ test('createTrayController builds playback menu and dispatches tray commands', (
   })
 
   controller.initialize()
+  assert.equal(
+    iconPaths.at(-1),
+    'F:\\code-demo\\AuralMusic\\build\\icons\\icon.ico'
+  )
   controller.setState({
     currentTrackName: 'Song',
     currentArtistNames: 'Artist',

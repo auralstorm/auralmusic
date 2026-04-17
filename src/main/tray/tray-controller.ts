@@ -1,4 +1,6 @@
 import electron from 'electron'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 
 import type { PlaybackMode } from '../../shared/playback.ts'
 import type { TrayCommand, TrayState } from '../../shared/tray.ts'
@@ -15,6 +17,7 @@ type MenuLike = {
 }
 
 type NativeImageLike = {
+  isEmpty?: () => boolean
   setTemplateImage?: (template: boolean) => void
 }
 
@@ -24,8 +27,12 @@ type TrayControllerOptions = {
   Tray?: TrayConstructor
   Menu?: MenuLike
   nativeImage?: {
+    createFromPath: (path: string) => NativeImageLike
     createFromDataURL: (dataUrl: string) => NativeImageLike
   }
+  appPath?: string
+  resourcesPath?: string
+  pathExists?: (path: string) => boolean
   platform?: NodeJS.Platform
   showMainWindow: () => void
   quitApp: () => void
@@ -40,7 +47,30 @@ const DEFAULT_TRAY_STATE: TrayState = {
   hasCurrentTrack: false,
 }
 
-function getTrayIcon(
+function getTrayIconFilename(platform: NodeJS.Platform) {
+  if (platform === 'win32') {
+    return path.join('build', 'icons', 'icon.ico')
+  }
+
+  return path.join('build', 'icons', 'png', '32x32.png')
+}
+
+export function resolveTrayIconPath(options: {
+  appPath: string
+  resourcesPath: string
+  platform: NodeJS.Platform
+  pathExists: (path: string) => boolean
+}) {
+  const iconFilename = getTrayIconFilename(options.platform)
+  const candidates = [
+    path.join(options.resourcesPath, iconFilename),
+    path.join(options.appPath, iconFilename),
+  ]
+
+  return candidates.find(options.pathExists) ?? candidates[0]
+}
+
+function getFallbackTrayIcon(
   nativeImage: TrayControllerOptions['nativeImage'],
   platform: NodeJS.Platform
 ) {
@@ -63,6 +93,32 @@ function getTrayIcon(
   }
 
   return image
+}
+
+function getTrayIcon(options: {
+  nativeImage: TrayControllerOptions['nativeImage']
+  platform: NodeJS.Platform
+  appPath: string
+  resourcesPath: string
+  pathExists: (path: string) => boolean
+}) {
+  const iconPath = resolveTrayIconPath({
+    appPath: options.appPath,
+    resourcesPath: options.resourcesPath,
+    platform: options.platform,
+    pathExists: options.pathExists,
+  })
+  const image = options.nativeImage?.createFromPath(iconPath)
+
+  if (image && !image.isEmpty?.()) {
+    if (options.platform === 'darwin') {
+      image.setTemplateImage?.(true)
+    }
+
+    return image
+  }
+
+  return getFallbackTrayIcon(options.nativeImage, options.platform)
 }
 
 function formatNowPlayingLabel(state: TrayState) {
@@ -179,6 +235,9 @@ export function createTrayController(options: TrayControllerOptions) {
   const Menu = options.Menu ?? electron.Menu
   const nativeImage = options.nativeImage ?? electron.nativeImage
   const platform = options.platform ?? process.platform
+  const appPath = options.appPath ?? electron.app.getAppPath()
+  const resourcesPath = options.resourcesPath ?? process.resourcesPath
+  const pathExists = options.pathExists ?? existsSync
 
   let tray: TrayLike | null = null
   let state = DEFAULT_TRAY_STATE
@@ -199,7 +258,15 @@ export function createTrayController(options: TrayControllerOptions) {
         return tray
       }
 
-      tray = new Tray(getTrayIcon(nativeImage, platform))
+      tray = new Tray(
+        getTrayIcon({
+          nativeImage,
+          platform,
+          appPath,
+          resourcesPath,
+          pathExists,
+        })
+      )
       tray.setToolTip('AuralMusic')
       refreshMenu()
       tray.on('click', () => {
