@@ -1,3 +1,12 @@
+import {
+  createEqualizerGraph,
+  type EqualizerGraph,
+} from '../equalizer/equalizer-graph.ts'
+import {
+  DEFAULT_EQUALIZER_CONFIG,
+  normalizeEqualizerConfig,
+  type EqualizerConfig,
+} from '../../../shared/equalizer.ts'
 import { applyAudioOutputDevice } from '../../lib/audio-output.ts'
 import {
   classifyPlaybackRuntimeError,
@@ -15,13 +24,19 @@ export interface PlaybackRuntime {
   setVolume: (volume: number) => void
   setPlaybackRate: (rate: number) => void
   setOutputDevice: (deviceId: string) => Promise<boolean>
+  applyEqualizer: (config: EqualizerConfig) => void
 }
 
 export function createPlaybackRuntime(options?: {
   createAudioElement?: () => HTMLAudioElement
+  createEqualizerGraph?: (options: {
+    audioElement: HTMLAudioElement
+  }) => EqualizerGraph
 }): PlaybackRuntime {
   let loadedSource = ''
   let audioElement: HTMLAudioElement | null = null
+  let equalizerGraph: EqualizerGraph | null = null
+  let equalizerConfig = DEFAULT_EQUALIZER_CONFIG
 
   const getAudio = () => {
     if (audioElement) {
@@ -39,6 +54,20 @@ export function createPlaybackRuntime(options?: {
 
     audioElement = new Audio()
     return audioElement
+  }
+
+  const ensureEqualizerGraph = () => {
+    if (equalizerGraph) {
+      return equalizerGraph
+    }
+
+    const audioElement = getAudio()
+    equalizerGraph =
+      options?.createEqualizerGraph?.({
+        audioElement,
+      }) ?? createEqualizerGraph({ audioElement })
+    equalizerGraph.update(equalizerConfig)
+    return equalizerGraph
   }
 
   return {
@@ -62,6 +91,9 @@ export function createPlaybackRuntime(options?: {
     },
     async play() {
       const audio = getAudio()
+      if (equalizerConfig.enabled) {
+        await ensureEqualizerGraph().resume()
+      }
       await audio.play()
     },
     pause() {
@@ -90,15 +122,31 @@ export function createPlaybackRuntime(options?: {
     },
     async setOutputDevice(deviceId) {
       const audio = getAudio()
+      const normalizedDeviceId = normalizePlaybackOutputDeviceId(deviceId)
+
+      if (equalizerConfig.enabled) {
+        const applied =
+          await ensureEqualizerGraph().setOutputDevice(normalizedDeviceId)
+
+        if (applied) {
+          return true
+        }
+      }
+
       try {
-        await applyAudioOutputDevice(
-          audio,
-          normalizePlaybackOutputDeviceId(deviceId)
-        )
+        await applyAudioOutputDevice(audio, normalizedDeviceId)
         return true
       } catch {
         return false
       }
+    },
+    applyEqualizer(config) {
+      equalizerConfig = normalizeEqualizerConfig(config)
+      if (!equalizerConfig.enabled && !equalizerGraph) {
+        return
+      }
+
+      ensureEqualizerGraph().update(equalizerConfig)
     },
   }
 }

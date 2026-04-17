@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { createPlaybackRuntime } from '../src/renderer/audio/playback-runtime/playback-runtime.ts'
+import { DEFAULT_EQUALIZER_CONFIG } from '../src/shared/equalizer.ts'
 
 class FakeAudio extends EventTarget {
   src = ''
@@ -79,4 +80,29 @@ test('playback runtime stops old audio before switching tracks', async () => {
 
   assert.equal(audio.pauseCount >= 2, true)
   assert.equal(audio.src, 'https://a.test/two.mp3')
+})
+
+test('playback runtime creates equalizer graph once and reuses it', async () => {
+  const audio = new FakeAudio()
+  let createCount = 0
+
+  const runtime = createPlaybackRuntime({
+    createAudioElement: () => audio as unknown as HTMLAudioElement,
+    createEqualizerGraph: () => {
+      createCount += 1
+      return {
+        update() {},
+        async resume() {},
+        async setOutputDevice() {
+          return true
+        },
+        dispose() {},
+      }
+    },
+  })
+
+  runtime.applyEqualizer({ ...DEFAULT_EQUALIZER_CONFIG, enabled: true })
+  runtime.applyEqualizer({ ...DEFAULT_EQUALIZER_CONFIG, enabled: true })
+
+  assert.equal(createCount, 1)
 })

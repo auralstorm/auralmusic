@@ -103,6 +103,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const config = useConfigStore(state => state.config)
   const quality = useConfigStore(state => state.config.quality)
   const playbackSpeed = useConfigStore(state => state.config.playbackSpeed)
+  const equalizer = useConfigStore(state => state.config.equalizer)
   const audioOutputDeviceId = useConfigStore(
     state => state.config.audioOutputDeviceId
   )
@@ -122,6 +123,10 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   useEffect(() => {
     qualityRef.current = quality
   }, [quality])
+
+  useEffect(() => {
+    playbackRuntime.applyEqualizer(equalizer)
+  }, [equalizer])
 
   useEffect(() => {
     const normalizedPlaybackSpeed = normalizePlaybackSpeedValue(playbackSpeed)
