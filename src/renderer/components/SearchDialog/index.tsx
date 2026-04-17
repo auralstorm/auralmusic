@@ -12,6 +12,7 @@ import { useSearchDialogStore } from '@/stores/search-dialog-store'
 import SearchInputBar from './components/SearchInputBar'
 import SearchResultList from './components/SearchResultList'
 import {
+  buildSearchResultTargetPath,
   normalizeSearchResults,
   type SearchResultRowItem,
   type SearchType,
@@ -97,15 +98,10 @@ const SearchDialog = () => {
       return
     }
 
-    if (item.type === 'album') {
+    const targetPath = buildSearchResultTargetPath(item.type, item.targetId)
+    if (targetPath) {
       setOpen(false)
-      navigate(`/albums/${item.targetId}`)
-      return
-    }
-
-    if (item.type === 'playlist') {
-      setOpen(false)
-      navigate(`/playlist/${item.targetId}`)
+      navigate(targetPath)
     }
   }
 

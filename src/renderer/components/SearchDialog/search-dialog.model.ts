@@ -1,6 +1,6 @@
 import type { PlaybackTrack } from '../../../shared/playback.ts'
 
-export type SearchType = 'song' | 'album' | 'playlist' | 'mv'
+export type SearchType = 'song' | 'album' | 'artist' | 'playlist' | 'mv'
 
 export interface SearchResultRowItem {
   id: number
@@ -38,6 +38,15 @@ interface RawAlbumItem {
   artists?: RawArtist[]
 }
 
+interface RawSearchArtistItem {
+  id?: number
+  name?: string
+  picUrl?: string
+  img1v1Url?: string
+  albumSize?: number
+  mvSize?: number
+}
+
 interface RawPlaylistItem {
   id?: number
   name?: string
@@ -62,6 +71,7 @@ interface RawSearchResultPayload {
   result?: {
     songs?: RawSongItem[]
     albums?: RawAlbumItem[]
+    artists?: RawSearchArtistItem[]
     playlists?: RawPlaylistItem[]
     mvs?: RawMvItem[]
   }
@@ -70,6 +80,7 @@ interface RawSearchResultPayload {
 export const SEARCH_TYPE_CODE_MAP: Record<SearchType, number> = {
   song: 1,
   album: 10,
+  artist: 100,
   playlist: 1000,
   mv: 1004,
 }
@@ -78,7 +89,27 @@ export const SEARCH_TYPE_LABEL_MAP: Record<SearchType, string> = {
   song: '单曲',
   album: '专辑',
   playlist: '歌单',
+  artist: '歌手',
   mv: 'MV',
+}
+
+export function buildSearchResultTargetPath(
+  type: SearchType,
+  targetId: number
+) {
+  if (type === 'album') {
+    return `/albums/${targetId}`
+  }
+
+  if (type === 'artist') {
+    return `/artists/${targetId}`
+  }
+
+  if (type === 'playlist') {
+    return `/playlist/${targetId}`
+  }
+
+  return null
 }
 
 function formatArtistNames(artists?: RawArtist[]) {
@@ -88,6 +119,15 @@ function formatArtistNames(artists?: RawArtist[]) {
       .filter(Boolean)
       .join(' / ') || '未知歌手'
   )
+}
+
+function formatSearchArtistMeta(artist: RawSearchArtistItem) {
+  const meta = [
+    typeof artist.albumSize === 'number' ? `${artist.albumSize} 张专辑` : '',
+    typeof artist.mvSize === 'number' ? `${artist.mvSize} 个 MV` : '',
+  ].filter(Boolean)
+
+  return meta.join(' · ') || '歌手'
 }
 
 export function normalizeSearchResults(
@@ -144,6 +184,27 @@ export function normalizeSearchResults(
           artistName: album.artist?.name || formatArtistNames(album.artists),
           coverUrl: album.picUrl || '',
           targetId: album.id,
+          disabled: false,
+          playbackTrack: null,
+        },
+      ]
+    })
+  }
+
+  if (type === 'artist') {
+    return (result.artists || []).flatMap(artist => {
+      if (!artist.id) {
+        return []
+      }
+
+      return [
+        {
+          id: artist.id,
+          type,
+          name: artist.name || '未知歌手',
+          artistName: formatSearchArtistMeta(artist),
+          coverUrl: artist.picUrl || artist.img1v1Url || '',
+          targetId: artist.id,
           disabled: false,
           playbackTrack: null,
         },

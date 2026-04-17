@@ -14,7 +14,13 @@ interface SearchInputBarProps {
   onTypeChange: (value: SearchType) => void
 }
 
-const SEARCH_TYPE_OPTIONS: SearchType[] = ['song', 'album', 'playlist', 'mv']
+const SEARCH_TYPE_OPTIONS: SearchType[] = [
+  'song',
+  'album',
+  'artist',
+  'playlist',
+  'mv',
+]
 
 const SearchInputBar = ({
   value,

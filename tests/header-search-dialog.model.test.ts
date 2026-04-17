@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   SEARCH_TYPE_CODE_MAP,
+  buildSearchResultTargetPath,
   normalizeSearchResults,
 } from '../src/renderer/components/SearchDialog/search-dialog.model.ts'
 
@@ -10,6 +11,7 @@ test('SEARCH_TYPE_CODE_MAP exposes the supported cloudsearch codes', () => {
   assert.deepEqual(SEARCH_TYPE_CODE_MAP, {
     song: 1,
     album: 10,
+    artist: 100,
     playlist: 1000,
     mv: 1004,
   })
@@ -55,6 +57,46 @@ test('normalizeSearchResults maps song payloads into playable rows', () => {
       },
     },
   ])
+})
+
+test('normalizeSearchResults maps artist payloads into navigable rows', () => {
+  const rows = normalizeSearchResults(
+    {
+      result: {
+        artists: [
+          {
+            id: 505,
+            name: 'Wave Singer',
+            picUrl: 'https://img.example.com/artist.jpg',
+            albumSize: 12,
+            mvSize: 3,
+          },
+        ],
+      },
+    },
+    'artist'
+  )
+
+  assert.deepEqual(rows, [
+    {
+      id: 505,
+      type: 'artist',
+      name: 'Wave Singer',
+      artistName: '12 张专辑 · 3 个 MV',
+      coverUrl: 'https://img.example.com/artist.jpg',
+      targetId: 505,
+      disabled: false,
+      playbackTrack: null,
+    },
+  ])
+})
+
+test('buildSearchResultTargetPath returns detail routes for navigable resources', () => {
+  assert.equal(buildSearchResultTargetPath('album', 202), '/albums/202')
+  assert.equal(buildSearchResultTargetPath('artist', 505), '/artists/505')
+  assert.equal(buildSearchResultTargetPath('playlist', 303), '/playlist/303')
+  assert.equal(buildSearchResultTargetPath('song', 101), null)
+  assert.equal(buildSearchResultTargetPath('mv', 404), null)
 })
 
 test('normalizeSearchResults maps albums, playlists, and mvs into the shared row shape', () => {
