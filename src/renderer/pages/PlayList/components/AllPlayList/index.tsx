@@ -2,18 +2,24 @@ import { EllipsisIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CategoriesPanel from './CategoriesPanel'
-import CoverCard from '@/components/CoverCard'
-import { geTopPlayList } from '@/api/list'
+import { geTopPlayList, getPlaylistTracks } from '@/api/list'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import { AllPlayListSkeleton } from '../PlayListSkeletons'
 import { shouldShowInitialPlaylistSkeleton } from './playlist-loading.model'
+import ArtistCover from '@/components/ArtistCover'
+import { usePlaybackStore } from '@/stores/playback-store'
+import { toast } from 'sonner'
+import {
+  buildPlaylistPlaybackTracksRequest,
+  normalizePlaylistPlaybackQueue,
+} from './playlist-playback.model'
 
 const SHOW_CAT_COUNT = 8
 
 interface PlayListItem {
-  id: string
+  id: number
   name: string
-  coverImgUrl?: string
+  coverImgUrl: string
   count?: number
 }
 
@@ -35,8 +41,12 @@ const AllPlaylist = ({
   categories?: PlaylistCategories
 }) => {
   const navigate = useNavigate()
+  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
   const [isShow, setIsShow] = useState(false)
   const [cat, setCat] = useState<string | null>(null)
+  const [playingPlaylistId, setPlayingPlaylistId] = useState<number | null>(
+    null
+  )
 
   const topCategories = useMemo(() => {
     const data = categories?.sub?.slice(0, SHOW_CAT_COUNT) || []
@@ -77,8 +87,31 @@ const AllPlaylist = ({
     setIsShow(false)
   }
 
-  const handlePlay = () => {
-    console.log('play')
+  const handlePlay = async (playListId: number) => {
+    if (playingPlaylistId !== null) {
+      return
+    }
+
+    setPlayingPlaylistId(playListId)
+
+    try {
+      const response = await getPlaylistTracks(
+        buildPlaylistPlaybackTracksRequest(playListId)
+      )
+      const queue = normalizePlaylistPlaybackQueue(response.data)
+
+      if (!queue.length) {
+        toast.error('暂无可播放的歌单歌曲')
+        return
+      }
+
+      playQueueFromIndex(queue, 0)
+    } catch (error) {
+      console.error('playlist play failed', error)
+      toast.error('歌单播放失败，请稍后重试')
+    } finally {
+      setPlayingPlaylistId(null)
+    }
   }
 
   const handleOpen = (playlistId: number | string) => {
@@ -130,12 +163,12 @@ const AllPlaylist = ({
       ) : (
         <div className='3xl:grid-cols-6 4xl:grid-cols-7 grid grid-cols-4 gap-6 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5'>
           {playLists.map(item => (
-            <CoverCard
-              isResize={false}
+            <ArtistCover
               key={item.id}
-              data={item}
-              onOpen={handleOpen}
-              onPlay={handlePlay}
+              onClickCover={() => handleOpen(item.id)}
+              onPlay={() => void handlePlay(item.id)}
+              artistName={item.name}
+              artistCoverUrl={item.coverImgUrl}
             />
           ))}
         </div>
