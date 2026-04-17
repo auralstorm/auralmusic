@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { createAccountMenuActions } from './account-menu.model'
@@ -114,7 +115,15 @@ const AccountControl = ({
             <Avatar className='size-9 border-none'>
               <AvatarImage
                 alt={user?.nickname ?? '当前账号'}
-                src={user?.avatarUrl || undefined}
+                src={
+                  user?.avatarUrl
+                    ? resizeImageUrl(
+                        user.avatarUrl,
+                        imageSizes.avatar.width,
+                        imageSizes.avatar.height
+                      )
+                    : undefined
+                }
               />
               <AvatarFallback
                 className={cn(
@@ -140,7 +149,15 @@ const AccountControl = ({
             <Avatar className='border-border/60 size-12'>
               <AvatarImage
                 alt={user?.nickname ?? '当前账号'}
-                src={user?.avatarUrl || undefined}
+                src={
+                  user?.avatarUrl
+                    ? resizeImageUrl(
+                        user.avatarUrl,
+                        imageSizes.avatar.width,
+                        imageSizes.avatar.height
+                      )
+                    : undefined
+                }
               />
               <AvatarFallback className='text-sm font-bold'>
                 {!hasHydrated ? '' : fallbackText}

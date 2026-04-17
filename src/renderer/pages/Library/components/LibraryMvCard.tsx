@@ -1,5 +1,6 @@
 ﻿import { Play } from 'lucide-react'
 
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import type { LibraryMvItem } from '../library.model'
 
 interface LibraryMvCardProps {
@@ -13,7 +14,11 @@ const LibraryMvCard = ({ mv, onOpen }: LibraryMvCardProps) => {
       <div className='relative overflow-hidden rounded-[22px] bg-neutral-100 shadow-[0_18px_44px_rgba(15,23,42,0.08)]'>
         {mv.coverUrl ? (
           <img
-            src={mv.coverUrl}
+            src={resizeImageUrl(
+              mv.coverUrl,
+              imageSizes.mvCard.width,
+              imageSizes.mvCard.height
+            )}
             alt={mv.name}
             className='aspect-[16/9] size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]'
             loading='lazy'

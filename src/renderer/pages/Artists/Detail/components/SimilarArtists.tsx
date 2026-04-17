@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import type { ArtistSimilarItem } from '@/pages/Artists/artist-detail.model'
 
 interface SimilarArtistsProps {
@@ -22,7 +23,11 @@ const SimilarArtists = ({ artists }: SimilarArtistsProps) => {
               className='group border-border/50 bg-card/72 overflow-hidden rounded-[24px] border p-4 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition-transform duration-300 hover:-translate-y-1'
             >
               <img
-                src={artist.picUrl}
+                src={resizeImageUrl(
+                  artist.picUrl,
+                  imageSizes.cardCover.width,
+                  imageSizes.cardCover.height
+                )}
                 alt={artist.name}
                 className='aspect-square size-full rounded-[20px] object-cover transition-transform duration-500 group-hover:scale-[1.03]'
                 loading='lazy'

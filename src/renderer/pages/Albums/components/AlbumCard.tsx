@@ -1,5 +1,6 @@
 import { Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import type { AlbumListItem } from '@/pages/Albums/albums.model'
 
 interface AlbumCardProps {
@@ -27,7 +28,11 @@ const AlbumCard = ({ album, onToAlbumDetail }: AlbumCardProps) => {
         <div className='border-border/40 bg-card/78 relative aspect-square overflow-hidden rounded-[22px] border shadow-[0_22px_60px_rgba(15,23,42,0.08)] transition-transform duration-500 group-hover:-translate-y-1.5'>
           {coverUrl ? (
             <img
-              src={coverUrl}
+              src={resizeImageUrl(
+                coverUrl,
+                imageSizes.cardCover.width,
+                imageSizes.cardCover.height
+              )}
               alt={album.name}
               loading='lazy'
               decoding='async'

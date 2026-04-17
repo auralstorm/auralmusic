@@ -8,6 +8,7 @@ import {
   type ArtistMvItem,
   type ArtistSimilarItem,
 } from '@/pages/Artists/artist-detail.model'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { formatPlayCount } from '@/lib/utils'
 
 interface ArtistMediaTabsProps {
@@ -83,7 +84,11 @@ const ArtistMediaTabs = ({
                   >
                     <div className='relative overflow-hidden rounded-[20px]'>
                       <img
-                        src={album.picUrl}
+                        src={resizeImageUrl(
+                          album.picUrl,
+                          imageSizes.cardCover.width,
+                          imageSizes.cardCover.height
+                        )}
                         alt={album.name}
                         className='aspect-square size-full object-cover'
                         loading='lazy'
@@ -131,7 +136,11 @@ const ArtistMediaTabs = ({
                   >
                     <div className='relative min-w-0 flex-1 overflow-hidden rounded-[20px]'>
                       <img
-                        src={mv.coverUrl}
+                        src={resizeImageUrl(
+                          mv.coverUrl,
+                          imageSizes.mvCard.width,
+                          imageSizes.mvCard.height
+                        )}
                         alt={mv.name}
                         className='aspect-[16/9] size-full object-cover'
                         loading='lazy'

@@ -1,4 +1,5 @@
 ﻿import { Link } from 'react-router-dom'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import type { ArtistListItem } from '@/pages/Artists/artists.model'
 
 interface ArtistCardProps {
@@ -15,7 +16,11 @@ const ArtistCard = ({ artist }: ArtistCardProps) => {
       >
         <div className='border-border/50 bg-card/70 relative aspect-square overflow-hidden rounded-[15px] border shadow-[0_20px_48px_rgba(15,23,42,0.08)] transition-transform duration-500 group-hover:-translate-y-1'>
           <img
-            src={artist.picUrl}
+            src={resizeImageUrl(
+              artist.picUrl,
+              imageSizes.cardCover.width,
+              imageSizes.cardCover.height
+            )}
             alt={artist.name}
             loading='lazy'
             decoding='async'

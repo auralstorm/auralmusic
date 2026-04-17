@@ -1,5 +1,6 @@
 import { Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 export interface OnlinePlaylistFeatureCardData {
   coverImgUrl: string
@@ -24,7 +25,13 @@ export const OnlinePlaylistFeatureCard = ({
 }: OnlinePlaylistFeatureCardProps) => (
   <div
     className='relative min-h-[240px] overflow-hidden rounded-[30px] bg-cover bg-center'
-    style={{ backgroundImage: `url("${card?.coverImgUrl}")` }}
+    style={{
+      backgroundImage: `url("${resizeImageUrl(
+        card?.coverImgUrl,
+        imageSizes.backgroundCover.width,
+        imageSizes.backgroundCover.height
+      )}")`,
+    }}
   >
     <div className='absolute inset-0 bg-[linear-gradient(135deg,rgba(7,10,18,0.12),rgba(7,10,18,0.28)_38%,rgba(7,10,18,0.76)_100%)]' />
     <div className='absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(255,255,255,0.16),transparent_26%),radial-gradient(circle_at_78%_18%,rgba(255,111,145,0.18),transparent_28%),radial-gradient(circle_at_62%_76%,rgba(107,114,255,0.2),transparent_34%)]' />

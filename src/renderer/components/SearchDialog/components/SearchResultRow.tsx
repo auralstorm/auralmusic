@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 import type { SearchResultRowItem } from '../search-dialog.model'
 
@@ -22,7 +23,11 @@ const SearchResultRow = ({ item, onSelect }: SearchResultRowProps) => {
       <div className='bg-muted flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl'>
         {item.coverUrl ? (
           <img
-            src={item.coverUrl}
+            src={resizeImageUrl(
+              item.coverUrl,
+              imageSizes.listCover.width,
+              imageSizes.listCover.height
+            )}
             alt={item.name}
             className='h-full w-full object-cover'
           />

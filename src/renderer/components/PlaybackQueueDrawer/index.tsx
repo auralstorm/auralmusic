@@ -8,6 +8,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { getPlaybackQueueItemState } from '../../../shared/playback.ts'
@@ -64,7 +65,11 @@ const PlaybackQueueDrawer = ({
                   )}
                 >
                   <AvatarCover
-                    url={track.coverUrl}
+                    url={resizeImageUrl(
+                      track.coverUrl,
+                      imageSizes.listCover.width,
+                      imageSizes.listCover.height
+                    )}
                     className='size-12 shrink-0'
                     wrapperClass='shrink-0'
                     rounded='14px'

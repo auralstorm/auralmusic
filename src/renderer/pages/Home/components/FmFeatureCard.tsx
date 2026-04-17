@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Pause, Play, SkipForward, ThumbsDown } from 'lucide-react'
 
 interface FmFeatureCardProps {
@@ -29,6 +30,11 @@ const FmFeatureCard = ({
   trashCurrent,
 }: FmFeatureCardProps) => {
   const isActionDisabled = Boolean(isLoading || actionLoading || disabled)
+  const sizedCoverUrl = resizeImageUrl(
+    coverUrl,
+    imageSizes.cardCover.width,
+    imageSizes.cardCover.height
+  )
 
   return (
     <section
@@ -44,7 +50,7 @@ const FmFeatureCard = ({
       {coverUrl ? (
         <div
           className='pointer-events-none absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-3xl'
-          style={{ backgroundImage: `url("${coverUrl}")` }}
+          style={{ backgroundImage: `url("${sizedCoverUrl}")` }}
         />
       ) : null}
       <div
@@ -64,7 +70,7 @@ const FmFeatureCard = ({
           ) : null}
           {!isLoading && coverUrl ? (
             <img
-              src={coverUrl}
+              src={sizedCoverUrl}
               alt={title ?? 'Personal FM cover'}
               className='h-full w-full object-cover'
             />

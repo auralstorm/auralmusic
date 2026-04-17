@@ -1,5 +1,6 @@
 import AvatarCover from '@/components/AvatarCover'
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import type { CollectPlaylistTarget } from '@/model/collect-to-playlist.model'
 import { Heart, LoaderCircle, Music4, Plus } from 'lucide-react'
@@ -48,7 +49,11 @@ const CollectToPlaylistTargetList = ({
           >
             {playlist.coverImgUrl ? (
               <AvatarCover
-                url={playlist.coverImgUrl}
+                url={resizeImageUrl(
+                  playlist.coverImgUrl,
+                  imageSizes.listCover.width,
+                  imageSizes.listCover.height
+                )}
                 className='size-12 shrink-0'
                 wrapperClass='shrink-0'
                 rounded='16px'

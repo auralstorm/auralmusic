@@ -13,6 +13,7 @@ import {
   PlaySquareIcon,
 } from 'lucide-react'
 
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import type { CollectPlaylistSongContext } from '@/model/collect-to-playlist.model'
 
@@ -71,7 +72,11 @@ const MusicContextMenu = ({
         <ContextMenuItem>
           <div className='flex w-full items-center justify-between'>
             <img
-              src={coverUrl}
+              src={resizeImageUrl(
+                coverUrl,
+                imageSizes.listCover.width,
+                imageSizes.listCover.height
+              )}
               className='mr-4 h-10 w-10 shrink-0 rounded-[12px] shadow-md'
             />
             <div className='min-w-0 flex-1'>

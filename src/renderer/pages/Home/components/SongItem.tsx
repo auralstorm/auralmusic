@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Play } from 'lucide-react'
 import type { NewSong } from '../home.type'
 
@@ -12,7 +13,13 @@ const SongItem = ({ song, onPlay }: SongItemProps) => {
     <div className='group hover:bg-primary/5 mb-5 flex cursor-pointer items-center rounded-md px-2 py-2 transition-all duration-500'>
       <div
         className='h-15 w-15 shrink-0 rounded-md bg-cover bg-center'
-        style={{ backgroundImage: `url(${song.picUrl})` }}
+        style={{
+          backgroundImage: `url(${resizeImageUrl(
+            song.picUrl,
+            imageSizes.listCover.width,
+            imageSizes.listCover.height
+          )})`,
+        }}
       ></div>
       <div className='ml-5 min-w-0 flex-1'>
         <div className='truncate'>{song.name}</div>

@@ -1,5 +1,6 @@
 ﻿import type { ArtistLatestReleaseData } from '@/pages/Artists/artist-detail.model'
 import { formatArtistPublishDate } from '@/pages/Artists/artist-detail.model'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 interface ArtistLatestReleaseProps {
   latestRelease: ArtistLatestReleaseData
@@ -32,7 +33,11 @@ const ArtistLatestRelease = ({
           {latestRelease.album ? (
             <>
               <img
-                src={latestRelease.album.picUrl}
+                src={resizeImageUrl(
+                  latestRelease.album.picUrl,
+                  imageSizes.cardCover.width,
+                  imageSizes.cardCover.height
+                )}
                 alt={latestRelease.album.name}
                 className='size-32 rounded-[26px] object-cover'
                 loading='lazy'
@@ -74,7 +79,11 @@ const ArtistLatestRelease = ({
           {latestRelease.mv ? (
             <>
               <img
-                src={latestRelease.mv.coverUrl}
+                src={resizeImageUrl(
+                  latestRelease.mv.coverUrl,
+                  imageSizes.mvCard.width,
+                  imageSizes.mvCard.height
+                )}
                 alt={latestRelease.mv.name}
                 className='aspect-[16/9] w-52 rounded-[26px] object-cover'
                 loading='lazy'

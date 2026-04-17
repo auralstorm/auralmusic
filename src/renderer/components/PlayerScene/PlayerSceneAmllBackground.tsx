@@ -1,4 +1,5 @@
 import { BackgroundRender } from '@applemusic-like-lyrics/react'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 type PlayerSceneAmllBackgroundProps = {
   coverUrl: string
@@ -26,7 +27,11 @@ const PlayerSceneAmllBackground = ({
     >
       <BackgroundRender
         flowSpeed={4}
-        album={coverUrl}
+        album={resizeImageUrl(
+          coverUrl,
+          imageSizes.backgroundCover.width,
+          imageSizes.backgroundCover.height
+        )}
         playing={playing}
         hasLyric={hasLyrics}
         staticMode={staticMode}

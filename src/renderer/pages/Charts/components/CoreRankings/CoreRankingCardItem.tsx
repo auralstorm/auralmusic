@@ -1,4 +1,5 @@
 import { ArrowUpRight, Play } from 'lucide-react'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { OnlineChartHeroCardProps } from './CoreRankingCardItem.type'
 
@@ -25,19 +26,29 @@ const HERO_CARD_STYLES = [
   },
 ] as const
 
-export const CoreRankingCard = ({ chart, index, onOpen }: OnlineChartHeroCardProps) => {
+export const CoreRankingCard = ({
+  chart,
+  index,
+  onOpen,
+}: OnlineChartHeroCardProps) => {
   const style = HERO_CARD_STYLES[index % HERO_CARD_STYLES.length]
 
   return (
     <div
-      className='group relative flex min-h-[310px] flex-col justify-between overflow-hidden rounded-[30px] border border-border/70 bg-card text-left shadow-[0_28px_70px_rgba(15,23,42,0.18)] transition-transform duration-300 hover:-translate-y-1'
+      className='group border-border/70 bg-card relative flex min-h-[310px] flex-col justify-between overflow-hidden rounded-[30px] border text-left shadow-[0_28px_70px_rgba(15,23,42,0.18)] transition-transform duration-300 hover:-translate-y-1'
       onClick={() => onOpen(chart.id)}
     >
       <div className={cn('absolute inset-0 bg-gradient-to-br', style.shell)} />
       {chart.coverImgUrl ? (
         <div
           className='absolute inset-0 bg-cover bg-center opacity-28 mix-blend-screen transition-transform duration-500 group-hover:scale-105'
-          style={{ backgroundImage: `url("${chart.coverImgUrl}")` }}
+          style={{
+            backgroundImage: `url("${resizeImageUrl(
+              chart.coverImgUrl,
+              imageSizes.backgroundCover.width,
+              imageSizes.backgroundCover.height
+            )}")`,
+          }}
         />
       ) : null}
       <div className={cn('absolute inset-0', style.tint)} />
@@ -47,10 +58,10 @@ export const CoreRankingCard = ({ chart, index, onOpen }: OnlineChartHeroCardPro
         <div className='space-y-5'>
           <div className='flex items-start justify-between gap-4'>
             <div className='space-y-3'>
-              <p className='text-[10px] font-semibold uppercase tracking-[0.34em] text-white/58'>
+              <p className='text-[10px] font-semibold tracking-[0.34em] text-white/58 uppercase'>
                 {chart.badge}
               </p>
-              <h3 className='text-[2.15rem] font-black leading-[0.92] tracking-[-0.06em] text-white'>
+              <h3 className='text-[2.15rem] leading-[0.92] font-black tracking-[-0.06em] text-white'>
                 {chart.name}
               </h3>
             </div>
@@ -61,20 +72,23 @@ export const CoreRankingCard = ({ chart, index, onOpen }: OnlineChartHeroCardPro
         <div className='space-y-4 pt-6'>
           <div className='space-y-3'>
             {chart?.preview?.map((track, trackIndex) => (
-              <div key={track.id} className='grid grid-cols-[30px_1fr] items-start gap-3'>
+              <div
+                key={track.id}
+                className='grid grid-cols-[30px_1fr] items-start gap-3'
+              >
                 <span
                   className={cn(
-                    'pt-0.5 text-[1.55rem] font-black italic leading-none tracking-[-0.08em]',
+                    'pt-0.5 text-[1.55rem] leading-none font-black tracking-[-0.08em] italic',
                     style.accent
                   )}
                 >
                   {trackIndex + 1}
                 </span>
                 <div className='min-w-0'>
-                  <p className='truncate text-[1.02rem] font-semibold leading-tight text-white'>
+                  <p className='truncate text-[1.02rem] leading-tight font-semibold text-white'>
                     {track.name}
                   </p>
-                  <p className='truncate pt-0.5 text-[10px] font-medium uppercase tracking-[0.22em] text-white/56'>
+                  <p className='truncate pt-0.5 text-[10px] font-medium tracking-[0.22em] text-white/56 uppercase'>
                     {/* {track.artist} */}
                   </p>
                 </div>
@@ -85,7 +99,7 @@ export const CoreRankingCard = ({ chart, index, onOpen }: OnlineChartHeroCardPro
             <div className='inline-flex size-12 items-center justify-center rounded-full border border-white/14 bg-white/8 text-white backdrop-blur-md'>
               <Play className='ml-0.5 size-4 fill-current' />
             </div>
-            <span className='text-sm text-white/60 group-hover:text-white/100 transition-colors duration-300'>
+            <span className='text-sm text-white/60 transition-colors duration-300 group-hover:text-white/100'>
               {chart.updateFrequency}
             </span>
           </div>

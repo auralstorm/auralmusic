@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Play } from 'lucide-react'
 
 interface AlbumCardProps {
@@ -20,7 +21,13 @@ const AlbumCard = ({
     <div className='group w-full'>
       <div
         className='flex aspect-square cursor-pointer items-center justify-center rounded-2xl bg-cover bg-center shadow-xl transition-transform duration-500 hover:translate-[-5px] hover:shadow-2xl'
-        style={{ backgroundImage: `url("${coverUrl}")` }}
+        style={{
+          backgroundImage: `url("${resizeImageUrl(
+            coverUrl,
+            imageSizes.cardCover.width,
+            imageSizes.cardCover.height
+          )}")`,
+        }}
         onClick={() => onToAlbumDetail(id)}
       >
         <Button

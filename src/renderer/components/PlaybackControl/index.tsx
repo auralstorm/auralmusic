@@ -18,6 +18,7 @@ import { toggleSongLike } from '@/api/list'
 import AvatarCover from '@/components/AvatarCover'
 import PlaybackQueueDrawer from '@/components/PlaybackQueueDrawer'
 import { Slider } from '@/components/ui/slider'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import { useConfigStore } from '@/stores/config-store'
@@ -257,7 +258,11 @@ const PlaybackControl = () => {
               className='group flex min-w-0 items-center gap-3 rounded-2xl pr-2 text-left transition-colors outline-none'
             >
               <AvatarCover
-                url={currentTrack.coverUrl}
+                url={resizeImageUrl(
+                  currentTrack.coverUrl,
+                  imageSizes.listCover.width,
+                  imageSizes.listCover.height
+                )}
                 className='size-11 shrink-0'
                 wrapperClass='shrink-0'
                 rounded='12px'

@@ -1,4 +1,5 @@
 import { PlayIcon } from 'lucide-react'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import AvatarCover from '../AvatarCover'
 
 interface ArtistCoverProps {
@@ -21,7 +22,11 @@ const ArtistCover = ({
     <div>
       <div className='group relative'>
         <AvatarCover
-          url={artistCoverUrl}
+          url={resizeImageUrl(
+            artistCoverUrl,
+            imageSizes.cardCover.width,
+            imageSizes.cardCover.height
+          )}
           rounded={rounded}
           onClickCover={onClickCover}
         />

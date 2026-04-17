@@ -5,6 +5,7 @@ import 'swiper/swiper.css'
 import type { ArtistSummary } from '../home.type'
 import { TopArtistsSkeleton } from './HomeSkeletons'
 import { useNavigate } from 'react-router-dom'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 interface ArtistCardProps {
   artist: ArtistSummary
@@ -20,7 +21,11 @@ const ArtistCard = memo(({ artist, onToArtistDetail }: ArtistCardProps) => (
   <div className='flex flex-col items-center text-center'>
     <div className='border-border/50 size-[150px] overflow-hidden rounded-full border'>
       <img
-        src={artist.picUrl}
+        src={resizeImageUrl(
+          artist.picUrl,
+          imageSizes.cardCover.width,
+          imageSizes.cardCover.height
+        )}
         alt={artist.name}
         loading='lazy'
         decoding='async'

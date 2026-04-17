@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Play } from 'lucide-react'
 import { Plyr, type PlyrSource } from 'plyr-react'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import 'plyr-react/plyr.css'
 import {
   type MvDetailHeroData,
@@ -48,7 +49,11 @@ const MvDetailPlayer = ({
 
     return {
       type: 'video',
-      poster: hero.coverUrl,
+      poster: resizeImageUrl(
+        hero.coverUrl,
+        imageSizes.mvCard.width,
+        imageSizes.mvCard.height
+      ),
       sources: [
         {
           src: playback.url,
@@ -64,7 +69,11 @@ const MvDetailPlayer = ({
         <div className='relative aspect-video bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950'>
           {hero.coverUrl ? (
             <img
-              src={hero.coverUrl}
+              src={resizeImageUrl(
+                hero.coverUrl,
+                imageSizes.mvCard.width,
+                imageSizes.mvCard.height
+              )}
               alt={hero.name}
               className='absolute inset-0 size-full object-cover opacity-32'
               loading='eager'

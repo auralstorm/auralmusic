@@ -1,4 +1,5 @@
 import { Play } from 'lucide-react'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Button } from '../ui/button'
 
 interface CoverCardData {
@@ -10,19 +11,32 @@ interface CoverCardData {
 
 interface CoverCardProps {
   data?: CoverCardData
+  isResize?: boolean
   onOpen?: (id: number | string) => void
   onPlay?: (id: number | string) => void
 }
 
-const CoverCard = ({ data = {}, onOpen, onPlay }: CoverCardProps) => {
+const CoverCard = ({
+  data = {},
+  onOpen,
+  onPlay,
+  isResize = true,
+}: CoverCardProps) => {
   const { coverImgUrl, count, name, id } = data
+  const coverUrl = isResize
+    ? resizeImageUrl(
+        coverImgUrl,
+        imageSizes.cardCover.width,
+        imageSizes.cardCover.height
+      )
+    : coverImgUrl
 
   return (
     <div>
       <div
         className='group flex aspect-square cursor-pointer items-center justify-center rounded-[15px] bg-cover bg-center bg-no-repeat shadow-md transition-shadow duration-300 group-hover:shadow-md group-hover:shadow-black/20'
         style={{
-          backgroundImage: `url(${coverImgUrl})`,
+          backgroundImage: `url(${coverUrl})`,
         }}
         onClick={() => {
           if (id !== undefined) {

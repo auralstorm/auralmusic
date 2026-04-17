@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Play } from 'lucide-react'
 import { HomeFeatureCardSkeleton } from './HomeSkeletons'
 
@@ -27,7 +28,11 @@ const DailyFeatureCard = ({
       style={
         coverUrl
           ? {
-              backgroundImage: `url("${coverUrl}")`,
+              backgroundImage: `url("${resizeImageUrl(
+                coverUrl,
+                imageSizes.backgroundCover.width,
+                imageSizes.backgroundCover.height
+              )}")`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }

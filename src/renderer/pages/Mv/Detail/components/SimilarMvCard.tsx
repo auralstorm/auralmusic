@@ -1,4 +1,5 @@
 import { Play } from 'lucide-react'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { formatMvDuration, type SimilarMvItem } from '../../mv-detail.model'
 
 interface SimilarMvCardProps {
@@ -20,7 +21,11 @@ const SimilarMvCard = ({ item, onOpen }: SimilarMvCardProps) => {
     >
       <div className='relative overflow-hidden rounded-[22px]'>
         <img
-          src={item.coverUrl}
+          src={resizeImageUrl(
+            item.coverUrl,
+            imageSizes.mvCard.width,
+            imageSizes.mvCard.height
+          )}
           alt={item.name}
           className='aspect-[16/9] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]'
           loading='lazy'

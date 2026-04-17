@@ -8,6 +8,7 @@ import {
   TooltipProvider,
 } from '@/components/ui/tooltip'
 import AvatarCover from '@/components/AvatarCover'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 interface ArtistHeroProps {
   profile: ArtistDetailProfile
@@ -33,7 +34,11 @@ const ArtistHero = ({
         shadowClassName='w-62.5'
         rounded='full'
         isAutoHovered
-        url={profile.coverUrl}
+        url={resizeImageUrl(
+          profile.coverUrl,
+          imageSizes.detailCover.width,
+          imageSizes.detailCover.height
+        )}
       />
 
       <div className='mt-2 flex min-w-0 flex-col justify-center gap-5 py-4'>

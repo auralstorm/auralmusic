@@ -2,6 +2,7 @@ import {
   formatTrackDuration,
   type PlaylistTrackItem,
 } from '../playlist-detail.model'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 interface PlaylistTrackTableProps {
   tracks: PlaylistTrackItem[]
@@ -37,7 +38,11 @@ const PlaylistTrackTable = ({ tracks }: PlaylistTrackTableProps) => {
               <div className='border-border/50 bg-card relative size-12 overflow-hidden rounded-[14px] border'>
                 {track.coverUrl ? (
                   <img
-                    src={track.coverUrl}
+                    src={resizeImageUrl(
+                      track.coverUrl,
+                      imageSizes.listCover.width,
+                      imageSizes.listCover.height
+                    )}
                     alt={track.name}
                     className='size-full object-cover'
                     loading='lazy'

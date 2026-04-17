@@ -3,6 +3,7 @@ import { Heart, Play } from 'lucide-react'
 
 import AvatarCover from '@/components/AvatarCover'
 import { Button } from '@/components/ui/button'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 
 export type MediaDetailHeroType = 'playlist' | 'album'
@@ -60,7 +61,11 @@ const MediaDetailHero = ({
       <div className='relative'>
         {coverUrl ? (
           <AvatarCover
-            url={coverUrl}
+            url={resizeImageUrl(
+              coverUrl,
+              imageSizes.detailCover.width,
+              imageSizes.detailCover.height
+            )}
             isAutoHovered
             wrapperClass='aspect-square w-full max-w-[320px]'
             shadowClassName='top-3 left-3 scale-95'

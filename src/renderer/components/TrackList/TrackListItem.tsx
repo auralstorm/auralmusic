@@ -2,6 +2,7 @@ import type { MouseEvent } from 'react'
 import { Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { toggleSongLike } from '@/api/list'
+import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { formatDailySongDuration } from '@/pages/DailySongs/daily-songs.model'
 import { useAuthStore } from '@/stores/auth-store'
@@ -207,7 +208,11 @@ const TrackListItem = ({
           {(item.coverUrl || coverUrl) && (
             <AvatarCover
               className='w-12.5 shrink-0'
-              url={item.coverUrl || coverUrl || ''}
+              url={resizeImageUrl(
+                item.coverUrl || coverUrl || '',
+                imageSizes.listCover.width,
+                imageSizes.listCover.height
+              )}
             />
           )}
 
