@@ -8,6 +8,7 @@ import {
   applyPlaybackSpeedToAudio,
   normalizePlaybackSpeedValue,
 } from '@/pages/Settings/components/playback-speed.model'
+import { prepareAudioForPendingTrack } from './playback-engine.model'
 
 const PLAYBACK_UNAVAILABLE_MESSAGE = '暂时无法播放'
 
@@ -262,6 +263,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
       if (usePlaybackStore.getState().shouldAutoPlayOnLoad) {
         usePlaybackStore.getState().markPlaybackLoading()
       }
+      prepareAudioForPendingTrack(audio)
 
       try {
         let result = null
