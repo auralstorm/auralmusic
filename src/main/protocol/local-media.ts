@@ -28,11 +28,17 @@ type ResolveLocalMediaHeadersOptions = {
 
 const LOCAL_MEDIA_MIME_TYPES: Record<string, string> = {
   '.aac': 'audio/aac',
+  '.avif': 'image/avif',
   '.flac': 'audio/flac',
+  '.gif': 'image/gif',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
   '.m4a': 'audio/mp4',
   '.mp3': 'audio/mpeg',
   '.ogg': 'audio/ogg',
+  '.png': 'image/png',
   '.wav': 'audio/wav',
+  '.webp': 'image/webp',
 }
 
 function normalizeLocalMediaExtension(fileExtension: string) {

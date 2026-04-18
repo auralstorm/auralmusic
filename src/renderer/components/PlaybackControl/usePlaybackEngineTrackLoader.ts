@@ -1,0 +1,262 @@
+import { useEffect } from 'react'
+import { toast } from 'sonner'
+import { playbackRuntime } from '@/audio/playback-runtime/playback-runtime'
+import { resolvePlaybackSource } from '@/services/music-source/playback-source-resolver.ts'
+import { usePlaybackStore } from '@/stores/playback-store'
+import {
+  OUTPUT_DEVICE_UNAVAILABLE_MESSAGE,
+  PLAYBACK_UNAVAILABLE_MESSAGE,
+  STALE_PLAYBACK_REQUEST,
+  applyPersistedProgress,
+  isPlaybackRequestStale,
+  throwIfPlaybackRequestStale,
+} from './model'
+import type { PlaybackEngineTrackLoaderOptions } from './types'
+
+function getPlaybackRequestSnapshot() {
+  const latestState = usePlaybackStore.getState()
+
+  return {
+    requestId: latestState.requestId,
+    currentTrackId: latestState.currentTrack?.id ?? null,
+  }
+}
+
+export function usePlaybackEngineTrackLoader({
+  volumeRef,
+  configRef,
+  qualityRef,
+  equalizerRef,
+  currentPlaybackSourceRef,
+  playbackSpeedRef,
+  audioOutputDeviceIdRef,
+  currentTrack,
+  requestId,
+}: PlaybackEngineTrackLoaderOptions) {
+  useEffect(() => {
+    if (!currentTrack || requestId <= 0) {
+      return
+    }
+
+    let cancelled = false
+    const expectedRequestId = requestId
+    const expectedTrackId = currentTrack.id
+
+    const loadAndPlay = async () => {
+      if (usePlaybackStore.getState().shouldAutoPlayOnLoad) {
+        usePlaybackStore.getState().markPlaybackLoading()
+      }
+      currentPlaybackSourceRef.current = null
+      playbackRuntime.stop()
+
+      try {
+        let result = null
+        const localSourceUrl = currentTrack.sourceUrl?.trim()
+
+        if (localSourceUrl) {
+          result = {
+            id: currentTrack.id,
+            url: localSourceUrl,
+            time: 0,
+            br: 0,
+          }
+        }
+
+        if (!result) {
+          result = await resolvePlaybackSource({
+            track: currentTrack,
+            config: {
+              ...configRef.current,
+              quality: qualityRef.current,
+            },
+          })
+
+          throwIfPlaybackRequestStale(
+            expectedRequestId,
+            expectedTrackId,
+            cancelled,
+            getPlaybackRequestSnapshot()
+          )
+        }
+
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled,
+          getPlaybackRequestSnapshot()
+        )
+        const latestState = usePlaybackStore.getState()
+
+        if (!result?.url) {
+          latestState.markPlaybackError(PLAYBACK_UNAVAILABLE_MESSAGE)
+          toast.error(PLAYBACK_UNAVAILABLE_MESSAGE)
+          return
+        }
+
+        let resolvedAudioUrl = result.url
+        let resolvedAudioCacheKey: string | null = null
+        if (!localSourceUrl) {
+          try {
+            const cacheKey = `audio:${currentTrack.id}:${qualityRef.current}:${result.url}`
+            resolvedAudioCacheKey = cacheKey
+            const cachedResult = await window.electronCache.resolveAudioSource(
+              cacheKey,
+              result.url,
+              {
+                force:
+                  equalizerRef.current.enabled ||
+                  playbackRuntime.requiresEqualizerCompatibleSource(),
+              }
+            )
+            throwIfPlaybackRequestStale(
+              expectedRequestId,
+              expectedTrackId,
+              cancelled,
+              getPlaybackRequestSnapshot()
+            )
+            resolvedAudioUrl = cachedResult.url || result.url
+          } catch (error) {
+            if (error === STALE_PLAYBACK_REQUEST) {
+              throw error
+            }
+            console.error('resolve cached audio source failed', error)
+          }
+        }
+
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled,
+          getPlaybackRequestSnapshot()
+        )
+        await playbackRuntime.loadSource(resolvedAudioUrl)
+        currentPlaybackSourceRef.current = {
+          trackId: currentTrack.id,
+          sourceUrl: result.url,
+          loadedUrl: resolvedAudioUrl,
+          cacheKey: resolvedAudioCacheKey,
+        }
+        const audio = playbackRuntime.getAudioElement()
+        playbackRuntime.setVolume(volumeRef.current / 100)
+        playbackRuntime.setPlaybackRate(playbackSpeedRef.current)
+        latestState.setDuration(result.time || currentTrack.duration)
+
+        const restoreProgress = latestState.pendingRestoreProgress
+        if (restoreProgress > 0) {
+          try {
+            await applyPersistedProgress(audio, restoreProgress)
+            throwIfPlaybackRequestStale(
+              expectedRequestId,
+              expectedTrackId,
+              cancelled,
+              getPlaybackRequestSnapshot()
+            )
+            usePlaybackStore.getState().setProgress(restoreProgress)
+          } catch (error) {
+            if (error === STALE_PLAYBACK_REQUEST) {
+              throw error
+            }
+            console.error('restore playback progress failed', error)
+            usePlaybackStore.getState().setProgress(0)
+          } finally {
+            if (
+              !isPlaybackRequestStale(
+                expectedRequestId,
+                expectedTrackId,
+                cancelled,
+                getPlaybackRequestSnapshot()
+              )
+            ) {
+              usePlaybackStore.getState().clearPendingRestoreProgress()
+            }
+          }
+        } else {
+          latestState.setProgress(0)
+        }
+
+        try {
+          const outputApplied = await playbackRuntime.setOutputDevice(
+            audioOutputDeviceIdRef.current
+          )
+          throwIfPlaybackRequestStale(
+            expectedRequestId,
+            expectedTrackId,
+            cancelled,
+            getPlaybackRequestSnapshot()
+          )
+          if (!outputApplied) {
+            toast.error(OUTPUT_DEVICE_UNAVAILABLE_MESSAGE)
+          }
+        } catch (error) {
+          if (error === STALE_PLAYBACK_REQUEST) {
+            throw error
+          }
+          console.error('apply audio output device failed', error)
+          toast.error(OUTPUT_DEVICE_UNAVAILABLE_MESSAGE)
+        }
+
+        const currentPlaybackState = usePlaybackStore.getState()
+
+        if (!currentPlaybackState.shouldAutoPlayOnLoad) {
+          currentPlaybackState.markPlaybackPaused()
+          playbackRuntime.pause()
+          return
+        }
+
+        if (currentPlaybackState.status === 'paused') {
+          playbackRuntime.pause()
+          return
+        }
+
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled,
+          getPlaybackRequestSnapshot()
+        )
+        await playbackRuntime.play()
+        throwIfPlaybackRequestStale(
+          expectedRequestId,
+          expectedTrackId,
+          cancelled,
+          getPlaybackRequestSnapshot()
+        )
+        usePlaybackStore.getState().markPlaybackPlaying()
+      } catch (error) {
+        if (
+          error === STALE_PLAYBACK_REQUEST ||
+          isPlaybackRequestStale(
+            expectedRequestId,
+            expectedTrackId,
+            cancelled,
+            getPlaybackRequestSnapshot()
+          )
+        ) {
+          return
+        }
+
+        console.error('load song url failed', error)
+        usePlaybackStore
+          .getState()
+          .markPlaybackError(PLAYBACK_UNAVAILABLE_MESSAGE)
+        toast.error(PLAYBACK_UNAVAILABLE_MESSAGE)
+      }
+    }
+
+    void loadAndPlay()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    audioOutputDeviceIdRef,
+    configRef,
+    currentPlaybackSourceRef,
+    currentTrack,
+    equalizerRef,
+    playbackSpeedRef,
+    qualityRef,
+    requestId,
+    volumeRef,
+  ])
+}

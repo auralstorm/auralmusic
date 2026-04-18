@@ -92,6 +92,13 @@ test('resolveLocalMediaResponseHeaders returns range-friendly headers for full a
   )
 })
 
+test('resolveLocalMediaResponseHeaders returns image content types for cached images', () => {
+  assert.equal(inferLocalMediaContentType('.jpg'), 'image/jpeg')
+  assert.equal(inferLocalMediaContentType('.png'), 'image/png')
+  assert.equal(inferLocalMediaContentType('.webp'), 'image/webp')
+  assert.equal(inferLocalMediaContentType('.avif'), 'image/avif')
+})
+
 test('inferLocalMediaContentType falls back to file signatures when the path has no extension', () => {
   assert.equal(
     inferLocalMediaContentType(

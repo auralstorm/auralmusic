@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { createLocalMediaUrl } from '../../shared/local-media.ts'
 import type {
   CacheEntryRecord,
@@ -316,7 +315,7 @@ export class CacheService {
         cachedEntry.lastAccessed = this.now()
         await this.saveIndex(layout, state)
 
-        return { url: pathToFileURL(absolutePath).href, fromCache: true }
+        return { url: createLocalMediaUrl(absolutePath), fromCache: true }
       }
 
       state.entries.delete(id)

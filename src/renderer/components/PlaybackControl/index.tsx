@@ -11,47 +11,19 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
 
-import { toggleSongLike } from '@/api/list'
 import AvatarCover from '@/components/AvatarCover'
 import PlaybackQueueDrawer from '@/components/PlaybackQueueDrawer'
 import { Slider } from '@/components/ui/slider'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
-import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
-import { useUserStore } from '@/stores/user'
-import {
-  getNextPlaybackMode,
-  normalizePlaybackMode,
-  normalizePlaybackVolume,
-  type PlaybackMode,
-} from '../../../shared/playback.ts'
-import type { ControlButtonProps, PlaybackControlTrack } from './types'
-
-const DEFAULT_TRACK: PlaybackControlTrack = {
-  name: '暂无播放歌曲',
-  artistName: 'AuralMusic',
-  coverUrl:
-    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="%2393c5fd"/><stop offset="1" stop-color="%23f9a8d4"/></linearGradient></defs><rect width="128" height="128" rx="24" fill="url(%23g)"/><path d="M78 31v47.5a16 16 0 1 1-8-13.85V42.2l-30 6.24V84.5a16 16 0 1 1-8-13.85V42z" fill="white" fill-opacity=".88"/></svg>',
-}
-
-const PLAYBACK_MODE_LABELS: Record<PlaybackMode, string> = {
-  'repeat-all': '循环播放',
-  shuffle: '随机播放',
-  'repeat-one': '单曲循环',
-}
-
-function clampPercent(value: number) {
-  if (!Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.min(100, Math.max(0, value))
-}
+import { createPlaybackControlTrack } from './model'
+import type { ControlButtonProps } from './types'
+import { useCurrentTrackLike } from './useCurrentTrackLike'
+import { usePlaybackControlPreferences } from './usePlaybackControlPreferences'
+import { usePlaybackControlProgress } from './usePlaybackControlProgress'
 
 const ControlButton = ({
   label,
@@ -83,150 +55,45 @@ const PlaybackControl = () => {
   const status = usePlaybackStore(state => state.status)
   const progress = usePlaybackStore(state => state.progress)
   const duration = usePlaybackStore(state => state.duration)
-  const volume = usePlaybackStore(state => state.volume)
-  const playbackMode = usePlaybackStore(state => state.playbackMode)
   const togglePlay = usePlaybackStore(state => state.togglePlay)
   const playPrevious = usePlaybackStore(state => state.playPrevious)
   const playNext = usePlaybackStore(state => state.playNext)
-  const setPlaybackMode = usePlaybackStore(state => state.setPlaybackMode)
-  const setVolume = usePlaybackStore(state => state.setVolume)
-  const toggleMute = usePlaybackStore(state => state.toggleMute)
   const seekTo = usePlaybackStore(state => state.seekTo)
   const openPlayerScene = usePlaybackStore(state => state.openPlayerScene)
-  const isConfigLoading = useConfigStore(state => state.isLoading)
-  const persistedVolume = useConfigStore(state => state.config.playbackVolume)
-  const persistedPlaybackMode = useConfigStore(
-    state => state.config.playbackMode
-  )
-  const setConfig = useConfigStore(state => state.setConfig)
-  const userId = useAuthStore(state => state.user?.userId)
-  const hasHydrated = useAuthStore(state => state.hasHydrated)
-  const openLoginDialog = useAuthStore(state => state.openLoginDialog)
-  const likedSongIds = useUserStore(state => state.likedSongIds)
-  const likedSongPendingIds = useUserStore(state => state.likedSongPendingIds)
-  const toggleLikedSong = useUserStore(state => state.toggleLikedSong)
-  const setSongLikePending = useUserStore(state => state.setSongLikePending)
-  const fetchLikedSongs = useUserStore(state => state.fetchLikedSongs)
 
   const hasTrack = Boolean(track)
-  const currentTrack = track
-    ? {
-        name: track.name,
-        artistName: track.artistNames,
-        coverUrl: track.coverUrl,
-      }
-    : DEFAULT_TRACK
+  const currentTrack = createPlaybackControlTrack(track)
   const isPlaying = status === 'playing' || status === 'loading'
-  const isLiked = track ? likedSongIds.has(track.id) : false
-  const isLikePending = track ? likedSongPendingIds.has(track.id) : false
-  const [dragProgress, setDragProgress] = useState<number | null>(null)
   const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false)
-  const maxProgress = Math.max(duration, 1)
-  const currentProgress = Math.min(dragProgress ?? progress, maxProgress)
-  const volumePercent = clampPercent(volume)
-  const isMuted = volumePercent === 0
-  const playbackModeLabel = PLAYBACK_MODE_LABELS[playbackMode]
-
-  useEffect(() => {
-    if (hasTrack && duration > 0) {
-      return
-    }
-
-    setDragProgress(null)
-  }, [duration, hasTrack])
-
-  useEffect(() => {
-    if (isConfigLoading) {
-      return
-    }
-
-    setVolume(normalizePlaybackVolume(persistedVolume))
-    setPlaybackMode(normalizePlaybackMode(persistedPlaybackMode))
-  }, [
-    isConfigLoading,
-    persistedPlaybackMode,
-    persistedVolume,
-    setPlaybackMode,
-    setVolume,
-  ])
-
-  const handleProgressChange = (value: number[]) => {
-    setDragProgress(value[0] ?? 0)
-  }
-
-  const handleProgressCommit = (value: number[]) => {
-    const nextProgress = value[0] ?? 0
-
-    setDragProgress(null)
-    seekTo(nextProgress)
-  }
-
-  const handleVolumeChange = (value: number[]) => {
-    setVolume(normalizePlaybackVolume(value[0]))
-  }
-
-  const handleVolumeCommit = (value: number[]) => {
-    void setConfig('playbackVolume', normalizePlaybackVolume(value[0]))
-  }
-
-  const handleToggleMute = () => {
-    toggleMute()
-    void setConfig(
-      'playbackVolume',
-      normalizePlaybackVolume(usePlaybackStore.getState().volume)
-    )
-  }
-
-  const handleTogglePlaybackMode = () => {
-    const nextMode = getNextPlaybackMode(playbackMode)
-
-    setPlaybackMode(nextMode)
-    void setConfig('playbackMode', nextMode)
-  }
-
-  const handleToggleLike = async () => {
-    if (!track) {
-      return
-    }
-
-    if (!hasHydrated || !userId) {
-      openLoginDialog()
-      return
-    }
-
-    if (isLikePending) {
-      return
-    }
-
-    const nextLiked = !isLiked
-
-    toggleLikedSong(track.id, nextLiked)
-    setSongLikePending(track.id, true)
-
-    try {
-      await toggleSongLike({
-        id: track.id,
-        uid: userId,
-        like: nextLiked,
-      })
-
-      void fetchLikedSongs()
-    } catch (error) {
-      console.error('toggle current song like failed', error)
-      toggleLikedSong(track.id, !nextLiked)
-      toast.error(
-        nextLiked ? '喜欢歌曲失败，请稍后重试' : '取消喜欢失败，请稍后重试'
-      )
-    } finally {
-      setSongLikePending(track.id, false)
-    }
-  }
+  const { isLiked, isLikePending, handleToggleLike } =
+    useCurrentTrackLike(track)
+  const {
+    currentProgress,
+    maxProgress,
+    handleProgressChange,
+    handleProgressCommit,
+  } = usePlaybackControlProgress({
+    duration,
+    hasTrack,
+    progress,
+    seekTo,
+  })
+  const {
+    isMuted,
+    playbackMode,
+    playbackModeLabel,
+    volumePercent,
+    handleToggleMute,
+    handleTogglePlaybackMode,
+    handleVolumeChange,
+    handleVolumeCommit,
+  } = usePlaybackControlPreferences()
 
   return (
     <>
       <footer className='window-no-drag bg-background/50 border-border/60 fixed right-0 bottom-0 left-0 z-50 border-t backdrop-blur-2xl'>
         <Slider
-          aria-label='播放进度'
+          aria-label='\u64ad\u653e\u8fdb\u5ea6'
           min={0}
           max={maxProgress}
           step={1000}
@@ -265,7 +132,11 @@ const PlaybackControl = () => {
               </div>
             </button>
             <ControlButton
-              label={isLiked ? '取消喜欢' : '喜欢歌曲'}
+              label={
+                isLiked
+                  ? '\u53d6\u6d88\u559c\u6b22'
+                  : '\u559c\u6b22\u6b4c\u66f2'
+              }
               disabled={!hasTrack || isLikePending}
               onClick={handleToggleLike}
             >
@@ -280,7 +151,7 @@ const PlaybackControl = () => {
 
           <div className='flex items-center justify-center gap-4'>
             <ControlButton
-              label='上一首'
+              label='\u4e0a\u4e00\u9996'
               disabled={!hasTrack}
               onClick={() => {
                 playPrevious()
@@ -289,7 +160,7 @@ const PlaybackControl = () => {
               <SkipBack className='size-5 fill-current' />
             </ControlButton>
             <ControlButton
-              label={isPlaying ? '暂停' : '播放'}
+              label={isPlaying ? '\u6682\u505c' : '\u64ad\u653e'}
               disabled={!hasTrack}
               onClick={togglePlay}
               className='bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground size-11'
@@ -301,7 +172,7 @@ const PlaybackControl = () => {
               )}
             </ControlButton>
             <ControlButton
-              label='下一首'
+              label='\u4e0b\u4e00\u9996'
               disabled={!hasTrack}
               onClick={() => {
                 playNext()
@@ -313,7 +184,7 @@ const PlaybackControl = () => {
 
           <div className='text-foreground/70 flex items-center justify-end gap-3'>
             <ControlButton
-              label='播放列表'
+              label='\u64ad\u653e\u5217\u8868'
               onClick={() => {
                 setIsQueueDrawerOpen(true)
               }}
@@ -334,7 +205,7 @@ const PlaybackControl = () => {
               )}
             </ControlButton>
             <ControlButton
-              label={isMuted ? '取消静音' : '静音'}
+              label={isMuted ? '\u53d6\u6d88\u9759\u97f3' : '\u9759\u97f3'}
               onClick={handleToggleMute}
               className='size-7'
             >
@@ -345,7 +216,7 @@ const PlaybackControl = () => {
               )}
             </ControlButton>
             <Slider
-              aria-label='音量'
+              aria-label='\u97f3\u91cf'
               min={0}
               max={100}
               step={1}

@@ -1,14 +1,10 @@
 import type { ReactNode } from 'react'
 
-export interface PlaybackEngineRef {
-  getAudioElement: () => HTMLAudioElement | null
-}
-
-export interface CurrentPlaybackSource {
-  trackId: number
-  sourceUrl: string
-  loadedUrl: string
-  cacheKey: string | null
+export interface PlaybackControlProgressOptions {
+  duration: number
+  hasTrack: boolean
+  progress: number
+  seekTo: (positionMs: number) => void
 }
 
 export interface PlaybackControlTrack {

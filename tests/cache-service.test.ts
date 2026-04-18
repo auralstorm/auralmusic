@@ -126,7 +126,7 @@ test('CacheService returns the remote image url immediately and reuses a local f
     })
 
     assert.equal(second.fromCache, true)
-    assert.ok(second.url.startsWith('file:///'))
+    assert.ok(second.url.startsWith('auralmusic-media://'))
   })
 
   assert.equal(fetchCount, 1)
@@ -178,7 +178,7 @@ test('CacheService removes stale image entries and falls back to the remote imag
     })
 
     assert.equal(retried.fromCache, true)
-    assert.ok(retried.url.startsWith('file:///'))
+    assert.ok(retried.url.startsWith('auralmusic-media://'))
   })
 
   await rm(root, { recursive: true, force: true })
