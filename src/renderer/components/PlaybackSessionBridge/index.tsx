@@ -4,6 +4,7 @@ import {
   clearPlaybackSessionSnapshot,
   createPlaybackSessionSnapshot,
   readPlaybackSessionSnapshot,
+  withPlaybackSessionTiming,
   writePlaybackSessionSnapshot,
 } from '@/stores/playback-session-storage'
 import type { PlaybackSessionSnapshot } from '@/types/core'
@@ -27,16 +28,26 @@ const PlaybackSessionBridge = () => {
 
   const hasRestoredRef = useRef(false)
   const latestSnapshotRef = useRef<PlaybackSessionSnapshot | null>(null)
+  const latestProgressRef = useRef(0)
+  const latestDurationRef = useRef(0)
+
+  useEffect(() => {
+    latestProgressRef.current = progress
+  }, [progress])
+
+  useEffect(() => {
+    latestDurationRef.current = duration
+  }, [duration])
 
   useEffect(() => {
     latestSnapshotRef.current = createPlaybackSessionSnapshot({
       queue,
       currentIndex,
-      progress,
-      duration,
+      progress: latestProgressRef.current,
+      duration: latestDurationRef.current,
       playbackMode,
     })
-  }, [currentIndex, duration, playbackMode, progress, queue])
+  }, [currentIndex, playbackMode, queue])
 
   useEffect(() => {
     if (isConfigLoading || hasRestoredRef.current) {
@@ -69,7 +80,13 @@ const PlaybackSessionBridge = () => {
         return
       }
 
-      writePlaybackSessionSnapshot(window.localStorage, snapshot)
+      writePlaybackSessionSnapshot(
+        window.localStorage,
+        withPlaybackSessionTiming(snapshot, {
+          progress: latestProgressRef.current,
+          duration: latestDurationRef.current,
+        })
+      )
     }
 
     if (isConfigLoading) {

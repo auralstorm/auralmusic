@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { userPlaylist } from '@/api/user'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import LibraryLockedState from '@/pages/Library/components/LibraryLockedState'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -14,6 +15,8 @@ import { resolveLikedSongsPlaylist } from './liked-songs.model'
 import type { LikedSongsPlaylistMeta } from './types'
 
 const LikedSongs = () => {
+  useScrollToTopOnRouteEnter()
+
   const location = useLocation()
   const user = useAuthStore(state => state.user)
   const loginStatus = useAuthStore(state => state.loginStatus)

@@ -1,5 +1,5 @@
 import { Maximize2, Minimize2, X } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import {
   Drawer,
@@ -66,8 +66,10 @@ const PlayerScene = () => {
   const electronWindow = getElectronWindowApi()
   const isDarkTheme = useResolvedDarkTheme()
 
-  const hasTrack = Boolean(currentTrack)
-  const isPlaying = status === 'playing' || status === 'loading'
+  const hasTrack = useMemo(() => Boolean(currentTrack), [currentTrack])
+  const isPlaying = useMemo(() => {
+    return status === 'playing' || status === 'loading'
+  }, [status])
 
   useEffect(() => {
     if (!isOpen) {
@@ -151,28 +153,37 @@ const PlayerScene = () => {
       })
   }
 
-  const coverUrl = currentTrack?.coverUrl || ''
-  const title = currentTrack?.name || '暂无播放歌曲'
-  const artistNames = currentTrack?.artistNames || 'AuralMusic'
+  const coverUrl = useMemo(() => {
+    return currentTrack?.coverUrl || ''
+  }, [currentTrack?.coverUrl])
+  const title = useMemo(() => {
+    return currentTrack?.name || '暂无播放歌曲'
+  }, [currentTrack?.name])
+  const artistNames = useMemo(() => {
+    return currentTrack?.artistNames || 'AuralMusic'
+  }, [currentTrack?.artistNames])
   const amllBackgroundState = resolveAmllBackgroundState(
     playerBackgroundMode,
     coverUrl
   )
-  const showPlayerBackground = amllBackgroundState.enabled
+  const showPlayerBackground = useMemo(
+    () => amllBackgroundState.enabled,
+    [amllBackgroundState.enabled]
+  )
 
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange} direction='bottom'>
       <DrawerContent
-        className='h-[100dvh] max-h-[100dvh] overflow-hidden rounded-none border-0 bg-[var(--background)] p-0 text-[var(--player-foreground)] outline-none data-[vaul-drawer-direction=bottom]:h-[100dvh] data-[vaul-drawer-direction=bottom]:max-h-[100dvh] data-[vaul-drawer-direction=bottom]:rounded-none data-[vaul-drawer-direction=bottom]:border-0 [&>div:first-child]:hidden'
+        className='bg-background h-dvh max-h-dvh overflow-hidden rounded-none border-0 p-0 text-(--player-foreground) outline-none data-[vaul-drawer-direction=bottom]:h-dvh data-[vaul-drawer-direction=bottom]:max-h-dvh data-[vaul-drawer-direction=bottom]:rounded-none data-[vaul-drawer-direction=bottom]:border-0 [&>div:first-child]:hidden'
         data-vaul-no-drag
       >
-        <DrawerTitle className='sr-only'>播放器主界面</DrawerTitle>
+        <DrawerTitle className='sr-only'>{/* 播放器主界面 */}</DrawerTitle>
         <DrawerDescription className='sr-only'>
-          当前播放歌曲、播放控制、进度条和歌词
+          {/* 当前播放歌曲、播放控制、进度条和歌词 */}
         </DrawerDescription>
 
         <div
-          className='window-no-drag relative h-full overflow-hidden bg-[var(--background)]'
+          className='window-no-drag bg-background relative h-full overflow-hidden'
           onPointerMove={handleChromePointerActivity}
         >
           <PlayerSceneAmllBackground
@@ -226,6 +237,7 @@ const PlayerScene = () => {
                 artistNames={artistNames}
                 isPlaying={isPlaying}
                 dynamicCoverEnabled={dynamicCoverEnabled}
+                isSceneOpen={isOpen}
               />
               <PlayerSceneControls
                 disabled={!hasTrack}

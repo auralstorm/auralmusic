@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import TrackListItem from '@/components/TrackList/TrackListItem'
 import { usePlaybackStore } from '@/stores/playback-store'
-import type { PlaybackTrack } from '../../../../../shared/playback.ts'
+import { createArtistTopSongPlaybackQueue } from '../model'
 import type { ArtistTopSongsProps } from '../types'
 
 const ArtistTopSongs = ({ songs }: ArtistTopSongsProps) => {
@@ -19,16 +19,10 @@ const ArtistTopSongs = ({ songs }: ArtistTopSongsProps) => {
     }
     return songs.slice(0, 12)
   }, [songs, isMore])
-  const playbackQueue = useMemo<PlaybackTrack[]>(() => {
-    return list.map(song => ({
-      id: song.id,
-      name: song.name,
-      artistNames: (song.artists || []).map(artist => artist.name).join(' / '),
-      albumName: song.albumName,
-      coverUrl: song.coverUrl,
-      duration: song.duration,
-    }))
-  }, [list])
+  const playbackQueue = useMemo(
+    () => createArtistTopSongPlaybackQueue(list),
+    [list]
+  )
 
   return (
     <section className='space-y-5'>

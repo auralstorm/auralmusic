@@ -38,6 +38,20 @@ export function createPlaybackSessionSnapshot(input: {
   }
 }
 
+export function withPlaybackSessionTiming(
+  snapshot: PlaybackSessionSnapshot,
+  timing: {
+    progress: number
+    duration: number
+  }
+): PlaybackSessionSnapshot {
+  return {
+    ...snapshot,
+    progress: Math.max(0, Math.floor(timing.progress)),
+    duration: Math.max(0, Math.floor(timing.duration)),
+  }
+}
+
 export function normalizePlaybackSessionSnapshot(
   value: unknown
 ): PlaybackSessionSnapshot | null {

@@ -3,6 +3,7 @@ import { playbackRuntime } from '@/audio/playback-runtime/playback-runtime'
 import { usePlaybackStore } from '@/stores/playback-store'
 import {
   PLAYBACK_UNAVAILABLE_MESSAGE,
+  shouldSyncPlaybackProgressFrame,
   advancePlaybackAfterTrackEnd,
 } from './model'
 import type { PlaybackEngineAudioEventsOptions } from './types'
@@ -18,6 +19,7 @@ export function usePlaybackEngineAudioEvents({
     playbackRuntime.setPlaybackRate(playbackSpeedRef.current)
 
     let frameId = 0
+    let lastProgressSyncTimestamp = 0
 
     const stopProgressSync = () => {
       if (!frameId) {
@@ -26,16 +28,26 @@ export function usePlaybackEngineAudioEvents({
 
       cancelAnimationFrame(frameId)
       frameId = 0
+      lastProgressSyncTimestamp = 0
     }
 
-    const syncProgress = () => {
+    const syncProgress = (frameTimestamp: number) => {
       frameId = 0
 
       if (audio.paused || audio.ended) {
         return
       }
 
-      usePlaybackStore.getState().setProgress(audio.currentTime * 1000)
+      if (
+        shouldSyncPlaybackProgressFrame({
+          lastSyncTimestamp: lastProgressSyncTimestamp,
+          frameTimestamp,
+        })
+      ) {
+        usePlaybackStore.getState().setProgress(audio.currentTime * 1000)
+        lastProgressSyncTimestamp = frameTimestamp
+      }
+
       frameId = requestAnimationFrame(syncProgress)
     }
 

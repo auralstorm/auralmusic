@@ -38,6 +38,7 @@ export interface PlayerSceneArtworkProps {
   artistNames: string
   isPlaying: boolean
   dynamicCoverEnabled: boolean
+  isSceneOpen: boolean
 }
 
 export interface PlayerSceneChromeButtonProps extends Omit<

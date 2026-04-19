@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getMvDetail, getMvPlayback, getSimilarMvs } from '@/api/mv'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import {
   EMPTY_MV_DETAIL_STATE,
   normalizeMvDetailHero,
@@ -24,6 +25,8 @@ function pickPlaybackQuality(resolutions: number[]) {
 }
 
 const MvDetail = () => {
+  useScrollToTopOnRouteEnter()
+
   const { id } = useParams()
   const mvId = Number(id)
   const navigate = useNavigate()

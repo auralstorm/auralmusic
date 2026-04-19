@@ -4,6 +4,7 @@ import type { PlaybackTrack } from '../src/shared/playback.ts'
 import {
   createPlaybackSessionSnapshot,
   normalizePlaybackSessionSnapshot,
+  withPlaybackSessionTiming,
 } from '../src/renderer/stores/playback-session-storage.ts'
 
 const tracks: PlaybackTrack[] = [
@@ -35,7 +36,10 @@ test('createPlaybackSessionSnapshot keeps the minimum session payload for restor
       playbackMode: 'shuffle',
     }),
     {
-      queue: tracks,
+      queue: tracks.map(track => ({
+        ...track,
+        sourceUrl: undefined,
+      })),
       currentIndex: 1,
       progress: 65432,
       duration: 200000,
@@ -66,11 +70,37 @@ test('normalizePlaybackSessionSnapshot rejects invalid payloads and clamps numer
       playbackMode: 'invalid',
     }),
     {
-      queue: tracks,
+      queue: tracks.map(track => ({
+        ...track,
+        sourceUrl: undefined,
+      })),
       currentIndex: 1,
       progress: 0,
       duration: 200000,
       playbackMode: 'repeat-all',
     }
   )
+})
+
+test('withPlaybackSessionTiming updates progress and duration without recreating the queue', () => {
+  const snapshot = createPlaybackSessionSnapshot({
+    queue: tracks,
+    currentIndex: 1,
+    progress: 65432,
+    duration: 200000,
+    playbackMode: 'shuffle',
+  })
+
+  assert.ok(snapshot)
+
+  const nextSnapshot = withPlaybackSessionTiming(snapshot, {
+    progress: 77777.8,
+    duration: 210999.3,
+  })
+
+  assert.equal(nextSnapshot.queue, snapshot.queue)
+  assert.equal(nextSnapshot.currentIndex, snapshot.currentIndex)
+  assert.equal(nextSnapshot.playbackMode, snapshot.playbackMode)
+  assert.equal(nextSnapshot.progress, 77777)
+  assert.equal(nextSnapshot.duration, 210999)
 })

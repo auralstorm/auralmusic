@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import CoreRankingCardList from './components/CoreRankings'
 import GenreCharts from './components/GenreCharts'
 import {
@@ -9,6 +10,8 @@ import { getTopList, getTopListDetailById } from '@api/list'
 import type { OnlineChartSummary } from './types'
 
 const Charts = () => {
+  useScrollToTopOnRouteEnter()
+
   const [topList, setTopList] = useState<OnlineChartSummary[]>([])
   const [topListDetail, setTopListDetail] = useState<OnlineChartSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)

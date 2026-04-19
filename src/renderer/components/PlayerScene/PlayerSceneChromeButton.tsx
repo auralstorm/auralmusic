@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { PlayerSceneChromeButtonProps } from './types'
+import { memo } from 'react'
 
 const POSITION_CLASS = {
   left: 'left-8',
@@ -39,4 +40,4 @@ const PlayerSceneChromeButton = ({
   )
 }
 
-export default PlayerSceneChromeButton
+export default memo(PlayerSceneChromeButton)

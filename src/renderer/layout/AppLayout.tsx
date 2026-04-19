@@ -5,13 +5,13 @@ import PlaybackEngine from '@/components/PlaybackControl/PlaybackEngine'
 import PlaybackSessionBridge from '@/components/PlaybackSessionBridge'
 import PlaybackShortcutBridge from '@/components/PlaybackShortcutBridge'
 import TrayCommandBridge from '@/components/TrayCommandBridge'
-import PlayerScene from '@/components/PlayerScene'
 import ScrollToTopButton from '@/components/ScrollToTopButton'
 import KeepAliveRouteOutlet from 'keepalive-for-react-router'
 import { Toaster } from '@/components/ui/sonner'
 import { isWindowsPlatform } from '@/lib/electron-runtime'
 import { useAnimationEffect } from '@/hooks/useAnimationEffect'
 import { useSystemFont } from '@/hooks/useSystemFont'
+import PlayerScene from '@/components/PlayerScene'
 
 const AppLayout = () => {
   const isWindows = isWindowsPlatform()

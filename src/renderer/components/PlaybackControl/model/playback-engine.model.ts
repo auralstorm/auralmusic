@@ -7,6 +7,7 @@ import type {
 export const PLAYBACK_UNAVAILABLE_MESSAGE = '暂时无法播放这首歌曲'
 export const OUTPUT_DEVICE_UNAVAILABLE_MESSAGE = '音频输出设备切换失败'
 export const STALE_PLAYBACK_REQUEST = Symbol('STALE_PLAYBACK_REQUEST')
+export const PLAYBACK_PROGRESS_SYNC_INTERVAL_MS = 1000 / 30
 
 export function prepareAudioForPendingTrack(audio: PendingTrackAudio) {
   audio.pause()
@@ -19,6 +20,26 @@ export function advancePlaybackAfterTrackEnd(playback: {
   playNext: (reason: 'auto') => boolean
 }) {
   playback.playNext('auto')
+}
+
+export function shouldSyncPlaybackProgressFrame({
+  lastSyncTimestamp,
+  frameTimestamp,
+}: {
+  lastSyncTimestamp: number
+  frameTimestamp: number
+}) {
+  if (!Number.isFinite(lastSyncTimestamp) || lastSyncTimestamp <= 0) {
+    return true
+  }
+
+  if (!Number.isFinite(frameTimestamp)) {
+    return false
+  }
+
+  return (
+    frameTimestamp - lastSyncTimestamp >= PLAYBACK_PROGRESS_SYNC_INTERVAL_MS
+  )
 }
 
 export function canStartPlaybackSourceLoad({

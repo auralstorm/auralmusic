@@ -9,6 +9,7 @@ import {
   updatePlaylist,
 } from '@/api/list'
 import TrackList from '@/components/TrackList'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
@@ -26,6 +27,8 @@ import {
 import type { PlaylistDetailPageState } from './types'
 
 const PlaylistDetail = () => {
+  useScrollToTopOnRouteEnter()
+
   const navigate = useNavigate()
   const { id } = useParams()
   const playlistId = Number(id)

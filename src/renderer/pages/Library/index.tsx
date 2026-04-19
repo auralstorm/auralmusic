@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 
 import { createPlaylist, getPlaylistTrackAll } from '@/api/list'
 import { userPlaylist } from '@/api/user'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
 
 import CreatePlaylistDialog from './components/CreatePlaylistDialog'
@@ -32,6 +33,8 @@ import type {
 } from './types'
 
 const Library = () => {
+  useScrollToTopOnRouteEnter()
+
   const navigate = useNavigate()
   const user = useAuthStore(state => state.user)
   const loginStatus = useAuthStore(state => state.loginStatus)

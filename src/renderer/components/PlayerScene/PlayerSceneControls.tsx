@@ -2,6 +2,7 @@ import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import type { PlayerSceneControlsProps, SceneControlButtonProps } from './types'
+import { memo } from 'react'
 
 const SceneControlButton = ({
   label,
@@ -67,4 +68,4 @@ const PlayerSceneControls = ({
   )
 }
 
-export default PlayerSceneControls
+export default memo(PlayerSceneControls)

@@ -19,6 +19,7 @@ export interface ArtistHeroProps {
   summary: string
   isFollowed: boolean
   followLoading: boolean
+  onPlay: () => void
   onToggleFollowedArtist: () => void
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import DownloadsPageView from './components/DownloadsPageView'
 import { buildDownloadTaskPlaybackQueue } from './download-playback.model'
 import { filterDownloadTasks } from './downloads.model'
@@ -7,6 +8,8 @@ import { useDownloadTaskStore } from '@/stores/download-task-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 
 const Downloads = () => {
+  useScrollToTopOnRouteEnter()
+
   const [activeFilter, setActiveFilter] =
     useState<DownloadTaskFilterValue>('all')
   const tasks = useDownloadTaskStore(state => state.tasks)

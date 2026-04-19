@@ -16,6 +16,7 @@ const ArtistHero = ({
   summary,
   isFollowed,
   followLoading,
+  onPlay,
   onToggleFollowedArtist,
 }: ArtistHeroProps) => {
   return (
@@ -60,6 +61,7 @@ const ArtistHero = ({
           <Button
             type='button'
             size='lg'
+            onClick={onPlay}
             className='h-14 cursor-pointer rounded-full px-8 text-base font-semibold'
           >
             <Play className='size-4 fill-current' />

@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import type { AvatarCoverProps } from './types'
 
 const AvatarCover = ({
@@ -44,4 +44,4 @@ const AvatarCover = ({
   )
 }
 
-export default AvatarCover
+export default memo(AvatarCover)

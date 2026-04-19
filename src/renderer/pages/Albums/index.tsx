@@ -1,5 +1,6 @@
 import { startTransition, useCallback, useEffect, useState } from 'react'
 import { getNewAlbums } from '@/api/album'
+import { useScrollToTopOnActive } from '@/hooks/useScrollToTopOnActive'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import AlbumFilters from './components/AlbumFilters'
 import { AlbumsGridSkeleton } from './components/AlbumsSkeletons'
@@ -12,6 +13,8 @@ import { isDef } from '@/lib/utils'
 const PAGE_SIZE = 30
 
 const Albums = () => {
+  useScrollToTopOnActive()
+
   const [area, setArea] = useState<AlbumArea>('ALL')
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const navigate = useNavigate()

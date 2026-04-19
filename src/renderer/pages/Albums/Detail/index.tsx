@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { getAlbumDetail, toggleAlbumSubscription } from '@/api/album'
 import TrackList from '@/components/TrackList'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
@@ -38,6 +39,8 @@ const AlbumDetail = () => {
   const isLiked = useUserStore(state =>
     albumId ? state.likedAlbumIds.has(albumId) : false
   )
+
+  useScrollToTopOnRouteEnter()
 
   useEffect(() => {
     if (!hasHydrated || !userId || likedAlbumsLoaded) {

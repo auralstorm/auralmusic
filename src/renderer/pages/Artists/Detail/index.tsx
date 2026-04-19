@@ -11,7 +11,9 @@ import {
   getSimilarArtists,
 } from '@/api/artist'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
+import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
 import ArtistDetailSkeleton from './components/ArtistDetailSkeleton'
 import ArtistHero from './components/ArtistHero'
@@ -20,6 +22,7 @@ import ArtistMediaTabs from './components/ArtistMediaTabs'
 import ArtistTopSongs from './components/ArtistTopSongs'
 import {
   EMPTY_ARTIST_DESCRIPTION,
+  createArtistTopSongPlaybackQueue,
   getArtistHeroSummary,
   normalizeArtistAlbums,
   normalizeArtistDescription,
@@ -49,6 +52,8 @@ const INITIAL_STATE: ArtistDetailPageState = {
 const PAGE_SIZE = 12
 
 const ArtistDetail = () => {
+  useScrollToTopOnRouteEnter()
+
   const { id } = useParams()
   const artistId = Number(id)
   const [state, setState] = useState<ArtistDetailPageState>(INITIAL_STATE)
@@ -66,6 +71,7 @@ const ArtistDetail = () => {
   )
   const [followLoading, setFollowLoading] = useState(false)
   const navigate = useNavigate()
+  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
 
   const navigateToAlbumDetail = (albumId: number) => {
     if (!albumId) return
@@ -267,6 +273,20 @@ const ArtistDetail = () => {
     [albums, mvs]
   )
 
+  const topSongPlaybackQueue = useMemo(
+    () => createArtistTopSongPlaybackQueue(state.topSongs),
+    [state.topSongs]
+  )
+
+  const handlePlayArtistTopSongs = useCallback(() => {
+    if (topSongPlaybackQueue.length === 0) {
+      toast.error('暂无可播放的歌手热门歌曲')
+      return
+    }
+
+    playQueueFromIndex(topSongPlaybackQueue, 0)
+  }, [playQueueFromIndex, topSongPlaybackQueue])
+
   const handleToggleFollowedArtist = async () => {
     if (!hasHydrated || !userId) {
       openLoginDialog()
@@ -327,6 +347,7 @@ const ArtistDetail = () => {
         summary={getArtistHeroSummary(state.description)}
         isFollowed={isFollowed}
         followLoading={followLoading}
+        onPlay={handlePlayArtistTopSongs}
         onToggleFollowedArtist={handleToggleFollowedArtist}
       />
       <ArtistLatestRelease

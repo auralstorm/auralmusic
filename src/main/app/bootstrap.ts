@@ -32,12 +32,14 @@ import {
 } from '../window/titlebar-theme'
 import { TRAY_IPC_CHANNELS } from '../../shared/ipc/index.ts'
 import { createMainAppState } from './app-state'
+import { loadDevelopmentDevToolsExtension } from './devtools-extension'
 import { registerMainAppLifecycle } from './lifecycle'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const mainDirname = __dirname
 const { app, BrowserWindow, globalShortcut, nativeTheme, session } = electron
+const isDevelopment = process.env.NODE_ENV_ELECTRON_VITE === 'development'
 
 const registerMainIpc = createRegisterMainIpc({
   registerAuthIpc,
@@ -79,7 +81,7 @@ export function bootstrapMainApp() {
       globalShortcut,
       appIsPackaged: app.isPackaged,
       envRendererUrl: process.env.ELECTRON_RENDERER_URL,
-      isDevelopment: process.env.NODE_ENV_ELECTRON_VITE === 'development',
+      isDevelopment,
       mainDirname,
       platform: process.platform,
       getIsQuitting: state.getIsQuitting,
@@ -142,6 +144,29 @@ export function bootstrapMainApp() {
     trayController.initialize()
 
     try {
+      if (isDevelopment) {
+        try {
+          const loadExtension =
+            session.defaultSession.extensions?.loadExtension?.bind(
+              session.defaultSession.extensions
+            ) ??
+            session.defaultSession.loadExtension.bind(session.defaultSession)
+
+          const loadedExtensionPath = await loadDevelopmentDevToolsExtension({
+            appIsPackaged: app.isPackaged,
+            loadExtension,
+          })
+
+          if (loadedExtensionPath) {
+            console.log(
+              `[devtools] loaded React DevTools extension from ${loadedExtensionPath}`
+            )
+          }
+        } catch (error) {
+          console.warn('Failed to load development DevTools extension:', error)
+        }
+      }
+
       const musicApiRuntime = await startMusicApi()
       state.setMusicApiRuntime(musicApiRuntime)
       applyMusicApiRuntimeEnv(musicApiRuntime)

@@ -23,10 +23,13 @@ import {
   normalizeHomeFmTrack,
   normalizeHomeNewSongTracks,
 } from './model'
+import { useScrollToTopOnActive } from '@/hooks/useScrollToTopOnActive'
 import type { PlaybackTrack } from '../../../shared/playback.ts'
 import { normalizeAlbumTracks } from '../Albums/Detail/album-detail.model'
 
 const Home = () => {
+  useScrollToTopOnActive()
+
   const [featureLoading, setFeatureLoading] = useState(true)
   const [artistsLoading, setArtistsLoading] = useState(true)
   const [albumsLoading, setAlbumsLoading] = useState(true)
@@ -96,7 +99,9 @@ const Home = () => {
     }
   })
 
-  const topOneSong = dailyList[0] || {}
+  const topOneSong = useMemo(() => {
+    return dailyList[0] || {}
+  }, [dailyList])
   const fmTrack = useMemo(() => normalizeHomeFmTrack(fmData), [fmData])
   const dailyPlaybackQueue = useMemo(
     () => normalizeHomeDailyTracks(dailyList),

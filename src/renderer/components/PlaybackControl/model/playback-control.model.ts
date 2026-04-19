@@ -39,6 +39,16 @@ export function createPlaybackControlTrack(
   }
 }
 
+export function getPlaybackTransportState(input: {
+  track: PlaybackTrack | null
+  status: 'idle' | 'loading' | 'playing' | 'paused' | 'error'
+}) {
+  return {
+    hasTrack: Boolean(input.track),
+    isPlaying: input.status === 'playing' || input.status === 'loading',
+  }
+}
+
 export function getPlaybackProgressViewState(
   duration: number,
   progress: number,

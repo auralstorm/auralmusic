@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   advancePlaybackAfterTrackEnd,
   canStartPlaybackSourceLoad,
+  shouldSyncPlaybackProgressFrame,
   isPlaybackRequestStale,
   prepareAudioForPendingTrack,
 } from '../src/renderer/components/PlaybackControl/model/playback-engine.model.ts'
@@ -93,6 +94,32 @@ test('canStartPlaybackSourceLoad waits until renderer config has loaded', () => 
       hasCurrentTrack: true,
       requestId: 1,
       configLoading: false,
+    }),
+    true
+  )
+})
+
+test('shouldSyncPlaybackProgressFrame throttles progress updates to 30fps', () => {
+  assert.equal(
+    shouldSyncPlaybackProgressFrame({
+      lastSyncTimestamp: 0,
+      frameTimestamp: 10,
+    }),
+    true
+  )
+
+  assert.equal(
+    shouldSyncPlaybackProgressFrame({
+      lastSyncTimestamp: 10,
+      frameTimestamp: 40,
+    }),
+    false
+  )
+
+  assert.equal(
+    shouldSyncPlaybackProgressFrame({
+      lastSyncTimestamp: 10,
+      frameTimestamp: 43.5,
     }),
     true
   )

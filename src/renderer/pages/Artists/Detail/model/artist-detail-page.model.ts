@@ -6,6 +6,7 @@ import type {
   ArtistMvItem,
   ArtistTopSongItem,
 } from '../../types'
+import type { PlaybackTrack } from '../../../../../shared/playback.ts'
 import type {
   RawArtistAlbum,
   RawArtistDescResponse,
@@ -73,6 +74,19 @@ export function normalizeArtistTopSongs(
       id: artist.id,
       name: artist.name || '未知歌手',
     })),
+  }))
+}
+
+export function createArtistTopSongPlaybackQueue(
+  songs: ArtistTopSongItem[]
+): PlaybackTrack[] {
+  return songs.map(song => ({
+    id: song.id,
+    name: song.name,
+    artistNames: (song.artists || []).map(artist => artist.name).join(' / '),
+    albumName: song.albumName,
+    coverUrl: song.coverUrl,
+    duration: song.duration,
   }))
 }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { cn } from '@/lib/utils'
 import AboutSettings from './components/AboutSettings'
 import BasicSettings from './components/BasicSettings'
@@ -50,6 +51,8 @@ const SettingsTabsNav = ({ value }: SettingsTabsNavProps) => {
 }
 
 const Settings = () => {
+  useScrollToTopOnRouteEnter()
+
   const [activeTab, setActiveTab] = useState<SettingsTabValue>('basic')
 
   return (

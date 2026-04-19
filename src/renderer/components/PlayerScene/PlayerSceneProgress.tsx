@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 
 import { Slider } from '@/components/ui/slider'
 import type { PlayerSceneProgressProps } from './types'
@@ -20,7 +20,6 @@ const PlayerSceneProgress = ({
   const [dragValue, setDragValue] = useState<number | null>(null)
   const max = Math.max(duration, 1)
   const value = Math.min(dragValue ?? progress, max)
-
   useEffect(() => {
     if (!disabled) {
       return
@@ -61,4 +60,4 @@ const PlayerSceneProgress = ({
   )
 }
 
-export default PlayerSceneProgress
+export default memo(PlayerSceneProgress)

@@ -3,6 +3,7 @@ import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Play } from 'lucide-react'
 import { HomeFeatureCardSkeleton } from './HomeSkeletons'
 import type { DailyFeatureCardProps } from '../types'
+import { memo } from 'react'
 
 const DailyFeatureCard = ({
   id,
@@ -59,4 +60,4 @@ const DailyFeatureCard = ({
   )
 }
 
-export default DailyFeatureCard
+export default memo(DailyFeatureCard)

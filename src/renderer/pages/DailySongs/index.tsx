@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getRecommendSongs } from '@/api/list'
+import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import DailySongsHero from './components/DailySongsHero'
 import DailySongsSkeleton from './components/DailySongsSkeleton'
 import {
@@ -10,6 +11,8 @@ import type { DailySongsPageState } from './types'
 import TrackList from '@/components/TrackList'
 
 const DailySongs = () => {
+  useScrollToTopOnRouteEnter()
+
   const [state, setState] = useState<DailySongsPageState>(
     EMPTY_DAILY_SONGS_STATE
   )

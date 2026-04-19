@@ -1,5 +1,6 @@
 import { startTransition, useCallback, useEffect, useState } from 'react'
 import { getArtistList } from '@/api/artist'
+import { useScrollToTopOnActive } from '@/hooks/useScrollToTopOnActive'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import ArtistFilterGroup from './components/ArtistFilters'
 import ArtistCard from './components/ArtistCard'
@@ -20,6 +21,8 @@ import {
 const PAGE_SIZE = 30
 
 const Artists = () => {
+  useScrollToTopOnActive()
+
   const [area, setArea] = useState<ArtistArea>(-1)
   const [type, setType] = useState<ArtistType>(-1)
   const [initial, setInitial] = useState<ArtistInitial>(-1)
