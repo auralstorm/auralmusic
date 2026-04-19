@@ -1,5 +1,6 @@
 import {
   getSongDownloadUrlV1 as defaultGetSongDownloadUrlV1,
+  getSongUrlMatch as defaultGetSongUrlMatch,
   getSongUrlV1 as defaultGetSongUrlV1,
 } from '../../../api/list.ts'
 import type { DownloadSourceApiListModule } from '@/types/core'
@@ -8,6 +9,7 @@ export async function loadDefaultSongApiListModule(): Promise<DownloadSourceApiL
   return {
     getSongUrlV1: defaultGetSongUrlV1,
     getSongDownloadUrlV1: defaultGetSongDownloadUrlV1,
+    getSongUrlMatch: defaultGetSongUrlMatch,
   }
 }
 
@@ -23,6 +25,13 @@ export async function getDefaultSongDownloadUrlV1(
 ) {
   const module = await loadSongApiListModule()
   return module.getSongDownloadUrlV1
+}
+
+export async function getDefaultSongUrlMatch(
+  loadSongApiListModule: () => Promise<DownloadSourceApiListModule> = loadDefaultSongApiListModule
+) {
+  const module = await loadSongApiListModule()
+  return module.getSongUrlMatch
 }
 
 export function normalizeFileExtension(value: string | null | undefined) {

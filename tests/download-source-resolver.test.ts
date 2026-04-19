@@ -67,9 +67,8 @@ test('createDownloadSourceResolver falls back from official family to LX and ret
     fileExtension: '.flac',
   })
   assert.deepEqual(calls, [
-    'song-download:lossless',
     'song-url:lossless:false',
-    'song-url:lossless:true',
+    'song-download:lossless',
     'lx:lossless',
   ])
 })
@@ -114,7 +113,59 @@ test('createDownloadSourceResolver returns official playback when official downl
     provider: 'official-playback',
     fileExtension: '.mp3',
   })
-  assert.deepEqual(calls, ['song-download:higher', 'song-url:higher:false'])
+  assert.deepEqual(calls, ['song-url:higher:false'])
+})
+
+test('createDownloadSourceResolver prefers official playback over official download when both are available', async () => {
+  const calls: string[] = []
+
+  const deps: DownloadSourceResolverDeps = {
+    getIsAuthenticated: () => true,
+    getSongDownloadUrlV1: async params => {
+      calls.push(`song-download:${params.level}`)
+      return {
+        data: {
+          data: {
+            url: 'https://cdn.example.com/download-preview.mp3',
+            encodeType: 'mp3',
+          },
+        },
+      }
+    },
+    getSongUrlV1: async params => {
+      calls.push(`song-url:${params.level}:${params.unblock}`)
+      return {
+        data: {
+          data: [{ id: 5, url: 'https://cdn.example.com/playback-full.flac' }],
+        },
+      }
+    },
+    resolveTrackWithLxMusicSource: async () => {
+      calls.push('lx')
+      return null
+    },
+    getConfig: () => createConfig(),
+  }
+
+  const resolveDownloadSource = createDownloadSourceResolver(deps)
+  const result = await resolveDownloadSource({
+    track: {
+      ...createTrack(),
+      id: 5,
+      name: 'Prefer Playback Song',
+      duration: 180000,
+    },
+    requestedQuality: 'higher',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/playback-full.flac',
+    quality: 'higher',
+    provider: 'official-playback',
+    fileExtension: '.flac',
+  })
+  assert.deepEqual(calls, ['song-url:higher:false'])
 })
 
 test('createDownloadSourceResolver uses the default API loader for official download', async () => {
@@ -137,6 +188,9 @@ test('createDownloadSourceResolver uses the default API loader for official down
         },
         getSongUrlV1: async () => {
           throw new Error('playback fallback should not run')
+        },
+        getSongUrlMatch: async () => {
+          throw new Error('match fallback should not run')
         },
       }
     },
@@ -164,7 +218,7 @@ test('createDownloadSourceResolver uses the default API loader for official down
     provider: 'official-download',
     fileExtension: '.flac',
   })
-  assert.deepEqual(calls, ['load-api', 'song-download:lossless'])
+  assert.deepEqual(calls, ['load-api', 'load-api', 'song-download:lossless'])
 })
 
 test('createDownloadSourceResolver derives extension from official download payload', async () => {
@@ -246,9 +300,8 @@ test('createDownloadSourceResolver stops after the requested quality when policy
 
   assert.equal(result, null)
   assert.deepEqual(calls, [
-    'song-download:lossless',
     'song-url:lossless:false',
-    'song-url:lossless:true',
+    'song-download:lossless',
     'lx:lossless',
   ])
 })
@@ -301,14 +354,13 @@ test('createDownloadSourceResolver falls through lower qualities when policy is 
     fileExtension: '.mp3',
   })
   assert.deepEqual(calls, [
-    'song-download:lossless',
     'song-url:lossless:false',
-    'song-url:lossless:true',
+    'song-download:lossless',
     'lx:lossless',
-    'song-download:exhigh',
     'song-url:exhigh:false',
-    'song-url:exhigh:true',
+    'song-download:exhigh',
     'lx:exhigh',
+    'song-url:higher:false',
     'song-download:higher',
   ])
 })
@@ -329,17 +381,10 @@ test('createDownloadSourceResolver prefers builtin unblock before official when 
         data: { data: { url: 'https://cdn.example.com/official.flac' } },
       }
     },
-    getSongUrlV1: async params => {
-      calls.push(`song-url:${params.unblock}`)
+    getSongUrlMatch: async params => {
+      calls.push(`song-match:${params.source}`)
       return {
-        data: {
-          data: [
-            {
-              id: 1,
-              url: params.unblock ? 'https://cdn.example.com/unblock.mp3' : '',
-            },
-          ],
-        },
+        data: { data: 'https://cdn.example.com/unblock.mp3' },
       }
     },
     resolveTrackWithLxMusicSource: async () => {
@@ -355,7 +400,7 @@ test('createDownloadSourceResolver prefers builtin unblock before official when 
   })
 
   assert.equal(result?.provider, 'builtin-unblock')
-  assert.deepEqual(calls, ['song-url:true'])
+  assert.deepEqual(calls, ['song-match:unm'])
 })
 
 test('createDownloadSourceResolver still tries builtin unblock when legacy builtin providers are empty', async () => {
@@ -374,17 +419,10 @@ test('createDownloadSourceResolver still tries builtin unblock when legacy built
         data: { data: { url: 'https://cdn.example.com/official.flac' } },
       }
     },
-    getSongUrlV1: async params => {
-      calls.push(`song-url:${params.unblock}`)
+    getSongUrlMatch: async params => {
+      calls.push(`song-match:${params.source}`)
       return {
-        data: {
-          data: [
-            {
-              id: 1,
-              url: params.unblock ? 'https://cdn.example.com/unblock.mp3' : '',
-            },
-          ],
-        },
+        data: { data: 'https://cdn.example.com/unblock.mp3' },
       }
     },
     resolveTrackWithLxMusicSource: async () => {
@@ -400,7 +438,7 @@ test('createDownloadSourceResolver still tries builtin unblock when legacy built
   })
 
   assert.equal(result?.provider, 'builtin-unblock')
-  assert.deepEqual(calls, ['song-url:true'])
+  assert.deepEqual(calls, ['song-match:unm'])
 })
 
 test('createDownloadSourceResolver does not fall through to official when music source remains enabled for unauthenticated users', async () => {
@@ -418,9 +456,9 @@ test('createDownloadSourceResolver does not fall through to official when music 
         data: { data: { url: 'https://cdn.example.com/official.flac' } },
       }
     },
-    getSongUrlV1: async params => {
-      calls.push(`song-url:${params.unblock}`)
-      return { data: { data: [{ id: 1, url: '' }] } }
+    getSongUrlMatch: async params => {
+      calls.push(`song-match:${params.source}`)
+      return { data: { data: '' } }
     },
     resolveTrackWithLxMusicSource: async () => {
       calls.push('lx')
@@ -435,5 +473,12 @@ test('createDownloadSourceResolver does not fall through to official when music 
   })
 
   assert.equal(result, null)
-  assert.deepEqual(calls, ['song-url:true', 'lx'])
+  assert.deepEqual(calls, [
+    'song-match:unm',
+    'song-match:bikonoo',
+    'song-match:gdmusic',
+    'song-match:msls',
+    'song-match:qijieya',
+    'lx',
+  ])
 })

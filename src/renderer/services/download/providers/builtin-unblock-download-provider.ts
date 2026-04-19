@@ -1,6 +1,8 @@
-import { normalizeSongUrlV1Response } from '../../../../shared/playback.ts'
+import type { AppConfig } from '../../../../shared/config.ts'
+import { normalizeSongUrlMatchResponse } from '../../../../shared/playback.ts'
+import { DEFAULT_BUILTIN_UNBLOCK_MATCH_SOURCES } from '../../music-source/providers/builtin-unblock-playback-provider.ts'
 import {
-  getDefaultSongUrlV1,
+  getDefaultSongUrlMatch,
   inferFileExtensionFromUrl,
   loadDefaultSongApiListModule,
 } from './shared.ts'
@@ -14,28 +16,40 @@ export function createBuiltinUnblockDownloadProvider(): DownloadResolverProvider
     resolve: async (options: DownloadSourceProviderOptions) => {
       const loadSongApiListModule =
         options.deps.loadSongApiListModule ?? loadDefaultSongApiListModule
-      const getSongUrl =
-        options.deps.getSongUrlV1 ??
-        (await getDefaultSongUrlV1(loadSongApiListModule))
+      const getSongUrlMatch =
+        options.deps.getSongUrlMatch ??
+        (await getDefaultSongUrlMatch(loadSongApiListModule))
+      const configuredModules = (options.config as Partial<AppConfig>)
+        .enhancedSourceModules
+      const configuredMatchSources = Array.isArray(configuredModules)
+        ? configuredModules
+        : DEFAULT_BUILTIN_UNBLOCK_MATCH_SOURCES
 
-      try {
-        const playbackResponse = await getSongUrl({
-          id: options.track.id,
-          level: options.quality,
-          unblock: true,
-        })
-        const playback = normalizeSongUrlV1Response(playbackResponse.data)
+      for (const source of configuredMatchSources) {
+        try {
+          const matchResponse = await getSongUrlMatch({
+            id: options.track.id,
+            source,
+          })
+          const playback = normalizeSongUrlMatchResponse(matchResponse.data, {
+            id: options.track.id,
+            time: options.track.duration,
+            br: 0,
+          })
 
-        if (playback?.url) {
+          if (!playback?.url) {
+            continue
+          }
+
           return {
             url: playback.url,
             quality: options.quality,
             provider: 'builtin-unblock',
             fileExtension: inferFileExtensionFromUrl(playback.url),
           }
+        } catch {
+          continue
         }
-      } catch {
-        return null
       }
 
       return null

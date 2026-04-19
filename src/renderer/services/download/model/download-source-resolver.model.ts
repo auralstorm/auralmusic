@@ -47,6 +47,7 @@ function toResolveContext(
       luoxueSourceEnabled: config.luoxueSourceEnabled,
       customMusicApiEnabled: config.customMusicApiEnabled,
       customMusicApiUrl: config.customMusicApiUrl,
+      enhancedSourceModules: config.enhancedSourceModules,
     },
   }
 }

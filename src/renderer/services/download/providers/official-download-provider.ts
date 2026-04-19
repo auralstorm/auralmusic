@@ -16,29 +16,6 @@ export function createOfficialDownloadProvider(): DownloadResolverProvider {
     resolve: async (options: DownloadSourceProviderOptions) => {
       const loadSongApiListModule =
         options.deps.loadSongApiListModule ?? loadDefaultSongApiListModule
-      const getSongDownloadUrl =
-        options.deps.getSongDownloadUrlV1 ??
-        (await getDefaultSongDownloadUrlV1(loadSongApiListModule))
-
-      try {
-        const downloadResponse = await getSongDownloadUrl({
-          id: options.track.id,
-          level: options.quality,
-        })
-        const officialDownload = readOfficialDownloadUrl(downloadResponse.data)
-
-        if (officialDownload) {
-          return {
-            url: officialDownload.url,
-            quality: options.quality,
-            provider: 'official-download',
-            fileExtension: officialDownload.fileExtension,
-          }
-        }
-      } catch {
-        // Fall through to the next resolver.
-      }
-
       const getSongUrl =
         options.deps.getSongUrlV1 ??
         (await getDefaultSongUrlV1(loadSongApiListModule))
@@ -57,6 +34,29 @@ export function createOfficialDownloadProvider(): DownloadResolverProvider {
             quality: options.quality,
             provider: 'official-playback',
             fileExtension: inferFileExtensionFromUrl(playback.url),
+          }
+        }
+      } catch {
+        // Fall through to the next resolver.
+      }
+
+      const getSongDownloadUrl =
+        options.deps.getSongDownloadUrlV1 ??
+        (await getDefaultSongDownloadUrlV1(loadSongApiListModule))
+
+      try {
+        const downloadResponse = await getSongDownloadUrl({
+          id: options.track.id,
+          level: options.quality,
+        })
+        const officialDownload = readOfficialDownloadUrl(downloadResponse.data)
+
+        if (officialDownload) {
+          return {
+            url: officialDownload.url,
+            quality: options.quality,
+            provider: 'official-download',
+            fileExtension: officialDownload.fileExtension,
           }
         }
       } catch {

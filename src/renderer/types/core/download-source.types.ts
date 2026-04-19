@@ -1,4 +1,8 @@
-import type { AppConfig, AudioQualityLevel } from '../../../shared/config.ts'
+import type {
+  AppConfig,
+  AudioQualityLevel,
+  EnhancedSourceModule,
+} from '../../../shared/config.ts'
 import type { DownloadSourceProvider } from '../../../shared/download.ts'
 import type {
   ResolveContext,
@@ -19,7 +23,10 @@ export type DownloadResolverConfig = Pick<
   Partial<
     Pick<
       AppConfig,
-      'activeLuoxueMusicSourceScriptId' | 'luoxueMusicSourceScripts' | 'quality'
+      | 'activeLuoxueMusicSourceScriptId'
+      | 'luoxueMusicSourceScripts'
+      | 'quality'
+      | 'enhancedSourceModules'
     >
   >
 
@@ -52,14 +59,21 @@ export type GetSongDownloadUrlV1 = (params: {
   level: AudioQualityLevel
 }) => Promise<{ data: unknown }>
 
+export type GetSongUrlMatch = (params: {
+  id: number | string
+  source: EnhancedSourceModule
+}) => Promise<{ data: unknown }>
+
 export interface DownloadSourceApiListModule {
   getSongUrlV1: GetSongUrlV1
   getSongDownloadUrlV1: GetSongDownloadUrlV1
+  getSongUrlMatch: GetSongUrlMatch
 }
 
 export interface DownloadSourceResolverDeps {
   getSongUrlV1?: GetSongUrlV1
   getSongDownloadUrlV1?: GetSongDownloadUrlV1
+  getSongUrlMatch?: GetSongUrlMatch
   resolveTrackWithLxMusicSource?: typeof resolveTrackWithLxMusicSource
   getConfig?: () => DownloadSourceMaybePromise<DownloadResolverConfig>
   getIsAuthenticated?: () => DownloadSourceMaybePromise<boolean>
