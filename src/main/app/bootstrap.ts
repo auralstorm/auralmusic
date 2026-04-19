@@ -102,6 +102,9 @@ export function bootstrapMainApp() {
     showMainWindow: () => showMainWindow(state.getMainWindow()),
     createWindow,
     canCreateWindowOnActivate: () => isStartupReady,
+    shouldQuitOnWindowAllClosed: () => {
+      return state.getIsQuitting() || getConfig('closeBehavior') === 'quit'
+    },
     setIsQuitting: state.setIsQuitting,
     disposeMusicApiRuntime: () => {
       state.getMusicApiRuntime()?.dispose()

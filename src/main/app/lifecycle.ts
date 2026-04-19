@@ -13,6 +13,7 @@ type RegisterMainAppLifecycleOptions = {
   showMainWindow: () => void
   createWindow: () => void
   canCreateWindowOnActivate?: () => boolean
+  shouldQuitOnWindowAllClosed?: () => boolean
   setIsQuitting: (isQuitting: boolean) => void
   disposeMusicApiRuntime: () => void
   destroyTray: () => void
@@ -27,6 +28,7 @@ export function registerMainAppLifecycle({
   showMainWindow,
   createWindow,
   canCreateWindowOnActivate = () => true,
+  shouldQuitOnWindowAllClosed = () => false,
   setIsQuitting,
   disposeMusicApiRuntime,
   destroyTray,
@@ -44,7 +46,7 @@ export function registerMainAppLifecycle({
   })
 
   app.on('window-all-closed', () => {
-    if (platform !== 'darwin') {
+    if (platform !== 'darwin' || shouldQuitOnWindowAllClosed()) {
       app.quit()
     }
   })

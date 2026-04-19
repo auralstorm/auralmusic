@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { WINDOW_IPC_CHANNELS } from '../../shared/ipc/index.ts'
 
 export type WindowApi = {
+  close: () => Promise<void>
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<boolean>
   toggleFullScreen: () => Promise<boolean>
@@ -17,6 +18,9 @@ export type WindowApi = {
 }
 
 const windowApi: WindowApi = {
+  close: async () => {
+    await ipcRenderer.invoke(WINDOW_IPC_CHANNELS.CLOSE)
+  },
   minimize: async () => {
     await ipcRenderer.invoke(WINDOW_IPC_CHANNELS.MINIMIZE)
   },

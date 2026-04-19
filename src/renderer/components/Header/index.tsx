@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { getElectronWindowApi, isWindowsPlatform } from '@/lib/electron-runtime'
 import { useTheme } from '@/hooks/useTheme'
 import Account from '../Account'
+import WindowCloseController from '../CloseWindowDialog/WindowCloseController'
 import LoginDialog from '../LoginDialog'
 import NavBar from '../NavBar'
 import SearchDialog from '../SearchDialog'
@@ -58,6 +59,7 @@ const Header = ({ className = '' }: HeaderProps) => {
           {isWindows ? <WindowControls /> : null}
         </div>
       </div>
+      <WindowCloseController />
       <LoginDialog />
     </header>
   )
