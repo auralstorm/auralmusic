@@ -69,6 +69,32 @@ test('appendToQueue appends tracks without interrupting current playback', () =>
   assert.equal(state.queue[3]?.id, 4)
 })
 
+test('appendToQueue skips tracks that already exist in the playback queue', () => {
+  usePlaybackStore.getState().resetPlayback()
+  usePlaybackStore.getState().playQueueFromIndex(tracks, 1)
+
+  usePlaybackStore.getState().appendToQueue([
+    tracks[1],
+    {
+      id: 4,
+      name: 'Track 4',
+      artistNames: 'Artist 4',
+      albumName: 'Album 4',
+      coverUrl: 'cover-4',
+      duration: 220000,
+    },
+    tracks[1],
+  ])
+
+  const state = usePlaybackStore.getState()
+  assert.deepEqual(
+    state.queue.map(track => track.id),
+    [1, 2, 3, 4]
+  )
+  assert.equal(state.currentIndex, 1)
+  assert.equal(state.currentTrack?.id, 2)
+})
+
 test('playQueueFromIndex preserves local source urls on playback tracks', () => {
   usePlaybackStore.getState().resetPlayback()
 

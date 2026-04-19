@@ -42,6 +42,38 @@ function clampPercent(value: number) {
   return Math.min(100, Math.max(0, value))
 }
 
+function appendUniquePlaybackTracks(
+  queue: PlaybackTrack[],
+  appendedTracks: PlaybackTrack[]
+) {
+  if (!queue.length) {
+    const seenTrackIds = new Set<number>()
+
+    return appendedTracks.filter(track => {
+      if (seenTrackIds.has(track.id)) {
+        return false
+      }
+
+      seenTrackIds.add(track.id)
+      return true
+    })
+  }
+
+  const seenTrackIds = new Set(queue.map(track => track.id))
+  const nextTracks = [...queue]
+
+  for (const track of appendedTracks) {
+    if (seenTrackIds.has(track.id)) {
+      continue
+    }
+
+    seenTrackIds.add(track.id)
+    nextTracks.push(track)
+  }
+
+  return nextTracks
+}
+
 function createTrackPatch(
   queue: PlaybackTrack[],
   currentIndex: number,
@@ -93,7 +125,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     }
 
     set(state => {
-      const nextQueue = [...state.queue, ...appendedTracks]
+      const nextQueue = appendUniquePlaybackTracks(state.queue, appendedTracks)
       const hasCurrentTrack = Boolean(state.currentTrack)
 
       return {
