@@ -30,7 +30,8 @@ function getGitHubToken() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Unable to read GitHub token from gh CLI. Run "gh auth login" first.\n${message}`
+      `Unable to read GitHub token from gh CLI. Run "gh auth login" first.\n${message}`,
+      { cause: error }
     );
   }
 }
