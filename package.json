@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Aural Music Player",
-  "author": "alex",
+  "author": "AuralMusic Team <noreply@auralmusic.app>",
   "main": "out/main/index.cjs",
   "scripts": {
     "dev": "electron-vite",

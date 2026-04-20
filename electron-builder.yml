@@ -23,6 +23,7 @@ publish:
   - provider: github
     owner: 1769762790
     repo: auralmusic
+    releaseType: release
 
 win:
   icon: build/icons/icon.ico
@@ -64,6 +65,7 @@ dmg:
       path: /Applications
 
 linux:
+  maintainer: AuralMusic Team <noreply@auralmusic.app>
   icon: build/icons
   target:
     - AppImage
