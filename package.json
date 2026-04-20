@@ -18,6 +18,7 @@
     "format": "prettier . --write",
     "commit": "cz",
     "release": "release-it",
+    "release:gh": "node scripts/release-with-gh-token.mjs",
     "check": "pnpm lint && pnpm build",
     "prepare": "husky"
   },
