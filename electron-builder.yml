@@ -27,7 +27,9 @@ publish:
 
 win:
   icon: build/icons/icon.ico
-  target: nsis
+  target:
+    - nsis
+    - portable
 
 nsis:
   oneClick: false
