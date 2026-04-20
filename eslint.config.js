@@ -159,11 +159,11 @@ export default defineConfig([
 
   // 配置文件配置
   {
-    files: ['scripts/**/*.cjs'],
+    files: ['scripts/**/*.{js,mjs,cjs}'],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
-      sourceType: 'commonjs',
+      sourceType: 'module',
       globals: {
         ...globals.node,
       },
