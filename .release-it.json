@@ -6,10 +6,10 @@
     "requireCleanWorkingDir": true,
     "requireBranch": ["main", "master"],
     "requireUpstream": true,
-    "push": false
+    "push": true
   },
   "github": {
-    "release": false
+    "release": true
   },
   "plugins": {
     "@release-it/conventional-changelog": {

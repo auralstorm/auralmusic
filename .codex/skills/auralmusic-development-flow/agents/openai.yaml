@@ -1,4 +1,0 @@
-interface:
-  display_name: "AuralMusic 开发流程"
-  short_description: "面向当前仓库的页面、接口与组件开发约定"
-  default_prompt: "Use $auralmusic-development-flow to follow the AuralMusic repository workflow for adding pages, routes, APIs, and loading states."

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { normalizeAuthSession, parseCookiePairs } from './src/shared/auth.ts'
+import { normalizeAuthSession, parseCookiePairs } from '../src/shared/auth.ts'
 
 test('normalizeAuthSession maps login payload into persisted auth state', () => {
   const session = normalizeAuthSession(
