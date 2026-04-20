@@ -189,7 +189,6 @@ export interface PlaybackStoreState {
   seekRequestId: number
   seekPosition: number
   isPlayerSceneOpen: boolean
-  isPlayerSceneFullscreen: boolean
   playQueueFromIndex: (tracks: PlaybackTrack[], startIndex: number) => void
   appendToQueue: (tracks: PlaybackTrack[]) => void
   togglePlay: () => void
@@ -202,7 +201,6 @@ export interface PlaybackStoreState {
   toggleMute: () => void
   seekTo: (positionMs: number) => void
   setPlayerSceneOpen: (open: boolean) => void
-  setPlayerSceneFullscreen: (fullscreen: boolean) => void
   openPlayerScene: () => void
   closePlayerScene: () => void
   restoreSession: (snapshot: PlaybackSessionSnapshot) => void

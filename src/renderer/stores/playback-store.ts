@@ -31,7 +31,6 @@ const INITIAL_PLAYBACK_STATE = {
   seekRequestId: 0,
   seekPosition: 0,
   isPlayerSceneOpen: false,
-  isPlayerSceneFullscreen: false,
 }
 
 function clampPercent(value: number) {
@@ -279,8 +278,6 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     }))
   },
   setPlayerSceneOpen: open => set({ isPlayerSceneOpen: open }),
-  setPlayerSceneFullscreen: fullscreen =>
-    set({ isPlayerSceneFullscreen: fullscreen }),
   openPlayerScene: () => set({ isPlayerSceneOpen: true }),
   closePlayerScene: () => set({ isPlayerSceneOpen: false }),
   restoreSession: snapshot => {

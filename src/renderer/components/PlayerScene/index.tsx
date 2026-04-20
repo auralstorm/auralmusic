@@ -7,7 +7,8 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { getElectronWindowApi } from '@/lib/electron-runtime'
+import { isWindowsPlatform } from '@/lib/electron-runtime'
+import { useWindowExpandedState } from '@/hooks/useWindowExpandedState'
 import { useResolvedDarkTheme } from '@/hooks/useResolvedDarkTheme'
 import { useConfigStore } from '@/stores/config-store'
 import { usePlaybackStore } from '@/stores/playback-store'
@@ -28,11 +29,7 @@ const PlayerScene = () => {
   const progress = usePlaybackStore(state => state.progress)
   const duration = usePlaybackStore(state => state.duration)
   const isOpen = usePlaybackStore(state => state.isPlayerSceneOpen)
-  const isFullscreen = usePlaybackStore(state => state.isPlayerSceneFullscreen)
   const setPlayerSceneOpen = usePlaybackStore(state => state.setPlayerSceneOpen)
-  const setPlayerSceneFullscreen = usePlaybackStore(
-    state => state.setPlayerSceneFullscreen
-  )
   const closePlayerScene = usePlaybackStore(state => state.closePlayerScene)
   const togglePlay = usePlaybackStore(state => state.togglePlay)
   const playPrevious = usePlaybackStore(state => state.playPrevious)
@@ -63,8 +60,9 @@ const PlayerScene = () => {
       immersiveEnabled: immersivePlayerControls,
       isOpen,
     })
-  const electronWindow = getElectronWindowApi()
+  const isWindows = isWindowsPlatform()
   const isDarkTheme = useResolvedDarkTheme()
+  const { isExpanded, canExpand, toggleExpanded } = useWindowExpandedState()
 
   const hasTrack = useMemo(() => Boolean(currentTrack), [currentTrack])
   const isPlaying = useMemo(() => {
@@ -77,7 +75,7 @@ const PlayerScene = () => {
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isFullscreen) {
+      if (event.key === 'Escape' && !isExpanded) {
         closePlayerScene()
       }
     }
@@ -87,51 +85,24 @@ const PlayerScene = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [closePlayerScene, isFullscreen, isOpen])
-
-  useEffect(() => {
-    if (!electronWindow) {
-      return
-    }
-
-    let isMounted = true
-
-    void electronWindow.isFullScreen().then(value => {
-      if (isMounted) {
-        setPlayerSceneFullscreen(value)
-      }
-    })
-
-    const unsubscribe = electronWindow.onFullScreenChange(value => {
-      setPlayerSceneFullscreen(value)
-    })
-
-    return () => {
-      isMounted = false
-      unsubscribe()
-    }
-  }, [electronWindow, setPlayerSceneFullscreen])
+  }, [closePlayerScene, isExpanded, isOpen])
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && isFullscreen && electronWindow) {
-      void electronWindow.toggleFullScreen().then(value => {
-        setPlayerSceneFullscreen(value)
+    if (!nextOpen && isExpanded && !isWindows && canExpand) {
+      void toggleExpanded().finally(() => {
+        setPlayerSceneOpen(nextOpen)
       })
+      return
     }
 
     setPlayerSceneOpen(nextOpen)
   }
 
   const handleClose = () => {
-    if (isFullscreen && electronWindow) {
-      void electronWindow
-        .toggleFullScreen()
-        .then(value => {
-          setPlayerSceneFullscreen(value)
-        })
-        .finally(() => {
-          closePlayerScene()
-        })
+    if (isExpanded && !isWindows && canExpand) {
+      void toggleExpanded().finally(() => {
+        closePlayerScene()
+      })
       return
     }
 
@@ -139,18 +110,13 @@ const PlayerScene = () => {
   }
 
   const handleToggleFullscreen = () => {
-    if (!electronWindow) {
+    if (!canExpand) {
       return
     }
 
-    void electronWindow
-      .toggleFullScreen()
-      .then(value => {
-        setPlayerSceneFullscreen(value)
-      })
-      .catch(error => {
-        console.error('toggle player scene fullscreen failed', error)
-      })
+    void toggleExpanded().catch(error => {
+      console.error('toggle player scene expanded state failed', error)
+    })
   }
 
   const coverUrl = useMemo(() => {
@@ -170,6 +136,13 @@ const PlayerScene = () => {
     () => amllBackgroundState.enabled,
     [amllBackgroundState.enabled]
   )
+  const fullscreenToggleLabel = useMemo(() => {
+    if (!isWindows) {
+      return isExpanded ? '退出全屏' : '全屏播放'
+    }
+
+    return isExpanded ? '还原窗口' : '最大化窗口'
+  }, [isExpanded, isWindows])
 
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange} direction='bottom'>
@@ -205,13 +178,13 @@ const PlayerScene = () => {
 
           <PlayerSceneChromeButton
             type='button'
-            aria-label={isFullscreen ? '退出全屏' : '全屏播放'}
+            aria-label={fullscreenToggleLabel}
             position='left'
             visible={chromeVisible}
             onReveal={handleChromePointerActivity}
             onClick={handleToggleFullscreen}
           >
-            {isFullscreen ? (
+            {isExpanded ? (
               <Minimize2 className='size-5' />
             ) : (
               <Maximize2 className='size-5' />

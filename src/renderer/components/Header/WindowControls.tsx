@@ -1,41 +1,19 @@
 import { Copy, Minus, Square, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import { getElectronWindowApi } from '@/lib/electron-runtime'
+import { useWindowExpandedState } from '@/hooks/useWindowExpandedState'
 import { cn } from '@/lib/utils'
 
 import type { WindowControlsProps } from './types'
 
 const WindowControls = ({ className = '' }: WindowControlsProps) => {
-  const [isMaximized, setIsMaximized] = useState(false)
   const electronWindow = getElectronWindowApi()
-
-  useEffect(() => {
-    if (!electronWindow) {
-      return
-    }
-
-    let isMounted = true
-
-    void electronWindow.isMaximized().then(value => {
-      if (isMounted) {
-        setIsMaximized(value)
-      }
-    })
-
-    const unsubscribe = electronWindow.onMaximizeChange(value => {
-      setIsMaximized(value)
-    })
-
-    return () => {
-      isMounted = false
-      unsubscribe()
-    }
-  }, [electronWindow])
+  const { isExpanded, canExpand, toggleExpanded } = useWindowExpandedState()
 
   const maximizeLabel = useMemo(
-    () => (isMaximized ? '还原窗口' : '最大化窗口'),
-    [isMaximized]
+    () => (isExpanded ? '还原窗口' : '最大化窗口'),
+    [isExpanded]
   )
 
   if (!electronWindow) {
@@ -55,10 +33,11 @@ const WindowControls = ({ className = '' }: WindowControlsProps) => {
       <button
         type='button'
         aria-label={maximizeLabel}
+        disabled={!canExpand}
         className='hover:bg-foreground/8 flex h-13 w-13 items-center justify-center rounded-[15px] transition-colors'
-        onClick={() => void electronWindow.toggleMaximize()}
+        onClick={() => void toggleExpanded()}
       >
-        {isMaximized ? (
+        {isExpanded ? (
           <Copy className='size-3.5 rotate-180' />
         ) : (
           <Square className='size-3.5' />
