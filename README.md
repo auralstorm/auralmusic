@@ -127,6 +127,26 @@ pnpm run build:mac    # macOS
 pnpm run build:linux  # Linux
 ```
 
+### 发布（单命令）
+
+当前项目的发布入口是本地 `release-it`，一条命令完成版本、变更日志、Tag 与 GitHub Release：
+
+```bash
+pnpm run release
+```
+
+发布前提：
+
+- 在 `main` 分支且工作区干净
+- 本地环境已配置 `GITHUB_TOKEN`（具有 `repo` 权限）
+- 仓库规则允许维护者推送 `main` 与 `v*` tag
+
+发布链路说明：
+
+1. `pnpm run release` 自动更新版本号、生成/更新 `CHANGELOG.md`、提交并打 `v*` tag
+2. 推送后触发 `.github/workflows/package.yml`
+3. `Package` workflow 进行 Win/macOS/Linux 构建并把产物上传到该 tag 的 GitHub Release
+
 ## 📁 项目结构
 
 ```

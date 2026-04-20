@@ -107,10 +107,9 @@ src/renderer/pages/FeatureX/
 
 文件：`.github/workflows/release.yml`
 
-- 触发：`push(main)`
-- 动作：执行 `pnpm release --ci`
-- 结果：更新 `CHANGELOG.md`、创建版本提交、打 `v*` tag、创建 GitHub Release
-- 防循环：跳过 `chore: release v*` 触发
+- 触发：`workflow_dispatch`（手动）
+- 动作：按输入 tag 生成/重建 GitHub Release Notes
+- 说明：默认发布链路不依赖该工作流自动触发，仅作为人工补救入口
 
 ### 7.3 Package 工作流
 
@@ -140,16 +139,20 @@ src/renderer/pages/FeatureX/
 
 ## 9. 发布操作手册
 
-日常版本发布建议：
+日常版本发布（单命令）：
 
 1. 业务 PR 合并到 `main`
-2. `release.yml` 自动生成 changelog、tag、release
-3. `package.yml` 在 tag 事件下自动构建并上传安装包
-4. 在 GitHub Release 页面验收资产与说明
+2. 本地同步并确认工作区干净：`git switch main && git pull origin main`
+3. 设置本地 `GITHUB_TOKEN`（需有 `repo` 权限）
+4. 执行：`pnpm run release`
+5. `release-it` 自动更新版本、生成 `CHANGELOG.md`、提交、打 `v*` tag、推送并创建 GitHub Release
+6. `package.yml` 在 tag 事件下自动构建并上传安装包
+7. 在 GitHub Release 页面验收资产与说明
 
-本地手动发布（仅紧急场景）：
+注意事项：
 
-- `pnpm release --ci`
+- 需要仓库规则允许发布维护者推送 `main` 与 `v*` tag（或具备 bypass 权限）
+- 若仅需重建 Release Notes，可手动触发 `release.yml`
 
 ## 10. 合并前检查清单
 
