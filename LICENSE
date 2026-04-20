@@ -1,21 +1,26 @@
-MIT License
+版权所有 (c) 2026 [HAI]
 
-Copyright (c) 2026 shizhaohai
+# 个人学习专属许可 禁止商用
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### 1. 使用授权
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+特此免费授予个人非商业使用权：
+任何人可免费获取、阅读、学习、私有运行本项目的全部代码与程序，**仅限个人私下学习、技术研究、非盈利自用场景**。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+### 2. 未经书面授权，严禁以下行为
+
+1. 将本项目或任何衍生内容，用于商业盈利、付费服务、企业场景
+2. 二次修改、反编译、重构后，进行公开分发、售卖、闭源发布
+3. 删除、篡改、掩盖原作者版权、署名与项目来源标识
+4. 将本项目全部或部分代码、功能，整合至其他闭源/商用产品
+5. 批量复刻、抄袭本项目主体内容用于公开引流、同类竞品开发
+
+### 3. 免责声明
+
+本软件按「现状」提供，不附带任何明示或隐含的运行担保。
+任何因使用本软件产生的直接或间接损失，原作者不承担一切相关责任。
+
+### 4. 最终说明
+
+本许可最终解释权归原作者所有。
+一旦违反以上条款，作者保留追究侵权责任的权利。

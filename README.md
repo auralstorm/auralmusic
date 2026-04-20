@@ -5,12 +5,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/auralmusic/auralmusic"><img src="https://img.shields.io/github/stars/auralmusic/auralmusic?style=for-the-badge" alt="GitHub Stars"></a>
-  <a href="https://github.com/auralmusic/auralmusic/releases"><img src="https://img.shields.io/github/v/release/auralmusic/auralmusic?style=for-the-badge" alt="Latest Release"></a>
-  <a href="https://github.com/auralmusic/auralmusic/blob/main/LICENSE"><img src="https://img.shields.io/github/license/auralmusic/auralmusic?style=for-the-badge" alt="License"></a>
-</p>
-
-<p align="center">
   <strong>A modern, cross-platform music player built with Electron, React, and TypeScript</strong>
 </p>
 
@@ -20,10 +14,7 @@
 
 <p align="center">
   <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; max-width: 1200px; margin: 0 auto;">
-    <img src="./docs/screenshots/home.png" alt="Home Page" width="23%" style="border-radius: 8px; object-fit: cover;">
-    <img src="./docs/screenshots/rank.png" alt="Rank Page" width="23%" style="border-radius: 8px; object-fit: cover;">
-    <img src="./docs/screenshots/artist.png" alt="Artist Page" width="23%" style="border-radius: 8px; object-fit: cover;">
-    <img src="./docs/screenshots/player.png" alt="Player Page" width="23%" style="border-radius: 8px; object-fit: cover;">
+    <img src="./docs/screenshots/player.png" alt="Player Page" width="100%" style="border-radius: 8px; object-fit: cover;">
   </div>
 </p>
 
@@ -254,12 +245,21 @@ src/
 
 ## 📄 许可证
 
-本项目使用 [MIT 许可证](LICENSE)。
+[个人专属非商用学习许可](LICENSE)。
 
-## 📞 联系方式
+> ⚠️ 重要声明
+> 本项目**仅面向个人编程学习与交流，全面禁止一切商用行为、禁止二次倒卖、禁止闭源衍生分发，望大家还是要多多支持官方正版。**
 
-- **GitHub**: [auralmusic/auralmusic](https://github.com/auralmusic/auralmusic)
-- **Issues**: [Bug 报告和功能请求](https://github.com/auralmusic/auralmusic/issues)
+## 🙏 致谢与开源支持
+
+本项目的诞生离不开以下优秀的开源项目与开发者的无私贡献，在此致以最诚挚的感谢：
+
+### 音乐核心功能
+
+- [@applemusic-like-lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics) - Apple Music 风格动态歌词
+- [@neteasecloudmusicapienhanced/api](https://github.com/1711hkh/NetEaseCloudMusicApiEnhanced) - 网易云音乐接口支持
+
+感谢所有开源贡献者，让优质的技术能够普惠每一位开发者 ❤️
 
 ---
 
