@@ -22,7 +22,6 @@ asar: true
 win:
   icon: build/icons/icon.ico
   target: nsis
-  signAndEditExecutable: false
 
 nsis:
   oneClick: false

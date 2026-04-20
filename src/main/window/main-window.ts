@@ -12,6 +12,7 @@ import {
   resolvePreloadPath,
   resolveRendererLoadTarget,
 } from './window-paths.ts'
+import path from 'node:path'
 
 type BrowserWindowConstructor = new (
   options: BrowserWindowConstructorOptions
@@ -20,6 +21,9 @@ type BrowserWindowConstructor = new (
 type CreateMainWindowOptions = {
   platform: NodeJS.Platform
   preloadPath: string
+  mainDirname: string
+  appIsPackaged: boolean
+  resourcesPath?: string
 }
 
 type CreateMainWindowDependencies = {
@@ -46,6 +50,9 @@ type CreateMainWindowDependencies = {
 export function createMainWindowOptions({
   platform,
   preloadPath,
+  mainDirname,
+  appIsPackaged,
+  resourcesPath = process.resourcesPath,
 }: CreateMainWindowOptions): BrowserWindowConstructorOptions {
   const isMac = platform === 'darwin'
   const isWindows = platform === 'win32'
@@ -60,6 +67,11 @@ export function createMainWindowOptions({
     titleBarStyle: isMac ? 'hiddenInset' : isWindows ? undefined : 'hidden',
     titleBarOverlay: isMac ? false : isWindows ? false : true,
     autoHideMenuBar: true,
+    icon: resolveMainWindowIconPath({
+      appIsPackaged,
+      mainDirname,
+      resourcesPath,
+    }),
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -67,6 +79,20 @@ export function createMainWindowOptions({
       devTools: true,
     },
   }
+}
+
+export function resolveMainWindowIconPath({
+  appIsPackaged,
+  mainDirname,
+  resourcesPath = process.resourcesPath,
+}: {
+  appIsPackaged: boolean
+  mainDirname: string
+  resourcesPath?: string
+}) {
+  return appIsPackaged
+    ? path.join(resourcesPath, 'build', 'icons', 'icon.ico')
+    : path.resolve(mainDirname, '../../build/icons/icon.ico')
 }
 
 export function showMainWindow(window: BrowserWindow | null) {
@@ -159,6 +185,8 @@ export function createMainWindow({
     createMainWindowOptions({
       platform,
       preloadPath: resolvePreloadPath(mainDirname),
+      mainDirname,
+      appIsPackaged,
     })
   )
 
