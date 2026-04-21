@@ -15,6 +15,7 @@ import { createRegisterMainIpc } from '../ipc/register-main-ipc'
 import { registerMusicSourceIpc } from '../ipc/music-source-ipc'
 import { registerSystemFontsIpc } from '../ipc/system-fonts-ipc'
 import { registerTrayIpc } from '../ipc/tray-ipc'
+import { registerUpdateIpc } from '../ipc/update-ipc'
 import { bindWindowStateEvents, registerWindowIpc } from '../ipc/window-ipc'
 import { applyMusicApiRuntimeEnv } from '../music-api-runtime'
 import { registerLocalMediaProtocol } from '../protocol/local-media'
@@ -30,10 +31,14 @@ import {
   applyWindowTitleBarTheme,
   syncNativeThemeSource,
 } from '../window/titlebar-theme'
-import { TRAY_IPC_CHANNELS } from '../../shared/ipc/index.ts'
+import {
+  TRAY_IPC_CHANNELS,
+  UPDATE_IPC_CHANNELS,
+} from '../../shared/ipc/index.ts'
 import { createMainAppState } from './app-state'
 import { loadDevelopmentDevToolsExtension } from './devtools-extension'
 import { registerMainAppLifecycle } from './lifecycle'
+import { createUpdateService } from '../updater/update-service'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -41,20 +46,16 @@ const mainDirname = __dirname
 const { app, BrowserWindow, globalShortcut, nativeTheme, session } = electron
 const isDevelopment = process.env.NODE_ENV_ELECTRON_VITE === 'development'
 
-const registerMainIpc = createRegisterMainIpc({
-  registerAuthIpc,
-  registerCacheIpc,
-  registerConfigIpc,
-  registerDownloadIpc,
-  registerMusicSourceIpc,
-  registerSystemFontsIpc,
-  registerTrayIpc,
-  registerWindowIpc,
-})
-
 export function bootstrapMainApp() {
   const state = createMainAppState()
   let isStartupReady = false
+  const updateService = createUpdateService({
+    platform: process.platform,
+    currentVersion: app.getVersion(),
+    owner: '1769762790',
+    repo: 'auralmusic',
+    enabled: app.isPackaged,
+  })
 
   const hideMainWindowToTray = () => {
     state.getMainWindow()?.hide()
@@ -119,7 +120,28 @@ export function bootstrapMainApp() {
   })
 
   app.whenReady().then(async () => {
-    registerMainIpc({
+    updateService.initialize()
+    updateService.subscribe(snapshot => {
+      state
+        .getMainWindow()
+        ?.webContents.send(UPDATE_IPC_CHANNELS.STATE_CHANGED, snapshot)
+    })
+
+    const registerRuntimeMainIpc = createRegisterMainIpc({
+      registerAuthIpc,
+      registerCacheIpc,
+      registerConfigIpc,
+      registerDownloadIpc,
+      registerMusicSourceIpc,
+      registerSystemFontsIpc,
+      registerTrayIpc,
+      registerUpdateIpc: () => {
+        registerUpdateIpc(updateService)
+      },
+      registerWindowIpc,
+    })
+
+    registerRuntimeMainIpc({
       onShortcutConfigChange: () => {
         syncConfiguredGlobalShortcuts(state.getMainWindow())
       },
@@ -182,6 +204,7 @@ export function bootstrapMainApp() {
       })
 
       createWindow()
+      updateService.scheduleAutoCheck()
       isStartupReady = true
 
       nativeTheme.on('updated', () => {

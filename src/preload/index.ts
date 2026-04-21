@@ -7,6 +7,7 @@ import { exposeRuntimeApi } from './api/runtime-api'
 import { exposeShortcutApi } from './api/shortcut-api'
 import { exposeSystemFontsApi } from './api/system-fonts-api'
 import { exposeTrayApi } from './api/tray-api'
+import { exposeUpdateApi } from './api/update-api'
 import { exposeWindowApi } from './api/window-api'
 
 exposeAuthApi()
@@ -18,4 +19,5 @@ exposeRuntimeApi()
 exposeShortcutApi()
 exposeSystemFontsApi()
 exposeTrayApi()
+exposeUpdateApi()
 exposeWindowApi()

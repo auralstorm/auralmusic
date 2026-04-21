@@ -8,6 +8,7 @@ import type { CacheApi } from '@preload/api/cache-api'
 import type { DownloadApi } from '@preload/api/download-api'
 import type { SystemFontsApi } from '@preload/api/system-fonts-api'
 import type { TrayApi } from '@preload/api/tray-api'
+import type { UpdateApi } from '@preload/api/update-api'
 
 declare global {
   interface Window {
@@ -20,6 +21,7 @@ declare global {
     electronShortcut: ShortcutApi
     electronSystemFonts: SystemFontsApi
     electronTray: TrayApi
+    electronUpdate: UpdateApi
     electronWindow: WindowApi
   }
 }

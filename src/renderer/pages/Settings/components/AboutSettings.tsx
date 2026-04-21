@@ -2,15 +2,21 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { useUpdateStore } from '@/stores/update-store'
 
 import {
-  ABOUT_UPDATE_UNAVAILABLE_MESSAGE,
+  ABOUT_UP_TO_DATE_MESSAGE,
   ABOUT_USAGE_NOTICE_LINES,
+  resolveCheckUpdateButtonLabel,
+  resolveUpdateFailureMessage,
   resolveAboutVersionLabel,
 } from './about-settings.model'
 
 const AboutSettings = () => {
   const appVersion = window.appRuntime.getAppVersion()
+  const updateSnapshot = useUpdateStore(state => state.snapshot)
+  const openUpdateModal = useUpdateStore(state => state.openModal)
+  const buttonLabel = resolveCheckUpdateButtonLabel(updateSnapshot)
 
   return (
     <div className='space-y-1'>
@@ -27,11 +33,30 @@ const AboutSettings = () => {
           type='button'
           variant='outline'
           className='h-9 justify-self-end'
-          onClick={() => {
-            toast.info(ABOUT_UPDATE_UNAVAILABLE_MESSAGE)
+          disabled={updateSnapshot.status === 'checking'}
+          onClick={async () => {
+            if (
+              updateSnapshot.status === 'update-available' ||
+              updateSnapshot.status === 'downloading' ||
+              updateSnapshot.status === 'update-downloaded'
+            ) {
+              openUpdateModal()
+              return
+            }
+
+            const nextSnapshot = await window.electronUpdate.checkForUpdates()
+
+            if (nextSnapshot.status === 'up-to-date') {
+              toast.success(ABOUT_UP_TO_DATE_MESSAGE)
+              return
+            }
+
+            if (nextSnapshot.status === 'error') {
+              toast.error(resolveUpdateFailureMessage(nextSnapshot))
+            }
           }}
         >
-          检查更新
+          {buttonLabel}
         </Button>
       </div>
       <Separator />

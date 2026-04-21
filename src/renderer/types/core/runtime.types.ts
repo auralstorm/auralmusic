@@ -1,4 +1,5 @@
 import type { RuntimeApi } from '@preload/api/runtime-api'
+import type { UpdateApi } from '@preload/api/update-api'
 import type { WindowApi } from '@preload/api/window-api'
 import type { InternalAxiosRequestConfig } from 'axios'
 
@@ -14,6 +15,7 @@ export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
 
 export interface ElectronRuntimeWindow {
   appRuntime?: RuntimeApi
+  electronUpdate?: UpdateApi
   electronWindow?: WindowApi
 }
 

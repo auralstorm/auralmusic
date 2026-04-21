@@ -1,4 +1,7 @@
-export const ABOUT_UPDATE_UNAVAILABLE_MESSAGE = '暂未接入自动更新'
+import type { AppUpdateSnapshot } from '../../../../shared/update.ts'
+
+export const ABOUT_UP_TO_DATE_MESSAGE = '当前已是最新版'
+export const ABOUT_UPDATE_FAILED_MESSAGE = '检查更新失败，请稍后重试'
 
 export const ABOUT_USAGE_NOTICE_LINES = [
   '本项目仅供个人技术学习，禁止任何侵权、非法二次分发与商用。',
@@ -10,4 +13,21 @@ export const ABOUT_USAGE_NOTICE_LINES = [
 export function resolveAboutVersionLabel(version: string | undefined | null) {
   const normalizedVersion = version?.trim()
   return normalizedVersion ? `v${normalizedVersion}` : '版本未知'
+}
+
+export function resolveCheckUpdateButtonLabel(snapshot: AppUpdateSnapshot) {
+  switch (snapshot.status) {
+    case 'checking':
+      return '检查中...'
+    case 'update-downloaded':
+    case 'update-available':
+    case 'downloading':
+      return '查看更新'
+    default:
+      return '检查更新'
+  }
+}
+
+export function resolveUpdateFailureMessage(snapshot: AppUpdateSnapshot) {
+  return snapshot.errorMessage?.trim() || ABOUT_UPDATE_FAILED_MESSAGE
 }
