@@ -143,9 +143,9 @@ src/renderer/pages/FeatureX/
 
 1. 业务 PR 合并到 `main`
 2. 本地同步并确认工作区干净：`git switch main && git pull origin main`
-3. 设置本地 `GITHUB_TOKEN`（需有 `repo` 权限）
-4. 执行：`pnpm run release`
-5. `release-it` 自动更新版本、生成 `CHANGELOG.md`、提交、打 `v*` tag、推送并创建 GitHub Release
+3. 确认本机已通过 `gh auth login` 登录 GitHub
+4. 执行：`pnpm run release:gh`
+5. `release-it` 自动更新 `package.json` 版本、生成 `CHANGELOG.md`、提交、打 `v*` tag、推送并创建 GitHub Release
 6. `package.yml` 在 tag 事件下自动构建并上传安装包
 7. 在 GitHub Release 页面验收资产与说明
 
