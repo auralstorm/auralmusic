@@ -20,11 +20,13 @@ test('createRegisterMainIpc registers every main ipc module with supplied option
     },
     registerDownloadIpc: () => calls.push('download'),
     registerMusicSourceIpc: () => calls.push('music-source'),
+    registerShortcutIpc: () => calls.push('shortcut'),
     registerSystemFontsIpc: () => calls.push('system-fonts'),
     registerTrayIpc: options => {
       calls.push('tray')
       assert.equal(options.trayController, trayController)
     },
+    registerUpdateIpc: () => calls.push('update'),
     registerWindowIpc: options => {
       calls.push('window')
       assert.equal(options.onQuitRequested, onQuitRequested)
@@ -44,8 +46,10 @@ test('createRegisterMainIpc registers every main ipc module with supplied option
     'cache',
     'download',
     'music-source',
+    'shortcut',
     'system-fonts',
     'tray',
+    'update',
     'window',
   ])
 })

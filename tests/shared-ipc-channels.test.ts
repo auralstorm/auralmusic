@@ -5,6 +5,7 @@ import { AUTH_IPC_CHANNELS } from '../src/shared/ipc/auth.ts'
 import { CACHE_IPC_CHANNELS } from '../src/shared/ipc/cache.ts'
 import { IPC_CHANNELS } from '../src/shared/ipc/config.ts'
 import { DOWNLOAD_IPC_CHANNELS } from '../src/shared/ipc/download.ts'
+import { SHORTCUT_IPC_CHANNELS } from '../src/shared/ipc/shortcut.ts'
 import { SYSTEM_FONTS_IPC_CHANNELS } from '../src/shared/ipc/system-fonts.ts'
 import { TRAY_IPC_CHANNELS } from '../src/shared/ipc/tray.ts'
 import { WINDOW_IPC_CHANNELS } from '../src/shared/ipc/window.ts'
@@ -53,6 +54,13 @@ test('shared ipc channel constants preserve the existing wire contract', () => {
     OPEN_DOWNLOADED_FILE: 'download:open-downloaded-file',
     OPEN_DOWNLOADED_FILE_FOLDER: 'download:open-downloaded-file-folder',
     TASKS_CHANGED: 'download:tasks-changed',
+  })
+
+  assert.deepEqual(SHORTCUT_IPC_CHANNELS, {
+    GET_GLOBAL_REGISTRATION_STATUSES:
+      'shortcut:get-global-registration-statuses',
+    GLOBAL_REGISTRATION_STATUSES_CHANGED:
+      'shortcut:global-registration-statuses-changed',
   })
 
   assert.deepEqual(SYSTEM_FONTS_IPC_CHANNELS, {

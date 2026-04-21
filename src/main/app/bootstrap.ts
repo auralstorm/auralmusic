@@ -13,6 +13,7 @@ import { registerConfigIpc } from '../ipc/config-ipc'
 import { registerDownloadIpc } from '../ipc/download-ipc'
 import { createRegisterMainIpc } from '../ipc/register-main-ipc'
 import { registerMusicSourceIpc } from '../ipc/music-source-ipc'
+import { registerShortcutIpc } from '../ipc/shortcut-ipc'
 import { registerSystemFontsIpc } from '../ipc/system-fonts-ipc'
 import { registerTrayIpc } from '../ipc/tray-ipc'
 import { registerUpdateIpc } from '../ipc/update-ipc'
@@ -133,6 +134,7 @@ export function bootstrapMainApp() {
       registerConfigIpc,
       registerDownloadIpc,
       registerMusicSourceIpc,
+      registerShortcutIpc,
       registerSystemFontsIpc,
       registerTrayIpc,
       registerUpdateIpc: () => {

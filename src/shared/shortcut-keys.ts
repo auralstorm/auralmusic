@@ -27,6 +27,16 @@ export interface GlobalShortcutRegistration {
   accelerator: string
 }
 
+export interface GlobalShortcutRegistrationStatus {
+  accelerator: string | null
+  registered: boolean
+}
+
+export type GlobalShortcutRegistrationStatuses = Record<
+  ShortcutActionId,
+  GlobalShortcutRegistrationStatus
+>
+
 export const DEFAULT_SHORTCUT_BINDINGS: ShortcutBindings = {
   playPause: {
     local: 'Ctrl+P',
@@ -199,6 +209,41 @@ export function resolveEnabledGlobalShortcutRegistrations({
   }
 
   return registrations
+}
+
+export function resolveGlobalShortcutRegistrationStatuses({
+  enabled,
+  bindings,
+  isRegistered,
+}: {
+  enabled: boolean
+  bindings: ShortcutBindings
+  isRegistered: (accelerator: string, actionId: ShortcutActionId) => boolean
+}): GlobalShortcutRegistrationStatuses {
+  const normalizedBindings = normalizeShortcutBindings(bindings)
+  const usedAccelerators = new Set<string>()
+
+  return SHORTCUT_ACTIONS.reduce((statuses, actionId) => {
+    const accelerator = normalizeShortcutForElectronAccelerator(
+      normalizedBindings[actionId].global
+    )
+
+    if (!enabled || !accelerator || usedAccelerators.has(accelerator)) {
+      statuses[actionId] = {
+        accelerator,
+        registered: false,
+      }
+      return statuses
+    }
+
+    usedAccelerators.add(accelerator)
+    statuses[actionId] = {
+      accelerator,
+      registered: isRegistered(accelerator, actionId),
+    }
+
+    return statuses
+  }, {} as GlobalShortcutRegistrationStatuses)
 }
 
 export function findShortcutActionByAccelerator(
