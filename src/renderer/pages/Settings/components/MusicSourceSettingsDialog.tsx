@@ -357,16 +357,16 @@ const MusicSourceSettingsDialog = ({
             onValueChange={value => setActiveTab(value as MusicSourceTab)}
             className='gap-4'
           >
-            <TabsList className='bg-muted/60 grid h-10 w-full grid-cols-3 rounded-2xl p-1'>
+            <TabsList className='bg-muted/60 grid h-10 w-full grid-cols-2 rounded-2xl p-1'>
               <TabsTrigger value='enhanced-unblock' className='rounded-xl'>
-                增强模块
+                默认源
               </TabsTrigger>
               <TabsTrigger value='luoxue' className='rounded-xl'>
                 落雪音源
               </TabsTrigger>
-              <TabsTrigger value='custom-api' className='rounded-xl'>
+              {/* <TabsTrigger value='custom-api' className='rounded-xl'>
                 自定义 API
-              </TabsTrigger>
+              </TabsTrigger> */}
             </TabsList>
 
             <TabsContent
@@ -375,12 +375,8 @@ const MusicSourceSettingsDialog = ({
             >
               <div>
                 <h3 className='text-foreground text-sm font-semibold'>
-                  增强模块顺序
+                  默认源顺序
                 </h3>
-                <p className='text-muted-foreground mt-1 text-xs leading-5'>
-                  这些模块会按勾选顺序依次调用
-                  `/song/url/match?source=...`。未勾选的模块不会参与播放解锁。
-                </p>
               </div>
 
               {hasLegacyProviders ? (
