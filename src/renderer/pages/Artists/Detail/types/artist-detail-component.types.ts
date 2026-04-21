@@ -48,7 +48,9 @@ export interface ArtistMediaTabsProps {
 }
 
 export interface ArtistTopSongsProps {
+  artistId: number
   songs: ArtistTopSongItem[]
+  onViewAll: () => void
 }
 
 export interface SimilarArtistsProps {

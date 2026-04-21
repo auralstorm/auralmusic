@@ -7,7 +7,7 @@ import {
   getArtistDesc,
   getArtistDetail,
   getArtistMvs,
-  getArtistTopSongs,
+  getArtistSongs,
   getSimilarArtists,
 } from '@/api/artist'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
@@ -28,7 +28,7 @@ import {
   normalizeArtistDescription,
   normalizeArtistMvs,
   normalizeArtistProfile,
-  normalizeArtistTopSongs,
+  normalizeArtistSongs,
   normalizeSimilarArtists,
   resolveArtistMvImages,
   resolveArtistProfileImage,
@@ -85,6 +85,11 @@ const ArtistDetail = () => {
   const navigateToArtistDetail = (nextArtistId: number) => {
     if (!nextArtistId) return
     navigate(`/artists/${nextArtistId}`)
+  }
+
+  const navigateToArtistSongs = () => {
+    if (!artistId) return
+    navigate(`/artists/${artistId}/songs`)
   }
 
   const fetchAlbumsPage = useCallback(
@@ -207,7 +212,12 @@ const ArtistDetail = () => {
         const [detailResponse, topSongsResponse, descResponse] =
           await Promise.all([
             getArtistDetail({ id: artistId }),
-            getArtistTopSongs({ id: artistId }),
+            getArtistSongs({
+              id: artistId,
+              order: 'hot',
+              limit: 12,
+              offset: 0,
+            }),
             getArtistDesc({ id: artistId }),
           ])
 
@@ -227,7 +237,7 @@ const ArtistDetail = () => {
         setState(previous => ({
           ...previous,
           profile,
-          topSongs: normalizeArtistTopSongs(topSongsResponse),
+          topSongs: normalizeArtistSongs(topSongsResponse),
           description: normalizeArtistDescription(descResponse),
         }))
       } catch (fetchError) {
@@ -352,7 +362,11 @@ const ArtistDetail = () => {
         onToAlbumDetail={navigateToAlbumDetail}
         onToMvDetail={navigateToMvDetail}
       />
-      <ArtistTopSongs songs={state.topSongs} />
+      <ArtistTopSongs
+        artistId={artistId}
+        songs={state.topSongs}
+        onViewAll={navigateToArtistSongs}
+      />
       <ArtistMediaTabs
         albums={albums}
         mvs={mvs}

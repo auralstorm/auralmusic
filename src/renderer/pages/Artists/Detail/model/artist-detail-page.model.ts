@@ -11,6 +11,7 @@ import type {
   RawArtistAlbum,
   RawArtistDescResponse,
   RawArtistDetailPayload,
+  RawArtistSongsPayload,
   RawArtistMv,
   RawTopSong,
 } from '../types'
@@ -62,19 +63,29 @@ export function normalizeArtistProfile(
 export function normalizeArtistTopSongs(
   response: ArtistDetailResponse<{ songs?: RawTopSong[] }>
 ): ArtistTopSongItem[] {
-  const payload = unwrapArtistDetailPayload(response)
-  return (payload?.songs || []).map(song => ({
+  return normalizeArtistSongs(response)
+}
+
+function mapArtistSong(song: RawTopSong): ArtistTopSongItem {
+  return {
     id: song.id,
     name: song.name || '未知歌曲',
     subtitle: song.alia?.[0] || song.tns?.[0] || '',
     duration: song.dt || 0,
-    albumName: song.al?.name || '',
+    albumName: song.al?.name || song.album?.name || '',
     coverUrl: song.al?.picUrl || song.album?.picUrl || '',
     artists: (song.ar || []).map(artist => ({
       id: artist.id,
       name: artist.name || '未知歌手',
     })),
-  }))
+  }
+}
+
+export function normalizeArtistSongs(
+  response: ArtistDetailResponse<RawArtistSongsPayload>
+): ArtistTopSongItem[] {
+  const payload = unwrapArtistDetailPayload(response)
+  return (payload?.songs || []).map(mapArtistSong)
 }
 
 export function createArtistTopSongPlaybackQueue(

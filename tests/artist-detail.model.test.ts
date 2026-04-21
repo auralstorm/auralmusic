@@ -2,7 +2,10 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { normalizeSimilarArtists } from '../src/renderer/pages/Artists/artist-detail.model.ts'
-import { createArtistTopSongPlaybackQueue } from '../src/renderer/pages/Artists/Detail/model/artist-detail-page.model.ts'
+import {
+  createArtistTopSongPlaybackQueue,
+  normalizeArtistSongs,
+} from '../src/renderer/pages/Artists/Detail/model/artist-detail-page.model.ts'
 
 test('normalizeSimilarArtists maps similar artist payload into cover items', () => {
   const artists = normalizeSimilarArtists({
@@ -58,6 +61,38 @@ test('createArtistTopSongPlaybackQueue maps artist songs into playback tracks', 
       albumName: 'Album A',
       coverUrl: 'https://img.example.com/a.jpg',
       duration: 213000,
+    },
+  ])
+})
+
+test('normalizeArtistSongs maps artist songs payload into track list rows', () => {
+  const songs = normalizeArtistSongs({
+    data: {
+      songs: [
+        {
+          id: 101,
+          name: 'Song A',
+          alia: ['Live'],
+          dt: 201000,
+          al: {
+            name: 'Album A',
+            picUrl: 'https://img.example.com/a.jpg',
+          },
+          ar: [{ id: 1, name: 'Artist A' }],
+        },
+      ],
+    },
+  })
+
+  assert.deepEqual(songs, [
+    {
+      id: 101,
+      name: 'Song A',
+      subtitle: 'Live',
+      duration: 201000,
+      albumName: 'Album A',
+      coverUrl: 'https://img.example.com/a.jpg',
+      artists: [{ id: 1, name: 'Artist A' }],
     },
   ])
 })
