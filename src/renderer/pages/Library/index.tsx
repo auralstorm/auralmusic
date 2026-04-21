@@ -13,6 +13,7 @@ import { createPlaylist, getPlaylistTrackAll } from '@/api/list'
 import { userPlaylist } from '@/api/user'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
+import { useMvDrawerStore } from '@/stores/mv-drawer-store'
 
 import CreatePlaylistDialog from './components/CreatePlaylistDialog'
 import LibraryHero from './components/LibraryHero'
@@ -36,6 +37,7 @@ const Library = () => {
   useScrollToTopOnRouteEnter()
 
   const navigate = useNavigate()
+  const openMvDrawer = useMvDrawerStore(state => state.openDrawer)
   const user = useAuthStore(state => state.user)
   const loginStatus = useAuthStore(state => state.loginStatus)
   const hasHydrated = useAuthStore(state => state.hasHydrated)
@@ -194,7 +196,7 @@ const Library = () => {
 
   const handleOpenMv = (mvId: number) => {
     if (!isDef(mvId)) return
-    navigate(`/mv/${mvId}`)
+    openMvDrawer(mvId)
   }
 
   const handleCreatePlaylist = async (payload: CreatePlaylistPayload) => {

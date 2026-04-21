@@ -111,3 +111,8 @@ body::-webkit-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* 全局隐藏所有 Drawer 的手柄和边框 */
+.group-data-[vaul-drawer-direction='bottom']/drawer-content:block {
+  display: none !important;
+}

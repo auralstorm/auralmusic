@@ -13,6 +13,7 @@ import {
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
+import { useMvDrawerStore } from '@/stores/mv-drawer-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
 import ArtistDetailSkeleton from './components/ArtistDetailSkeleton'
@@ -70,6 +71,7 @@ const ArtistDetail = () => {
   )
   const [followLoading, setFollowLoading] = useState(false)
   const navigate = useNavigate()
+  const openMvDrawer = useMvDrawerStore(state => state.openDrawer)
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
 
   const navigateToAlbumDetail = (albumId: number) => {
@@ -79,7 +81,7 @@ const ArtistDetail = () => {
 
   const navigateToMvDetail = (mvId: number) => {
     if (!mvId) return
-    navigate(`/mv/${mvId}`)
+    openMvDrawer(mvId)
   }
 
   const navigateToArtistDetail = (nextArtistId: number) => {

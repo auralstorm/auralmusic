@@ -157,6 +157,14 @@ export interface CollectToPlaylistStoreState {
   closeDrawer: () => void
 }
 
+export interface MvDrawerStoreState {
+  open: boolean
+  mvId: number | null
+  setOpen: (open: boolean) => void
+  openDrawer: (mvId: number) => void
+  closeDrawer: () => void
+}
+
 export interface PlaybackSessionSnapshot {
   queue: PlaybackTrack[]
   currentIndex: number

@@ -1,5 +1,6 @@
 import Header from '@/components/Header'
 import LazyCollectToPlaylistDrawer from '@/components/CollectToPlaylistDrawer/LazyCollectToPlaylistDrawer'
+import MvDrawer from '@/components/MvDrawer'
 import PlaybackControl from '@/components/PlaybackControl'
 import PlaybackEngine from '@/components/PlaybackControl/PlaybackEngine'
 import PlaybackSessionBridge from '@/components/PlaybackSessionBridge'
@@ -39,6 +40,7 @@ const AppLayout = () => {
       <PlayerScene />
       <UpdateProvider />
       <LazyCollectToPlaylistDrawer />
+      <MvDrawer />
       <Toaster />
       <ScrollToTopButton />
     </main>
