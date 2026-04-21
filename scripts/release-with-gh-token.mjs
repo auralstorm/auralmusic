@@ -3,8 +3,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const releaseArgs = process.argv.slice(2);
+const isWindows = process.platform === 'win32';
 function resolveGhExecutable() {
-  if (process.platform !== 'win32') return 'gh';
+  if (!isWindows) return 'gh';
 
   const candidates = [
     join(process.env.ProgramFiles ?? 'C:\\Program Files', 'GitHub CLI', 'gh.exe'),
@@ -16,7 +17,7 @@ function resolveGhExecutable() {
 }
 
 const ghExecutable = resolveGhExecutable();
-const pnpmExecutable = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const pnpmExecutable = isWindows ? 'pnpm.cmd' : 'pnpm';
 
 function getGitHubToken() {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN.trim();
@@ -37,18 +38,30 @@ function getGitHubToken() {
 }
 
 function runRelease(token) {
-  const result = spawnSync(
-    pnpmExecutable,
-    ['exec', 'release-it', ...releaseArgs],
-    {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        GITHUB_TOKEN: token,
-        GH_TOKEN: token,
-      },
-    }
-  );
+  const env = {
+    ...process.env,
+    GITHUB_TOKEN: token,
+    GH_TOKEN: token,
+  };
+
+  const result = isWindows
+    ? spawnSync(
+        pnpmExecutable,
+        ['exec', 'release-it', ...releaseArgs],
+        {
+          stdio: 'inherit',
+          env,
+          shell: true,
+        }
+      )
+    : spawnSync(
+        pnpmExecutable,
+        ['exec', 'release-it', ...releaseArgs],
+        {
+          stdio: 'inherit',
+          env,
+        }
+      );
 
   if (typeof result.status === 'number') {
     process.exit(result.status);
