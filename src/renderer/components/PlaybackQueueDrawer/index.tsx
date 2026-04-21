@@ -37,6 +37,7 @@ const PlaybackQueueDrawer = ({
   const currentIndex = usePlaybackStore(state => state.currentIndex)
   const status = usePlaybackStore(state => state.status)
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
+  const togglePlay = usePlaybackStore(state => state.togglePlay)
 
   const hasQueue = queue.length > 0
 
@@ -97,13 +98,20 @@ const PlaybackQueueDrawer = ({
                   status
                 )
 
+                const handleQueueItemClick = () => {
+                  if (isActive) {
+                    togglePlay()
+                    return
+                  }
+
+                  playQueueFromIndex(queue, index)
+                }
+
                 return (
                   <div className='w-full pb-2'>
                     <button
                       type='button'
-                      onClick={() => {
-                        playQueueFromIndex(queue, index)
-                      }}
+                      onClick={handleQueueItemClick}
                       className={cn(
                         'group flex w-full min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors',
                         'hover:bg-foreground/6 focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:outline-none',

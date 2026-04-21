@@ -21,3 +21,9 @@ test('PlaybackQueueDrawer uses react-virtuoso for queue virtualization', () => {
   assert.match(drawerSource, /onOpenAutoFocus/)
   assert.match(drawerSource, /preventDefault/)
 })
+
+test('PlaybackQueueDrawer toggles the current track instead of reloading it', () => {
+  assert.match(drawerSource, /togglePlay/)
+  assert.match(drawerSource, /if\s*\(\s*isActive\s*\)\s*\{\s*togglePlay\(\)/)
+  assert.match(drawerSource, /playQueueFromIndex\(queue,\s*index\)/)
+})

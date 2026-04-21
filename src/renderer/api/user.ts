@@ -12,5 +12,5 @@ export function userPlaylist(params: UserPlaylistParams) {
 
 export async function getCollectPlaylistTargets(params: UserPlaylistParams) {
   const response = await userPlaylist(params)
-  return normalizeCollectPlaylistTargets(response.data)
+  return normalizeCollectPlaylistTargets(response.data, Number(params.uid))
 }

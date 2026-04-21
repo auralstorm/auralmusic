@@ -7,6 +7,7 @@ import {
   shouldSyncPlaybackProgressFrame,
   isPlaybackRequestStale,
   prepareAudioForPendingTrack,
+  shouldResumePlaybackTransport,
 } from '../src/renderer/components/PlaybackControl/model/playback-engine.model.ts'
 
 test('prepareAudioForPendingTrack stops current audio before resolving the next source', () => {
@@ -122,5 +123,27 @@ test('shouldSyncPlaybackProgressFrame throttles progress updates to 30fps', () =
       frameTimestamp: 43.5,
     }),
     true
+  )
+})
+
+test('shouldResumePlaybackTransport resumes when a faded pause is still pending', () => {
+  assert.equal(
+    shouldResumePlaybackTransport({
+      status: 'playing',
+      hasSource: true,
+      audioPaused: false,
+      hasPendingPauseIntent: true,
+    }),
+    true
+  )
+
+  assert.equal(
+    shouldResumePlaybackTransport({
+      status: 'playing',
+      hasSource: true,
+      audioPaused: false,
+      hasPendingPauseIntent: false,
+    }),
+    false
   )
 })

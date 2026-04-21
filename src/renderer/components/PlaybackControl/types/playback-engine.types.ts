@@ -59,6 +59,7 @@ export type PlaybackEngineRuntimeSyncOptions = PlaybackEngineRuntimeRefs & {
   config: AppConfig
   quality: AudioQualityLevel
   equalizer: EqualizerConfig
+  playbackFadeEnabled: AppConfig['playbackFadeEnabled']
   playbackSpeed: AppConfig['playbackSpeed']
   volume: number
   audioOutputDeviceId: AppConfig['audioOutputDeviceId']

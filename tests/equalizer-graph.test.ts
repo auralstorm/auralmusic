@@ -39,7 +39,7 @@ class FakeBiquadFilterNode extends FakeAudioNode {
 class FakeAudioContext {
   readonly destination = new FakeAudioNode()
   readonly source = new FakeAudioNode()
-  readonly preamp = new FakeGainNode()
+  readonly gains: FakeGainNode[] = []
   readonly filters: FakeBiquadFilterNode[] = []
   closeCount = 0
   resumeCount = 0
@@ -52,7 +52,9 @@ class FakeAudioContext {
   }
 
   createGain() {
-    return this.preamp
+    const gain = new FakeGainNode()
+    this.gains.push(gain)
+    return gain
   }
 
   createBiquadFilter() {
@@ -82,8 +84,9 @@ test('createEqualizerGraph builds a media element equalizer chain', () => {
     createAudioContext: () => context,
   })
 
-  assert.equal(context.source.connections[0], context.preamp)
-  assert.equal(context.preamp.connections[0], context.filters[0])
+  assert.equal(context.source.connections[0], context.gains[0])
+  assert.equal(context.gains[0]?.connections[0], context.gains[1])
+  assert.equal(context.gains[1]?.connections[0], context.filters[0])
   assert.equal(context.filters.length, 10)
   assert.equal(context.filters.at(-1)?.connections[0], context.destination)
 
@@ -108,14 +111,14 @@ test('equalizer graph applies enabled and disabled config values', () => {
     })),
   })
 
-  assert.equal(context.preamp.gain.value, equalizerDbToLinearGain(-6))
+  assert.equal(context.gains[1]?.gain.value, equalizerDbToLinearGain(-6))
   assert.equal(context.filters[0]?.gain.value, 5)
   assert.equal(context.filters[0]?.type, 'peaking')
   assert.equal(context.filters[0]?.frequency.value, 31)
 
   graph.update({ ...DEFAULT_EQUALIZER_CONFIG, enabled: false })
 
-  assert.equal(context.preamp.gain.value, 1)
+  assert.equal(context.gains[1]?.gain.value, 1)
   assert.deepEqual(
     context.filters.map(filter => filter.gain.value),
     DEFAULT_EQUALIZER_CONFIG.bands.map(() => 0)

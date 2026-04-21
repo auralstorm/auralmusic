@@ -17,7 +17,8 @@ function unwrapData<T>(response?: RawResponse<T> | null): T | undefined {
 }
 
 export function normalizeCollectPlaylistTargets(
-  response: unknown
+  response: unknown,
+  currentUserId?: number | null
 ): CollectPlaylistTarget[] {
   const body = unwrapData(response as RawResponse<unknown>)
 
@@ -37,8 +38,9 @@ export function normalizeCollectPlaylistTargets(
     }
 
     const isLikedPlaylist =
-      playlist.specialType === 5 || playlist.name?.trim() === '我喜欢的音乐'
-    const isCreatedPlaylist = playlist.subscribed !== true
+      playlist.specialType === 5 && playlist.creator?.userId === currentUserId
+    const isCreatedPlaylist =
+      playlist.subscribed !== true && playlist.specialType !== 5
 
     if (!isLikedPlaylist && !isCreatedPlaylist) {
       return []

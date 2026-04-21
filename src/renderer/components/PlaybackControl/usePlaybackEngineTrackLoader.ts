@@ -59,8 +59,13 @@ export function usePlaybackEngineTrackLoader({
       if (usePlaybackStore.getState().shouldAutoPlayOnLoad) {
         usePlaybackStore.getState().markPlaybackLoading()
       }
+
+      if (currentPlaybackSourceRef.current) {
+        await playbackRuntime.pauseWithFade()
+      } else {
+        playbackRuntime.stop()
+      }
       currentPlaybackSourceRef.current = null
-      playbackRuntime.stop()
 
       try {
         let result = null
@@ -227,7 +232,7 @@ export function usePlaybackEngineTrackLoader({
           cancelled,
           getPlaybackRequestSnapshot()
         )
-        await playbackRuntime.play()
+        await playbackRuntime.playWithFade()
         throwIfPlaybackRequestStale(
           expectedRequestId,
           expectedTrackId,

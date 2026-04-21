@@ -2,7 +2,10 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { playbackRuntime } from '@/audio/playback-runtime/playback-runtime'
 import { usePlaybackStore } from '@/stores/playback-store'
-import { PLAYBACK_UNAVAILABLE_MESSAGE } from './model'
+import {
+  PLAYBACK_UNAVAILABLE_MESSAGE,
+  shouldResumePlaybackTransport,
+} from './model'
 import type { PlaybackEngineTransportEffectsOptions } from './types'
 
 export function usePlaybackEngineTransportEffects({
@@ -14,12 +17,19 @@ export function usePlaybackEngineTransportEffects({
     const audio = playbackRuntime.getAudioElement()
 
     if (status === 'paused' || status === 'idle' || status === 'error') {
-      playbackRuntime.pause()
+      void playbackRuntime.pauseWithFade()
       return
     }
 
-    if (status === 'playing' && audio.src && audio.paused) {
-      void playbackRuntime.play().catch(error => {
+    if (
+      shouldResumePlaybackTransport({
+        status,
+        hasSource: Boolean(audio.src),
+        audioPaused: audio.paused,
+        hasPendingPauseIntent: playbackRuntime.hasPendingPauseIntent(),
+      })
+    ) {
+      void playbackRuntime.playWithFade().catch(error => {
         console.error('resume playback failed', error)
         usePlaybackStore
           .getState()

@@ -21,6 +21,7 @@ import {
   normalizeEnhancedSourceModules,
   normalizeEqualizerConfigValue,
   normalizeImmersivePlayerControls,
+  normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
@@ -157,6 +158,9 @@ function normalizeConfig(config: AppConfig): AppConfig {
     animationEffect: normalizeAnimationEffect(config.animationEffect),
     immersivePlayerControls: normalizeImmersivePlayerControls(
       config.immersivePlayerControls
+    ),
+    playbackFadeEnabled: normalizePlaybackFadeEnabled(
+      config.playbackFadeEnabled
     ),
     closeBehavior: ['ask', 'minimize', 'quit'].includes(config.closeBehavior)
       ? config.closeBehavior

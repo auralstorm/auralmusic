@@ -24,6 +24,16 @@ function connectNodes(nodes: unknown[]) {
   }
 }
 
+function holdAudioParamAtCurrentValue(param: AudioParam, time: number) {
+  if (typeof param.cancelAndHoldAtTime === 'function') {
+    param.cancelAndHoldAtTime(time)
+    return
+  }
+
+  param.cancelScheduledValues(time)
+  param.setValueAtTime(param.value, time)
+}
+
 function createDefaultAudioContext(): EqualizerAudioContext {
   const AudioContextConstructor =
     window.AudioContext ||
@@ -44,6 +54,7 @@ export function createEqualizerGraph(options: {
   const audioContext =
     options.createAudioContext?.() ?? createDefaultAudioContext()
   const source = audioContext.createMediaElementSource(options.audioElement)
+  const masterGain = audioContext.createGain()
   const preamp = audioContext.createGain()
   const filters = EQ_BANDS.map(band => {
     const filter = audioContext.createBiquadFilter()
@@ -54,7 +65,13 @@ export function createEqualizerGraph(options: {
     return filter
   })
 
-  connectNodes([source, preamp, ...filters, audioContext.destination])
+  connectNodes([
+    source,
+    masterGain,
+    preamp,
+    ...filters,
+    audioContext.destination,
+  ])
 
   const graph: EqualizerGraph = {
     update(config) {
@@ -81,6 +98,17 @@ export function createEqualizerGraph(options: {
         await audioContext.resume()
       }
     },
+    setMasterVolume(volume) {
+      masterGain.gain.value = volume
+    },
+    getMasterVolume() {
+      return masterGain.gain.value
+    },
+    fadeTo(volume, durationMs) {
+      const now = audioContext.currentTime
+      holdAudioParamAtCurrentValue(masterGain.gain, now)
+      masterGain.gain.linearRampToValueAtTime(volume, now + durationMs / 1000)
+    },
     async setOutputDevice(deviceId) {
       if (!audioContext.setSinkId) {
         return false
@@ -90,7 +118,7 @@ export function createEqualizerGraph(options: {
       return true
     },
     dispose() {
-      ;[source, preamp, ...filters].forEach(node => {
+      ;[source, masterGain, preamp, ...filters].forEach(node => {
         node.disconnect()
       })
       void audioContext.close()
