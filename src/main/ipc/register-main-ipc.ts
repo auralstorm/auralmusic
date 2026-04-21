@@ -23,6 +23,7 @@ type RegisterMainIpcDependencies = {
   registerMusicSourceIpc: () => void
   registerSystemFontsIpc: () => void
   registerTrayIpc: (options: TrayIpcOptions) => void
+  registerUpdateIpc: () => void
   registerWindowIpc: (options: WindowIpcOptions) => void
 }
 
@@ -42,6 +43,7 @@ export function createRegisterMainIpc(
     dependencies.registerTrayIpc({
       trayController: options.trayController,
     })
+    dependencies.registerUpdateIpc()
     dependencies.registerWindowIpc({
       onQuitRequested: options.onQuitRequested,
     })

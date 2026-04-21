@@ -50,6 +50,7 @@
     "clsx": "^2.1.1",
     "colorthief": "^3.3.1",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
     "embla-carousel-react": "^8.6.0",
     "font-list": "^2.0.2",
     "form-data": "^4.0.5",

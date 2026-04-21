@@ -12,6 +12,7 @@ import { isWindowsPlatform } from '@/lib/electron-runtime'
 import { useAnimationEffect } from '@/hooks/useAnimationEffect'
 import { useSystemFont } from '@/hooks/useSystemFont'
 import PlayerScene from '@/components/PlayerScene'
+import UpdateProvider from '@/components/UpdateProvider'
 
 const AppLayout = () => {
   const isWindows = isWindowsPlatform()
@@ -36,6 +37,7 @@ const AppLayout = () => {
       <TrayCommandBridge />
       <PlaybackControl />
       <PlayerScene />
+      <UpdateProvider />
       <LazyCollectToPlaylistDrawer />
       <Toaster />
       <ScrollToTopButton />
