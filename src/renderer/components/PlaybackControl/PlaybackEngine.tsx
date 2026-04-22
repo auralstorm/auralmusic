@@ -32,6 +32,9 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
   const quality = useConfigStore(state => state.config.quality)
   const playbackSpeed = useConfigStore(state => state.config.playbackSpeed)
   const equalizer = useConfigStore(state => state.config.equalizer)
+  const playbackFadeEnabled = useConfigStore(
+    state => state.config.playbackFadeEnabled
+  )
   const volume = usePlaybackStore(state => state.volume)
   const audioOutputDeviceId = useConfigStore(
     state => state.config.audioOutputDeviceId
@@ -56,6 +59,7 @@ const PlaybackEngine = forwardRef<PlaybackEngineRef>((_, ref) => {
     config,
     quality,
     equalizer,
+    playbackFadeEnabled,
     playbackSpeed,
     volume,
     audioOutputDeviceId,

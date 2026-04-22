@@ -5,7 +5,7 @@ import AvatarCover from '@/components/AvatarCover'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
-import { createPlaybackControlTrack } from './model'
+import { DEFAULT_PLAYBACK_CONTROL_TRACK } from './model'
 import { useCurrentTrackLike } from './useCurrentTrackLike'
 
 type PlaybackTrackInfoProps = {
@@ -13,11 +13,22 @@ type PlaybackTrackInfoProps = {
 }
 
 const PlaybackTrackInfo = ({ hasTrack }: PlaybackTrackInfoProps) => {
-  const track = usePlaybackStore(state => state.currentTrack)
+  const trackId = usePlaybackStore(state => state.currentTrack?.id ?? null)
+  const trackName = usePlaybackStore(
+    state => state.currentTrack?.name ?? DEFAULT_PLAYBACK_CONTROL_TRACK.name
+  )
+  const trackArtistName = usePlaybackStore(
+    state =>
+      state.currentTrack?.artistNames ??
+      DEFAULT_PLAYBACK_CONTROL_TRACK.artistName
+  )
+  const trackCoverUrl = usePlaybackStore(
+    state =>
+      state.currentTrack?.coverUrl ?? DEFAULT_PLAYBACK_CONTROL_TRACK.coverUrl
+  )
   const openPlayerScene = usePlaybackStore(state => state.openPlayerScene)
-  const currentTrack = createPlaybackControlTrack(track)
   const { isLiked, isLikePending, handleToggleLike } =
-    useCurrentTrackLike(track)
+    useCurrentTrackLike(trackId)
 
   return (
     <div className='flex min-w-0 items-center gap-3'>
@@ -28,7 +39,7 @@ const PlaybackTrackInfo = ({ hasTrack }: PlaybackTrackInfoProps) => {
       >
         <AvatarCover
           url={resizeImageUrl(
-            currentTrack.coverUrl,
+            trackCoverUrl,
             imageSizes.listCover.width,
             imageSizes.listCover.height
           )}
@@ -38,11 +49,9 @@ const PlaybackTrackInfo = ({ hasTrack }: PlaybackTrackInfoProps) => {
           isAutoHovered
         />
         <div className='min-w-0'>
-          <div className='truncate text-sm font-semibold'>
-            {currentTrack.name}
-          </div>
+          <div className='truncate text-sm font-semibold'>{trackName}</div>
           <div className='text-muted-foreground truncate text-xs'>
-            {currentTrack.artistName}
+            {trackArtistName}
           </div>
         </div>
       </button>

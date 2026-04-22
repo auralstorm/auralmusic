@@ -11,6 +11,7 @@ import {
   normalizeShortcutBindings,
   normalizeShortcutForElectronAccelerator,
   resolveEnabledGlobalShortcutRegistrations,
+  resolveGlobalShortcutRegistrationStatuses,
   resolveShortcutVolume,
 } from '../src/shared/shortcut-keys.ts'
 
@@ -168,6 +169,27 @@ test('resolveEnabledGlobalShortcutRegistrations returns normalized unique global
     false
   )
   assert.equal(registrations.length, 7)
+})
+
+test('resolveGlobalShortcutRegistrationStatuses marks only failed global registrations as unregistered', () => {
+  const statuses = resolveGlobalShortcutRegistrationStatuses({
+    enabled: true,
+    bindings: DEFAULT_SHORTCUT_BINDINGS,
+    isRegistered: accelerator => accelerator !== 'Alt+Ctrl+Right',
+  })
+
+  assert.deepEqual(statuses.playPause, {
+    accelerator: 'Alt+Ctrl+P',
+    registered: true,
+  })
+  assert.deepEqual(statuses.nextTrack, {
+    accelerator: 'Alt+Ctrl+Right',
+    registered: false,
+  })
+  assert.deepEqual(statuses.openSearch, {
+    accelerator: 'Alt+Ctrl+K',
+    registered: true,
+  })
 })
 
 test('normalizeShortcutForElectronAccelerator maps browser arrow key names for global shortcuts', () => {

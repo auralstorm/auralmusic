@@ -20,6 +20,12 @@ export interface ArtistListPageParams extends ArtistDetailParams {
   offset?: number
 }
 
+export interface ArtistSongsParams extends ArtistDetailParams {
+  order?: 'hot' | 'time'
+  limit?: number
+  offset?: number
+}
+
 export interface ToggleArtistSubscriptionParams {
   id: number
   t: 0 | 1

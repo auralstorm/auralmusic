@@ -2,6 +2,7 @@ import type { LibraryMvItem } from './types'
 import type {
   LibraryMvPage,
   NormalizeLibraryMvPageOptions,
+  RawMvCreator,
   RawLibraryMvItem,
   RawMvArtist,
   RawSubscribedMvsBody,
@@ -37,18 +38,34 @@ function unwrapSubscribedMvsBody(
   }
 }
 
-function formatMVArtistNames(artistName?: string, artists?: RawMvArtist[]) {
+function formatMVArtistNames(
+  artistName?: string,
+  artists?: RawMvArtist[],
+  creators?: RawMvCreator[]
+) {
   if (artistName?.trim()) {
     return artistName.trim()
   }
 
-  const joined =
+  const artistJoined =
     artists
       ?.map(artist => artist.name?.trim() || '')
       .filter(Boolean)
       .join(' / ') || ''
 
-  return joined || '未知歌手'
+  if (artistJoined) {
+    return artistJoined
+  }
+
+  const creatorJoined =
+    creators
+      ?.map(
+        creator => creator.userName?.trim() || creator.nickname?.trim() || ''
+      )
+      .filter(Boolean)
+      .join(' / ') || ''
+
+  return creatorJoined || '未知歌手'
 }
 
 function normalizeMvList(mvs?: RawLibraryMvItem[]): LibraryMvItem[] {
@@ -57,16 +74,25 @@ function normalizeMvList(mvs?: RawLibraryMvItem[]): LibraryMvItem[] {
   }
 
   return mvs.flatMap(mv => {
-    if (!mv?.id) {
+    const id =
+      typeof mv?.id === 'number'
+        ? mv.id
+        : typeof mv?.vid === 'number'
+          ? mv.vid
+          : typeof mv?.vid === 'string' && mv.vid.trim()
+            ? Number(mv.vid)
+            : 0
+
+    if (!id) {
       return []
     }
 
     return [
       {
-        id: mv.id,
-        name: mv.name || '未知 MV',
+        id,
+        name: mv.name || mv.title || '未知 MV',
         coverUrl: mv.coverUrl || mv.cover || mv.imgurl16v9 || '',
-        artistName: formatMVArtistNames(mv.artistName, mv.artists),
+        artistName: formatMVArtistNames(mv.artistName, mv.artists, mv.creator),
         playCount: mv.playCount || 0,
         publishTime: mv.publishTime,
       },

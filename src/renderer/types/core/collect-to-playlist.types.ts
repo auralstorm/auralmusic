@@ -6,6 +6,9 @@ export interface RawPlaylistItem {
   trackCount?: number
   subscribed?: boolean
   specialType?: number
+  creator?: {
+    userId?: number
+  }
 }
 
 export interface RawResponse<T> {

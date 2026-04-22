@@ -1,24 +1,28 @@
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
-import { getPlaybackTransportState } from './model'
 
 const buttonBaseClassName =
   'text-primary/72 hover:text-primary flex size-9 items-center justify-center rounded-full transition-colors hover:bg-primary/10'
 
 const PlaybackTransportControls = () => {
-  const track = usePlaybackStore(state => state.currentTrack)
-  const status = usePlaybackStore(state => state.status)
+  const hasTrack = usePlaybackStore(state => Boolean(state.currentTrack))
+  const isPlaying = usePlaybackStore(
+    state => state.status === 'playing' || state.status === 'loading'
+  )
   const togglePlay = usePlaybackStore(state => state.togglePlay)
   const playPrevious = usePlaybackStore(state => state.playPrevious)
   const playNext = usePlaybackStore(state => state.playNext)
 
-  const { hasTrack, isPlaying } = getPlaybackTransportState({
-    track,
-    status,
-  })
+  const handlePlayPrevious = useCallback(() => {
+    playPrevious()
+  }, [playPrevious])
+
+  const handlePlayNext = useCallback(() => {
+    playNext()
+  }, [playNext])
 
   return (
     <div className='flex items-center justify-center gap-4'>
@@ -26,9 +30,7 @@ const PlaybackTransportControls = () => {
         type='button'
         aria-label='上一首'
         disabled={!hasTrack}
-        onClick={() => {
-          playPrevious()
-        }}
+        onClick={handlePlayPrevious}
         className={cn(
           buttonBaseClassName,
           !hasTrack && 'cursor-not-allowed opacity-45 hover:bg-transparent'
@@ -56,9 +58,7 @@ const PlaybackTransportControls = () => {
         type='button'
         aria-label='下一首'
         disabled={!hasTrack}
-        onClick={() => {
-          playNext()
-        }}
+        onClick={handlePlayNext}
         className={cn(
           buttonBaseClassName,
           !hasTrack && 'cursor-not-allowed opacity-45 hover:bg-transparent'

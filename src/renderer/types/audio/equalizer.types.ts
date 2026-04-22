@@ -8,6 +8,7 @@ export interface ConnectableAudioNode {
 export type EqualizerAudioContext = Pick<
   AudioContext,
   | 'destination'
+  | 'currentTime'
   | 'state'
   | 'createMediaElementSource'
   | 'createGain'
@@ -21,6 +22,9 @@ export type EqualizerAudioContext = Pick<
 export interface EqualizerGraph {
   update: (config: EqualizerConfig) => void
   resume: () => Promise<void>
+  setMasterVolume: (volume: number) => void
+  getMasterVolume: () => number
+  fadeTo: (volume: number, durationMs: number) => void
   setOutputDevice: (deviceId: string) => Promise<boolean>
   dispose: () => void
 }

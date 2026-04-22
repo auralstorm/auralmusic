@@ -37,3 +37,36 @@ test('normalizeLibraryMvPage unwraps nested data payloads and maps mv rows', () 
     hasMore: true,
   })
 })
+
+test('normalizeLibraryMvPage maps subscribed mv payloads with vid title and creator fields', () => {
+  const page = normalizeLibraryMvPage(
+    {
+      count: 13,
+      hasMore: false,
+      data: [
+        {
+          vid: 501,
+          title: '少一点天分',
+          coverUrl: 'https://img.example.com/mv-501.jpg',
+          creator: [{ userName: '金润吉' }],
+          durations: 346050,
+        },
+      ],
+    } as never,
+    { limit: 25, offset: 0 }
+  )
+
+  assert.deepEqual(page, {
+    list: [
+      {
+        id: 501,
+        name: '少一点天分',
+        coverUrl: 'https://img.example.com/mv-501.jpg',
+        artistName: '金润吉',
+        playCount: 0,
+        publishTime: undefined,
+      },
+    ],
+    hasMore: false,
+  })
+})

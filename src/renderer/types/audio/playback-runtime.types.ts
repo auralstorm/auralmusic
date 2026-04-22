@@ -19,10 +19,15 @@ export interface PlaybackRuntime {
   getAudioElement: () => HTMLAudioElement
   loadSource: (url: string) => Promise<void>
   play: () => Promise<void>
+  playWithFade: () => Promise<void>
   pause: () => void
+  pauseWithFade: () => Promise<void>
+  hasPendingPauseIntent: () => boolean
   stop: () => void
+  swapSourceWithFade: (url: string) => Promise<void>
   seek: (timeSeconds: number) => void
   setVolume: (volume: number) => void
+  setFadeEnabled: (enabled: boolean) => void
   setPlaybackRate: (rate: number) => void
   setOutputDevice: (deviceId: string) => Promise<boolean>
   applyEqualizer: (config: EqualizerConfig) => void

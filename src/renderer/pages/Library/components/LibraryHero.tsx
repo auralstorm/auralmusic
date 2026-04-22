@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 import { Play } from 'lucide-react'
 
 import LibraryQuickSongList from './LibraryQuickSongList'
@@ -7,7 +9,9 @@ const LibraryHero = ({
   songs,
   songCount,
   coverImgUrl: _coverImgUrl,
+  likedSongsPreviewRefreshing = false,
   onOpenLikedSongs,
+  onSongLikeChangeSuccess,
 }: LibraryHeroProps) => {
   return (
     <section className='space-y-6'>
@@ -62,10 +66,14 @@ const LibraryHero = ({
           </div>
         </div>
 
-        <LibraryQuickSongList songs={songs} />
+        <LibraryQuickSongList
+          songs={songs}
+          refreshing={likedSongsPreviewRefreshing}
+          onSongLikeChangeSuccess={onSongLikeChangeSuccess}
+        />
       </div>
     </section>
   )
 }
 
-export default LibraryHero
+export default memo(LibraryHero)

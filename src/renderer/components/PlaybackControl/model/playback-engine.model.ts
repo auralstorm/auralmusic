@@ -54,6 +54,19 @@ export function canStartPlaybackSourceLoad({
   return hasCurrentTrack && requestId > 0 && !configLoading
 }
 
+export function shouldResumePlaybackTransport(input: {
+  status: 'idle' | 'loading' | 'playing' | 'paused' | 'error'
+  hasSource: boolean
+  audioPaused: boolean
+  hasPendingPauseIntent: boolean
+}) {
+  if (input.status !== 'playing' || !input.hasSource) {
+    return false
+  }
+
+  return input.audioPaused || input.hasPendingPauseIntent
+}
+
 export async function applyPersistedProgress(
   audio: ProgressRestorableAudio,
   progressMs: number

@@ -1,57 +1,50 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo } from 'react'
 
-import TrackListItem from '@/components/TrackList/TrackListItem'
-import { usePlaybackStore } from '@/stores/playback-store'
-import {
-  buildLibraryQuickSongPlaybackQueue,
-  filterLibraryQuickSongs,
-} from './library-quick-song-list.model'
+import TrackListPlaybackItem from '@/components/TrackList/TrackListPlaybackItem'
+import { Spinner } from '@/components/ui/spinner'
+import { cn } from '@/lib/utils'
+import { buildLibraryQuickSongPlaybackQueue } from './library-quick-song-list.model'
 import type { LibraryQuickSongListProps } from '../types'
 
-const LibraryQuickSongList = ({ songs }: LibraryQuickSongListProps) => {
-  const [hiddenSongIds, setHiddenSongIds] = useState<Set<number>>(new Set())
-  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
-  const appendToQueue = usePlaybackStore(state => state.appendToQueue)
-  const currentTrackId = usePlaybackStore(state => state.currentTrack?.id)
-  const playbackStatus = usePlaybackStore(state => state.status)
-  const visibleSongs = useMemo(
-    () => filterLibraryQuickSongs(songs, hiddenSongIds),
-    [hiddenSongIds, songs]
-  )
+const LibraryQuickSongList = ({
+  songs,
+  refreshing = false,
+  onSongLikeChangeSuccess,
+}: LibraryQuickSongListProps) => {
+  const visibleSongs = useMemo(() => songs.slice(0, 9), [songs])
   const playbackQueue = useMemo(
     () => buildLibraryQuickSongPlaybackQueue(visibleSongs),
     [visibleSongs]
   )
 
-  const handleLikeChangeSuccess = (songId: number, nextLiked: boolean) => {
-    if (nextLiked) {
-      return
-    }
-
-    setHiddenSongIds(previous => {
-      const nextIds = new Set(previous)
-      nextIds.add(songId)
-      return nextIds
-    })
-  }
-
   return (
-    <div className='grid grid-cols-1 gap-3 md:grid-cols-3'>
-      {visibleSongs.map((song, index) => (
-        <TrackListItem
-          key={song.id}
-          item={song}
-          type='quick'
-          coverUrl={song.coverUrl}
-          isActive={song.id === currentTrackId}
-          isPlaying={song.id === currentTrackId && playbackStatus === 'playing'}
-          onPlay={() => playQueueFromIndex(playbackQueue, index)}
-          onAddToQueue={() => appendToQueue([playbackQueue[index]])}
-          onLikeChangeSuccess={handleLikeChangeSuccess}
-        />
-      ))}
+    <div className='relative'>
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-3 transition-opacity md:grid-cols-3',
+          refreshing ? 'pointer-events-none opacity-50' : ''
+        )}
+      >
+        {visibleSongs.map((song, index) => (
+          <TrackListPlaybackItem
+            key={song.id}
+            item={song}
+            index={index}
+            type='quick'
+            coverUrl={song.coverUrl}
+            playbackQueue={playbackQueue}
+            onLikeChangeSuccess={onSongLikeChangeSuccess}
+          />
+        ))}
+      </div>
+
+      {refreshing ? (
+        <div className='bg-background/72 absolute inset-0 z-10 flex items-center justify-center rounded-[24px] backdrop-blur-[2px]'>
+          <Spinner className='text-primary size-7' />
+        </div>
+      ) : null}
     </div>
   )
 }
 
-export default LibraryQuickSongList
+export default memo(LibraryQuickSongList)

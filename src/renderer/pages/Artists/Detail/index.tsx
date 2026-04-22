@@ -7,12 +7,13 @@ import {
   getArtistDesc,
   getArtistDetail,
   getArtistMvs,
-  getArtistTopSongs,
+  getArtistSongs,
   getSimilarArtists,
 } from '@/api/artist'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
+import { useMvDrawerStore } from '@/stores/mv-drawer-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
 import ArtistDetailSkeleton from './components/ArtistDetailSkeleton'
@@ -28,7 +29,7 @@ import {
   normalizeArtistDescription,
   normalizeArtistMvs,
   normalizeArtistProfile,
-  normalizeArtistTopSongs,
+  normalizeArtistSongs,
   normalizeSimilarArtists,
   resolveArtistMvImages,
   resolveArtistProfileImage,
@@ -70,22 +71,37 @@ const ArtistDetail = () => {
   )
   const [followLoading, setFollowLoading] = useState(false)
   const navigate = useNavigate()
+  const openMvDrawer = useMvDrawerStore(state => state.openDrawer)
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
 
-  const navigateToAlbumDetail = (albumId: number) => {
-    if (!albumId) return
-    navigate(`/albums/${albumId}`)
-  }
+  const navigateToAlbumDetail = useCallback(
+    (albumId: number) => {
+      if (!albumId) return
+      navigate(`/albums/${albumId}`)
+    },
+    [navigate]
+  )
 
-  const navigateToMvDetail = (mvId: number) => {
-    if (!mvId) return
-    navigate(`/mv/${mvId}`)
-  }
+  const navigateToMvDetail = useCallback(
+    (mvId: number) => {
+      if (!mvId) return
+      openMvDrawer(mvId)
+    },
+    [openMvDrawer]
+  )
 
-  const navigateToArtistDetail = (nextArtistId: number) => {
-    if (!nextArtistId) return
-    navigate(`/artists/${nextArtistId}`)
-  }
+  const navigateToArtistDetail = useCallback(
+    (nextArtistId: number) => {
+      if (!nextArtistId) return
+      navigate(`/artists/${nextArtistId}`)
+    },
+    [navigate]
+  )
+
+  const navigateToArtistSongs = useCallback(() => {
+    if (!artistId) return
+    navigate(`/artists/${artistId}/songs`)
+  }, [artistId, navigate])
 
   const fetchAlbumsPage = useCallback(
     async (offset: number, limit: number) => {
@@ -207,7 +223,12 @@ const ArtistDetail = () => {
         const [detailResponse, topSongsResponse, descResponse] =
           await Promise.all([
             getArtistDetail({ id: artistId }),
-            getArtistTopSongs({ id: artistId }),
+            getArtistSongs({
+              id: artistId,
+              order: 'hot',
+              limit: 12,
+              offset: 0,
+            }),
             getArtistDesc({ id: artistId }),
           ])
 
@@ -227,7 +248,7 @@ const ArtistDetail = () => {
         setState(previous => ({
           ...previous,
           profile,
-          topSongs: normalizeArtistTopSongs(topSongsResponse),
+          topSongs: normalizeArtistSongs(topSongsResponse),
           description: normalizeArtistDescription(descResponse),
         }))
       } catch (fetchError) {
@@ -282,7 +303,7 @@ const ArtistDetail = () => {
     playQueueFromIndex(topSongPlaybackQueue, 0)
   }, [playQueueFromIndex, topSongPlaybackQueue])
 
-  const handleToggleFollowedArtist = async () => {
+  const handleToggleFollowedArtist = useCallback(async () => {
     if (!hasHydrated || !userId) {
       openLoginDialog()
       return
@@ -309,7 +330,17 @@ const ArtistDetail = () => {
     } finally {
       setFollowLoading(false)
     }
-  }
+  }, [
+    artistId,
+    fetchLikedArtists,
+    followLoading,
+    hasHydrated,
+    isFollowed,
+    openLoginDialog,
+    state.profile,
+    toggleFollowed,
+    userId,
+  ])
 
   if (loading && !state.profile) {
     return <ArtistDetailSkeleton />
@@ -352,7 +383,11 @@ const ArtistDetail = () => {
         onToAlbumDetail={navigateToAlbumDetail}
         onToMvDetail={navigateToMvDetail}
       />
-      <ArtistTopSongs songs={state.topSongs} />
+      <ArtistTopSongs
+        artistId={artistId}
+        songs={state.topSongs}
+        onViewAll={navigateToArtistSongs}
+      />
       <ArtistMediaTabs
         albums={albums}
         mvs={mvs}

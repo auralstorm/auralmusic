@@ -101,6 +101,7 @@ export interface AppConfig {
   playerBackgroundMode: PlayerBackgroundMode
   animationEffect: AnimationEffectLevel
   immersivePlayerControls: boolean
+  playbackFadeEnabled: boolean
   diskCacheEnabled: boolean
   diskCacheDir: string
   diskCacheMaxBytes: number
@@ -148,6 +149,7 @@ export const defaultConfig: AppConfig = {
   playerBackgroundMode: 'static',
   animationEffect: 'standard',
   immersivePlayerControls: false,
+  playbackFadeEnabled: false,
   diskCacheEnabled: false,
   diskCacheDir: '',
   diskCacheMaxBytes: DEFAULT_DISK_CACHE_MAX_BYTES,
@@ -202,6 +204,10 @@ export function normalizeImmersivePlayerControls(value: unknown) {
   return typeof value === 'boolean'
     ? value
     : defaultConfig.immersivePlayerControls
+}
+
+export function normalizePlaybackFadeEnabled(value: unknown) {
+  return typeof value === 'boolean' ? value : defaultConfig.playbackFadeEnabled
 }
 
 export function normalizeDiskCacheMaxBytes(value: unknown) {

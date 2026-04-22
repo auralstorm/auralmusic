@@ -177,7 +177,7 @@ export function normalizeSearchResults(
         artistName: mv.artistName?.trim() || formatArtistNames(mv.artists),
         coverUrl: mv.cover || mv.coverUrl || mv.imgurl16v9 || '',
         targetId: mv.id,
-        disabled: true,
+        disabled: false,
         playbackTrack: null,
       },
     ]

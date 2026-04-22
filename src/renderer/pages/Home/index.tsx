@@ -1,6 +1,12 @@
-import { useEffect, useEffectEvent, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from 'react'
 import DailyFeatureCard from './components/DailyFeatureCard'
-import FmFeatureCard from './components/FmFeatureCard'
+import HomeFmFeatureCard from './components/HomeFmFeatureCard'
 import {
   fmTrash,
   getPersonalFm,
@@ -24,7 +30,6 @@ import {
   normalizeHomeNewSongTracks,
 } from './model'
 import { useScrollToTopOnActive } from '@/hooks/useScrollToTopOnActive'
-import type { PlaybackTrack } from '../../../shared/playback.ts'
 import { normalizeAlbumTracks } from '../Albums/Detail/album-detail.model'
 
 const Home = () => {
@@ -38,10 +43,7 @@ const Home = () => {
   const [fmData, setFmData] = useState<HomeFmData>({})
   const setDailyList = useDailySongs(state => state.setList)
   const dailyList = useDailySongs(state => state.list)
-  const currentTrack = usePlaybackStore(state => state.currentTrack)
-  const playbackStatus = usePlaybackStore(state => state.status)
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
-  const togglePlay = usePlaybackStore(state => state.togglePlay)
   const [topArtists, setTopArtists] = useState<ArtistSummary[]>([])
   const [albumNewSet, setAlbumNewSet] = useState<AlbumSummary[]>([])
   const [newSongs, setNewSongs] = useState<NewSong[]>([])
@@ -111,122 +113,117 @@ const Home = () => {
     () => normalizeHomeNewSongTracks(newSongs),
     [newSongs]
   )
-  const isActiveFm = Boolean(fmTrack && currentTrack?.id === fmTrack.id)
-  const isPlayingFm =
-    isActiveFm && (playbackStatus === 'playing' || playbackStatus === 'loading')
 
-  const handleOpenDailySongs = () => {
+  const handleOpenDailySongs = useCallback(() => {
     navigate('/daily-songs')
-  }
+  }, [navigate])
 
-  const playFmTrack = (track: PlaybackTrack) => {
-    playQueueFromIndex([track], 0)
-  }
-
-  const handlePlayDailySongs = () => {
+  const handlePlayDailySongs = useCallback(() => {
     if (!dailyPlaybackQueue.length) {
       toast.error('暂无可播放的每日推荐')
       return
     }
 
     playQueueFromIndex(dailyPlaybackQueue, 0)
-  }
+  }, [dailyPlaybackQueue, playQueueFromIndex])
 
-  const handlePlayNewSong = (song: NewSong) => {
-    const startIndex = newSongPlaybackQueue.findIndex(
-      track => track.id === song.id
-    )
+  const handlePlayNewSong = useCallback(
+    (song: NewSong) => {
+      const startIndex = newSongPlaybackQueue.findIndex(
+        track => track.id === song.id
+      )
 
-    if (startIndex < 0) {
-      toast.error('暂无可播放的新歌')
-      return
-    }
-
-    playQueueFromIndex(newSongPlaybackQueue, startIndex)
-  }
-
-  const handlePlayAlbum = async (album: AlbumSummary) => {
-    if (!album.id) {
-      return
-    }
-
-    try {
-      const response = await getAlbumDetail(album.id)
-      const tracks = normalizeAlbumTracks(response.data, {
-        fallbackCoverUrl: album.picUrl,
-      })
-
-      if (!tracks.length) {
-        toast.error('暂无可播放的专辑歌曲')
+      if (startIndex < 0) {
+        toast.error('暂无可播放的新歌')
         return
       }
 
-      playQueueFromIndex(tracks, 0)
-    } catch (error) {
-      console.error('play album failed', error)
-      toast.error('专辑歌曲加载失败')
-    }
-  }
+      playQueueFromIndex(newSongPlaybackQueue, startIndex)
+    },
+    [newSongPlaybackQueue, playQueueFromIndex]
+  )
 
-  const fetchNextFmTrack = async (autoPlay: boolean) => {
-    const response = await getPersonalFm({ timestamp: Date.now() })
-    const nextFmData = response.data?.data?.[0] || {}
-    const nextFmTrack = normalizeHomeFmTrack(nextFmData)
+  const handlePlayAlbum = useCallback(
+    async (album: AlbumSummary) => {
+      if (!album.id) {
+        return
+      }
 
-    setFmData(nextFmData)
+      try {
+        const response = await getAlbumDetail(album.id)
+        const tracks = normalizeAlbumTracks(response.data, {
+          fallbackCoverUrl: album.picUrl,
+        })
 
-    if (autoPlay && nextFmTrack) {
-      playFmTrack(nextFmTrack)
-    }
-  }
+        if (!tracks.length) {
+          toast.error('暂无可播放的专辑歌曲')
+          return
+        }
 
-  const handleToggleFmPlay = () => {
-    if (!fmTrack) {
-      return
-    }
+        playQueueFromIndex(tracks, 0)
+      } catch (error) {
+        console.error('play album failed', error)
+        toast.error('专辑歌曲加载失败')
+      }
+    },
+    [playQueueFromIndex]
+  )
 
-    if (isActiveFm) {
-      togglePlay()
-      return
-    }
+  const fetchNextFmTrack = useCallback(
+    async (autoPlay: boolean) => {
+      const response = await getPersonalFm({ timestamp: Date.now() })
+      const nextFmData = response.data?.data?.[0] || {}
+      const nextFmTrack = normalizeHomeFmTrack(nextFmData)
 
-    playFmTrack(fmTrack)
-  }
+      setFmData(nextFmData)
 
-  const handleMoveToNextFm = async () => {
-    if (!fmTrack || fmActionLoading) {
-      return
-    }
+      if (autoPlay && nextFmTrack) {
+        playQueueFromIndex([nextFmTrack], 0)
+      }
+    },
+    [playQueueFromIndex]
+  )
 
-    setFmActionLoading(true)
+  const handleMoveToNextFm = useCallback(
+    async (autoPlay: boolean) => {
+      if (fmActionLoading) {
+        return
+      }
 
-    try {
-      await fetchNextFmTrack(isPlayingFm)
-    } catch (error) {
-      console.error('fetch next personal fm failed', error)
-      toast.error('私人 FM 加载失败')
-    } finally {
-      setFmActionLoading(false)
-    }
-  }
+      setFmActionLoading(true)
 
-  const handleTrashCurrentFm = async () => {
-    if (!fmTrack || fmActionLoading) {
-      return
-    }
+      try {
+        await fetchNextFmTrack(autoPlay)
+      } catch (error) {
+        console.error('fetch next personal fm failed', error)
+        toast.error('私人 FM 加载失败')
+      } finally {
+        setFmActionLoading(false)
+      }
+    },
+    [fetchNextFmTrack, fmActionLoading]
+  )
 
-    setFmActionLoading(true)
+  const handleTrashCurrentFm = useCallback(
+    async (trackId: number, autoPlay: boolean) => {
+      if (fmActionLoading) {
+        return
+      }
 
-    try {
-      await fmTrash({ id: fmTrack.id })
-      await fetchNextFmTrack(isPlayingFm)
-    } catch (error) {
-      console.error('trash personal fm failed', error)
-      toast.error('移除私人 FM 失败')
-    } finally {
-      setFmActionLoading(false)
-    }
-  }
+      setFmActionLoading(true)
+
+      try {
+        await fmTrash({ id: trackId })
+        await fetchNextFmTrack(autoPlay)
+      } catch (error) {
+        console.error('trash personal fm failed', error)
+        toast.error('移除私人 FM 失败')
+      } finally {
+        setFmActionLoading(false)
+      }
+    },
+    [fetchNextFmTrack, fmActionLoading]
+  )
 
   useEffect(() => {
     void fetchTopData()
@@ -247,18 +244,12 @@ const Home = () => {
             onPlay={handlePlayDailySongs}
             onOpenDailySongs={handleOpenDailySongs}
           />
-          <FmFeatureCard
+          <HomeFmFeatureCard
+            track={fmTrack}
             isLoading={featureLoading}
-            coverUrl={fmTrack?.coverUrl}
-            title={fmTrack?.name}
-            artist={fmTrack?.artistNames}
-            isActiveFm={isActiveFm}
-            isPlayingFm={isPlayingFm}
             actionLoading={fmActionLoading}
-            disabled={!fmTrack}
-            onTogglePlay={handleToggleFmPlay}
-            moveToNext={handleMoveToNextFm}
-            trashCurrent={handleTrashCurrentFm}
+            onMoveToNext={handleMoveToNextFm}
+            onTrashCurrent={handleTrashCurrentFm}
           />
         </div>
       )}

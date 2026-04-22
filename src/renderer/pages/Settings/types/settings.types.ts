@@ -1,4 +1,5 @@
 import type {
+  GlobalShortcutRegistrationStatuses,
   ShortcutActionId,
   ShortcutScope,
 } from '../../../../shared/shortcut-keys'
@@ -34,10 +35,13 @@ export interface ShortcutRecorderProps {
   value: string
   recording: boolean
   disabled?: boolean
+  hasRegistrationError?: boolean
   onStartRecording: () => void
   onCancelRecording: () => void
   onCommit: (value: string) => void
 }
+
+export type ShortcutRegistrationStatuses = GlobalShortcutRegistrationStatuses
 
 export type MusicSourceTab = 'enhanced-unblock' | 'luoxue' | 'custom-api'
 

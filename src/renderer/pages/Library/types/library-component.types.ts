@@ -34,7 +34,9 @@ export interface LibraryHeroProps {
   songs: LibrarySongItem[]
   songCount: number
   coverImgUrl?: string
+  likedSongsPreviewRefreshing?: boolean
   onOpenLikedSongs: () => void
+  onSongLikeChangeSuccess: (songId: number, nextLiked: boolean) => void
 }
 
 export interface LibraryMvCardProps {
@@ -55,6 +57,8 @@ export interface LibraryPlaylistPanelProps {
 
 export interface LibraryQuickSongListProps {
   songs: LibrarySongItem[]
+  refreshing?: boolean
+  onSongLikeChangeSuccess: (songId: number, nextLiked: boolean) => void
 }
 
 export interface LibraryTabsSectionProps {

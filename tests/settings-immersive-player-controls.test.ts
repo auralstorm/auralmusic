@@ -39,6 +39,18 @@ test('player scene reads immersive player controls and wraps chrome buttons', ()
   )
 })
 
+test('player scene keeps chrome button props stable across playback progress updates', () => {
+  assert.match(playerSceneSource, /const handleClose = useCallback\(/)
+  assert.match(
+    playerSceneSource,
+    /const handleToggleFullscreen = useCallback\(/
+  )
+  assert.match(playerSceneSource, /const fullscreenToggleIcon = useMemo\(/)
+  assert.match(playerSceneSource, /const closeIcon = useMemo\(/)
+  assert.match(playerSceneSource, /\{fullscreenToggleIcon\}/)
+  assert.match(playerSceneSource, /\{closeIcon\}/)
+})
+
 test('player scene chrome buttons fade without shifting position', () => {
   assert.match(playerSceneChromeButtonSource, /opacity-0/)
   assert.match(playerSceneChromeButtonSource, /opacity-100/)

@@ -47,8 +47,44 @@ export interface ArtistMediaTabsProps {
   onToArtistDetail: (id: number) => void
 }
 
+export type ArtistMediaTabValue = 'albums' | 'mvs' | 'similar-artists'
+
+export interface ArtistAlbumsPanelProps {
+  albums: ArtistAlbumItem[]
+  albumLoading?: boolean
+  albumHasMore?: boolean
+  albumSentinelRef: Ref<HTMLDivElement>
+  onToAlbumDetail: (id: number) => void
+}
+
+export interface ArtistMvsPanelProps {
+  mvs: ArtistMvItem[]
+  mvLoading?: boolean
+  mvHasMore?: boolean
+  mvSentinelRef: Ref<HTMLDivElement>
+  onToMvDetail: (id: number) => void
+}
+
+export interface ArtistSimilarArtistsPanelProps {
+  artists: ArtistSimilarItem[]
+  similarArtistsLoading?: boolean
+  onToArtistDetail: (id: number) => void
+}
+
+export interface ArtistAlbumCardProps {
+  album: ArtistAlbumItem
+  onClick: (albumId: number) => void
+}
+
+export interface ArtistMvCardProps {
+  mv: ArtistMvItem
+  onClick: (mvId: number) => void
+}
+
 export interface ArtistTopSongsProps {
+  artistId: number
   songs: ArtistTopSongItem[]
+  onViewAll: () => void
 }
 
 export interface SimilarArtistsProps {

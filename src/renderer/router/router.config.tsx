@@ -14,6 +14,7 @@ import {
   MvDetail,
   Artists,
   ArtistDetail,
+  ArtistSongs,
   Albums,
   AlbumDetail,
 } from './routeComponents'
@@ -83,6 +84,11 @@ export const routeMenuConfig: RouteMenuConfig[] = [
         path: '/artists/:id',
         element: <ArtistDetail />,
         meta: { title: '歌手详情', icon: '', hidden: true },
+      },
+      {
+        path: '/artists/:id/songs',
+        element: <ArtistSongs />,
+        meta: { title: '歌手歌曲列表', icon: '', hidden: true },
       },
       {
         path: '/albums',

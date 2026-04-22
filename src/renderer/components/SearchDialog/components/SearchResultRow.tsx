@@ -8,7 +8,7 @@ const SearchResultRow = ({ item, onSelect }: SearchResultRowProps) => {
     <button
       type='button'
       disabled={item.disabled}
-      title={item.disabled ? 'MV 暂未支持播放' : item.name}
+      title={item.name}
       className={cn(
         'hover:bg-accent/60 grid w-full grid-cols-[64px_minmax(0,1fr)_80px] items-center gap-3 rounded-2xl px-3 py-1 text-left transition-colors 2xl:grid-cols-[84px_minmax(0,1fr)_200px]',
         item.disabled && 'cursor-not-allowed opacity-50'

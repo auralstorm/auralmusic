@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 import ArtistCover from '@/components/ArtistCover'
 import type { LibraryPlaylistPanelProps } from '../types'
 
@@ -13,8 +15,6 @@ const LibraryPlaylistPanel = ({
       </div>
     )
   }
-
-  console.log('playlists', playlists)
 
   return (
     <div className='grid grid-cols-2 gap-6 md:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6'>
@@ -32,4 +32,4 @@ const LibraryPlaylistPanel = ({
   )
 }
 
-export default LibraryPlaylistPanel
+export default memo(LibraryPlaylistPanel)

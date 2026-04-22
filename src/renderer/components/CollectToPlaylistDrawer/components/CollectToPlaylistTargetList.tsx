@@ -69,7 +69,7 @@ const CollectToPlaylistTargetList = ({
                   {playlist.name}
                 </p>
                 {playlist.isLikedPlaylist ? (
-                  <span className='bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold'>
+                  <span className='bg-primary/10 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold'>
                     <Heart className='size-3 fill-current' />
                     {COLLECT_PLAYLIST_LIKED_BADGE}
                   </span>

@@ -157,6 +157,14 @@ export interface CollectToPlaylistStoreState {
   closeDrawer: () => void
 }
 
+export interface MvDrawerStoreState {
+  open: boolean
+  mvId: number | null
+  setOpen: (open: boolean) => void
+  openDrawer: (mvId: number) => void
+  closeDrawer: () => void
+}
+
 export interface PlaybackSessionSnapshot {
   queue: PlaybackTrack[]
   currentIndex: number
@@ -172,6 +180,7 @@ export type PlaybackSessionStorageLike = Pick<
 
 export interface PlaybackStoreState {
   queue: PlaybackTrack[]
+  queueSourceKey: string | null
   currentIndex: number
   currentTrack: PlaybackTrack | null
   playbackMode: PlaybackMode
@@ -189,8 +198,13 @@ export interface PlaybackStoreState {
   seekRequestId: number
   seekPosition: number
   isPlayerSceneOpen: boolean
-  playQueueFromIndex: (tracks: PlaybackTrack[], startIndex: number) => void
+  playQueueFromIndex: (
+    tracks: PlaybackTrack[],
+    startIndex: number,
+    sourceKey?: string | null
+  ) => void
   appendToQueue: (tracks: PlaybackTrack[]) => void
+  syncQueueFromSource: (sourceKey: string, tracks: PlaybackTrack[]) => void
   togglePlay: () => void
   setPlaybackMode: (mode: PlaybackMode) => void
   playNext: (reason?: PlaybackAdvanceReason) => boolean

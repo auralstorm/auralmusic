@@ -18,7 +18,14 @@ export type TrackListVariant = 'default' | 'hot' | 'quick'
 export interface TrackListProps {
   data: TrackListItemData[]
   coverUrl?: string
+  emptyText?: string
+  endText?: string
+  hasMore?: boolean
+  loading?: boolean
+  loadingText?: string
+  playbackQueueKey?: string
   onLikeChangeSuccess?: (songId: number, nextLiked: boolean) => void
+  onEndReached?: () => void
 }
 
 export interface TrackListItemProps {

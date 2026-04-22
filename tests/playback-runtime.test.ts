@@ -93,6 +93,11 @@ test('playback runtime creates equalizer graph once and reuses it', async () => 
       return {
         update() {},
         async resume() {},
+        setMasterVolume() {},
+        getMasterVolume() {
+          return 1
+        },
+        fadeTo() {},
         async setOutputDevice() {
           return true
         },
@@ -118,6 +123,11 @@ test('playback runtime keeps requiring graph-compatible sources after graph crea
     createEqualizerGraph: () => ({
       update() {},
       async resume() {},
+      setMasterVolume() {},
+      getMasterVolume() {
+        return 1
+      },
+      fadeTo() {},
       async setOutputDevice() {
         return true
       },
@@ -147,6 +157,11 @@ test('playback runtime does not create equalizer graph for remote http audio sou
       return {
         update() {},
         async resume() {},
+        setMasterVolume() {},
+        getMasterVolume() {
+          return 1
+        },
+        fadeTo() {},
         async setOutputDevice() {
           return true
         },
@@ -174,6 +189,11 @@ test('playback runtime resumes equalizer graph when EQ is enabled during active 
       async resume() {
         resumeCount += 1
       },
+      setMasterVolume() {},
+      getMasterVolume() {
+        return 1
+      },
+      fadeTo() {},
       async setOutputDevice() {
         return true
       },
@@ -201,6 +221,11 @@ test('playback runtime keeps an existing equalizer graph running when EQ is disa
       async resume() {
         resumeCount += 1
       },
+      setMasterVolume() {},
+      getMasterVolume() {
+        return 1
+      },
+      fadeTo() {},
       async setOutputDevice() {
         return true
       },
@@ -229,6 +254,11 @@ test('playback runtime resumes an existing equalizer graph before playing while 
       async resume() {
         resumeCount += 1
       },
+      setMasterVolume() {},
+      getMasterVolume() {
+        return 1
+      },
+      fadeTo() {},
       async setOutputDevice() {
         return true
       },
@@ -261,6 +291,11 @@ test('playback runtime falls back to the audio element when graph output switchi
     createEqualizerGraph: () => ({
       update() {},
       async resume() {},
+      setMasterVolume() {},
+      getMasterVolume() {
+        return 1
+      },
+      fadeTo() {},
       async setOutputDevice() {
         throw new Error('graph sink failed')
       },

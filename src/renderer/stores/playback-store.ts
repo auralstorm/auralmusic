@@ -14,6 +14,7 @@ import type { PlaybackStoreState } from '@/types/core'
 
 const INITIAL_PLAYBACK_STATE = {
   queue: [],
+  queueSourceKey: null,
   currentIndex: -1,
   currentTrack: null,
   playbackMode: 'repeat-all' as PlaybackMode,
@@ -95,13 +96,25 @@ function createTrackPatch(
   }
 }
 
+function isQueueExtensionOfCurrentQueue(
+  currentQueue: PlaybackTrack[],
+  nextQueue: PlaybackTrack[]
+) {
+  if (nextQueue.length < currentQueue.length) {
+    return false
+  }
+
+  return currentQueue.every((track, index) => nextQueue[index]?.id === track.id)
+}
+
 export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   ...INITIAL_PLAYBACK_STATE,
 
-  playQueueFromIndex: (tracks, startIndex) => {
+  playQueueFromIndex: (tracks, startIndex, sourceKey = null) => {
     const snapshot = createPlaybackQueueSnapshot(tracks, startIndex)
     set(state => ({
       ...snapshot,
+      queueSourceKey: snapshot.currentTrack ? sourceKey : null,
       shuffleOrder:
         state.playbackMode === 'shuffle' && snapshot.currentTrack
           ? createShuffleOrder(snapshot.queue.length, snapshot.currentIndex)
@@ -129,6 +142,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
 
       return {
         queue: nextQueue,
+        queueSourceKey: hasCurrentTrack ? state.queueSourceKey : null,
         currentIndex: hasCurrentTrack ? state.currentIndex : -1,
         currentTrack: hasCurrentTrack ? state.currentTrack : null,
         shuffleOrder:
@@ -147,6 +161,47 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
         duration: hasCurrentTrack ? state.duration : 0,
         error: hasCurrentTrack ? state.error : '',
         requestId: state.requestId,
+      }
+    })
+  },
+
+  syncQueueFromSource: (sourceKey, tracks) => {
+    if (!sourceKey) {
+      return
+    }
+
+    const nextSnapshot = createPlaybackQueueSnapshot(tracks, 0)
+
+    if (!nextSnapshot.queue.length) {
+      return
+    }
+
+    set(state => {
+      if (
+        state.queueSourceKey !== sourceKey ||
+        !state.currentTrack ||
+        !isQueueExtensionOfCurrentQueue(state.queue, nextSnapshot.queue)
+      ) {
+        return state
+      }
+
+      const nextCurrentIndex = nextSnapshot.queue.findIndex(
+        track => track.id === state.currentTrack?.id
+      )
+
+      if (nextCurrentIndex < 0) {
+        return state
+      }
+
+      return {
+        queue: nextSnapshot.queue,
+        currentIndex: nextCurrentIndex,
+        currentTrack: state.currentTrack,
+        shuffleOrder:
+          state.playbackMode === 'shuffle'
+            ? createShuffleOrder(nextSnapshot.queue.length, nextCurrentIndex)
+            : [],
+        shuffleCursor: 0,
       }
     })
   },

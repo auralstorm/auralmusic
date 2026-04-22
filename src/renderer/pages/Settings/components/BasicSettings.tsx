@@ -113,6 +113,9 @@ const BasicSettings = () => {
   const immersivePlayerControls = useConfigStore(
     state => state.config.immersivePlayerControls
   )
+  const playbackFadeEnabled = useConfigStore(
+    state => state.config.playbackFadeEnabled
+  )
   const setConfig = useConfigStore(state => state.setConfig)
 
   const handleThemeChange = (value: ThemeValue) => {
@@ -139,6 +142,10 @@ const BasicSettings = () => {
 
   const handleToggleImmersivePlayerControls = () => {
     void setConfig('immersivePlayerControls', !immersivePlayerControls)
+  }
+
+  const handleTogglePlaybackFade = () => {
+    void setConfig('playbackFadeEnabled', !playbackFadeEnabled)
   }
 
   return (
@@ -176,6 +183,22 @@ const BasicSettings = () => {
         <ToggleSetting
           enabled={immersivePlayerControls}
           onToggle={handleToggleImmersivePlayerControls}
+        />
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            播放淡入淡出效果
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            开启后，播放、暂停和切歌会使用短时音量渐变；设备或浏览器不支持时自动回退。
+          </p>
+        </div>
+        <ToggleSetting
+          enabled={playbackFadeEnabled}
+          onToggle={handleTogglePlaybackFade}
         />
       </div>
       <Separator />

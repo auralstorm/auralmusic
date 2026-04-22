@@ -21,6 +21,7 @@ type RegisterMainIpcDependencies = {
   registerConfigIpc: (options: ConfigIpcOptions) => void
   registerDownloadIpc: () => void
   registerMusicSourceIpc: () => void
+  registerShortcutIpc: () => void
   registerSystemFontsIpc: () => void
   registerTrayIpc: (options: TrayIpcOptions) => void
   registerUpdateIpc: () => void
@@ -39,6 +40,7 @@ export function createRegisterMainIpc(
     dependencies.registerCacheIpc()
     dependencies.registerDownloadIpc()
     dependencies.registerMusicSourceIpc()
+    dependencies.registerShortcutIpc()
     dependencies.registerSystemFontsIpc()
     dependencies.registerTrayIpc({
       trayController: options.trayController,

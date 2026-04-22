@@ -10,6 +10,7 @@ import PlaylistDetail from '@/pages/PlayList/Detail'
 import MvDetail from '@/pages/Mv/Detail'
 import Artists from '@/pages/Artists'
 import ArtistDetail from '@/pages/Artists/Detail'
+import ArtistSongs from '@/pages/Artists/Songs'
 import Albums from '@/pages/Albums'
 import AlbumDetail from '@/pages/Albums/Detail'
 
@@ -26,6 +27,7 @@ export {
   MvDetail,
   Artists,
   ArtistDetail,
+  ArtistSongs,
   Albums,
   AlbumDetail,
 }

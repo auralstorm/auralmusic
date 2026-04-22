@@ -23,6 +23,7 @@ export function usePlaybackEngineRuntimeSync({
   config,
   quality,
   equalizer,
+  playbackFadeEnabled,
   playbackSpeed,
   volume,
   audioOutputDeviceId,
@@ -107,6 +108,10 @@ export function usePlaybackEngineRuntimeSync({
       cancelled = true
     }
   }, [currentPlaybackSourceRef, equalizer, equalizerRef])
+
+  useEffect(() => {
+    playbackRuntime.setFadeEnabled(playbackFadeEnabled)
+  }, [playbackFadeEnabled])
 
   useEffect(() => {
     const normalizedPlaybackSpeed = normalizePlaybackSpeedValue(playbackSpeed)

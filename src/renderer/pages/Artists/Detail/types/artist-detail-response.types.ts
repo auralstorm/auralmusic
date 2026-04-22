@@ -42,6 +42,12 @@ export interface RawTopSong {
   ar?: RawSongArtist[]
 }
 
+export interface RawArtistSongsPayload {
+  songs?: RawTopSong[]
+  more?: boolean
+  total?: number
+}
+
 export interface RawArtistAlbum {
   id: number
   name?: string

@@ -88,7 +88,7 @@ const LikedSongsTrackPanel = ({
     data: songs,
     loading,
     hasMore,
-    sentinelRef,
+    loadMore,
     reset,
   } = useIntersectionLoadMore(fetchTrackPage, {
     limit: PAGE_SIZE,
@@ -107,6 +107,27 @@ const LikedSongsTrackPanel = ({
     likedSongsLoaded,
     hiddenSongIds
   )
+
+  useEffect(() => {
+    if (
+      isInitialLoading ||
+      loading ||
+      !hasMore ||
+      visibleSongs.length > 0 ||
+      songs.length === 0
+    ) {
+      return
+    }
+
+    void loadMore()
+  }, [
+    hasMore,
+    isInitialLoading,
+    loadMore,
+    loading,
+    songs.length,
+    visibleSongs.length,
+  ])
 
   const handleLikeChangeSuccess = (songId: number, nextLiked: boolean) => {
     if (nextLiked) {
@@ -159,17 +180,12 @@ const LikedSongsTrackPanel = ({
       <TrackList
         data={visibleSongs}
         onLikeChangeSuccess={handleLikeChangeSuccess}
+        onEndReached={() => void loadMore()}
+        hasMore={hasMore}
+        loading={loading && !isInitialLoading}
+        loadingText='正在加载更多喜欢的音乐...'
+        endText='没有更多歌曲了'
       />
-
-      <div
-        ref={sentinelRef}
-        className='text-muted-foreground flex h-16 items-center justify-center text-sm'
-      >
-        {loading && !isInitialLoading ? '正在加载更多喜欢的音乐...' : null}
-        {!loading && !hasMore && visibleSongs.length > 0
-          ? '没有更多歌曲了'
-          : null}
-      </div>
     </div>
   )
 }

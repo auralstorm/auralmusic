@@ -1,27 +1,16 @@
-import { useMemo, useState } from 'react'
-import TrackListItem from '@/components/TrackList/TrackListItem'
-import { usePlaybackStore } from '@/stores/playback-store'
+import { useMemo } from 'react'
+import TrackListPlaybackItem from '@/components/TrackList/TrackListPlaybackItem'
 import { createArtistTopSongPlaybackQueue } from '../model'
 import type { ArtistTopSongsProps } from '../types'
 
-const ArtistTopSongs = ({ songs }: ArtistTopSongsProps) => {
-  const [isMore, setIsMore] = useState(false)
-  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
-  const appendToQueue = usePlaybackStore(state => state.appendToQueue)
-  const currentTrackId = usePlaybackStore(state => state.currentTrack?.id)
-  const playbackStatus = usePlaybackStore(state => state.status)
-  const onToggleMore = () => {
-    setIsMore(!isMore)
-  }
-  const list = useMemo(() => {
-    if (isMore) {
-      return songs
-    }
-    return songs.slice(0, 12)
-  }, [songs, isMore])
+const ArtistTopSongs = ({
+  artistId,
+  songs,
+  onViewAll,
+}: ArtistTopSongsProps) => {
   const playbackQueue = useMemo(
-    () => createArtistTopSongPlaybackQueue(list),
-    [list]
+    () => createArtistTopSongPlaybackQueue(songs),
+    [songs]
   )
 
   return (
@@ -30,63 +19,32 @@ const ArtistTopSongs = ({ songs }: ArtistTopSongsProps) => {
         热门歌曲
       </h2>
       <div className=''>
-        {list.length === 0 ? (
+        {songs.length === 0 ? (
           <div className='text-muted-foreground px-6 py-10 text-sm'>
             暂无歌曲
           </div>
         ) : (
           <div>
             <div className='grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4'>
-              {list.map((song, index) => (
-                // <div
-                //   key={song.id}
-                //   className='hover:bg-primary/5 flex items-center justify-between gap-4 rounded-[15px] px-5 py-4 transition-colors odd:bg-white/[0.02]'
-                // >
-                //   <div className='flex min-w-0 flex-1 items-center'>
-                //     <img
-                //       src={song.coverUrl}
-                //       alt={song.name}
-                //       className='size-14 shrink-0 rounded-2xl object-cover'
-                //       loading='lazy'
-                //       decoding='async'
-                //       draggable={false}
-                //     />
-                //     <div className='ml-4 flex min-w-0 flex-col justify-center'>
-                //       <div className='truncate text-lg font-semibold'>
-                //         {song.name}
-                //       </div>
-                //       <div className='text-muted-foreground truncate text-sm'>
-                //         {(song.artists || [])
-                //           .map(artist => artist.name)
-                //           .join(' / ') || ''}
-                //       </div>
-                //     </div>
-                //   </div>
-                //   <div className='flex shrink-0 items-center justify-end gap-3 text-sm'>
-                //     <Heart className='text-foreground/70 size-5' />
-                //   </div>
-                // </div>
-                <TrackListItem
+              {songs.map((song, index) => (
+                <TrackListPlaybackItem
                   key={song.id}
                   item={song}
+                  index={index}
                   type='hot'
-                  isActive={song.id === currentTrackId}
-                  isPlaying={
-                    song.id === currentTrackId && playbackStatus === 'playing'
-                  }
-                  onPlay={() => playQueueFromIndex(playbackQueue, index)}
-                  onAddToQueue={() => appendToQueue([playbackQueue[index]])}
+                  playbackQueue={playbackQueue}
                 />
               ))}
             </div>
-            {songs.length > 12 && (
-              <div
-                className='mt-5 cursor-pointer text-sm'
-                onClick={onToggleMore}
+            {artistId > 0 ? (
+              <button
+                type='button'
+                className='text-foreground/88 mt-5 text-sm transition-opacity hover:opacity-80'
+                onClick={onViewAll}
               >
-                {isMore ? '收起' : '显示更多'}
-              </div>
-            )}
+                查看全部
+              </button>
+            ) : null}
           </div>
         )}
       </div>

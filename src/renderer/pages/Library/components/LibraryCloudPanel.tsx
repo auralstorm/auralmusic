@@ -36,7 +36,7 @@ const LibraryCloudPanel = ({ active }: LibraryCloudPanelProps) => {
     data: songs,
     loading,
     hasMore,
-    sentinelRef,
+    loadMore,
     reset,
   } = useIntersectionLoadMore<DailySongRowItem>(fetchCloudSongs, {
     limit: PAGE_SIZE,
@@ -75,15 +75,14 @@ const LibraryCloudPanel = ({ active }: LibraryCloudPanelProps) => {
   return (
     <div className='space-y-6'>
       <div className='border-border/40 bg-background/70 overflow-hidden rounded-[24px] border'>
-        <TrackList data={songs} />
-      </div>
-
-      <div
-        ref={sentinelRef}
-        className='text-muted-foreground flex h-16 items-center justify-center text-sm'
-      >
-        {loading && !isInitialLoading ? '正在加载更多云盘歌曲...' : null}
-        {!loading && !hasMore && songs.length > 0 ? '没有更多云盘歌曲了' : null}
+        <TrackList
+          data={songs}
+          onEndReached={() => void loadMore()}
+          hasMore={hasMore}
+          loading={loading && !isInitialLoading}
+          loadingText='正在加载更多云盘歌曲...'
+          endText='没有更多云盘歌曲了'
+        />
       </div>
     </div>
   )

@@ -27,6 +27,7 @@ import {
   normalizeEqualizerConfigValue,
   normalizeAnimationEffect,
   normalizeImmersivePlayerControls,
+  normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
@@ -223,6 +224,7 @@ const CONFIG_STORE_SCHEMA = {
     enum: ANIMATION_EFFECT_LEVELS,
   },
   immersivePlayerControls: { type: 'boolean' },
+  playbackFadeEnabled: { type: 'boolean' },
   diskCacheEnabled: { type: 'boolean' },
   diskCacheDir: { type: 'string' },
   diskCacheMaxBytes: { type: 'number', minimum: 1 },
@@ -350,6 +352,18 @@ class ConfigStore {
         ConfigStore.instance.set(
           'immersivePlayerControls',
           normalizedImmersivePlayerControls
+        )
+      }
+
+      const playbackFadeEnabled = ConfigStore.instance.get(
+        'playbackFadeEnabled'
+      )
+      const normalizedPlaybackFadeEnabled =
+        normalizePlaybackFadeEnabled(playbackFadeEnabled)
+      if (playbackFadeEnabled !== normalizedPlaybackFadeEnabled) {
+        ConfigStore.instance.set(
+          'playbackFadeEnabled',
+          normalizedPlaybackFadeEnabled
         )
       }
 

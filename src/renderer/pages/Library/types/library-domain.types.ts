@@ -186,14 +186,22 @@ export interface RawMvArtist {
   name?: string
 }
 
+export interface RawMvCreator {
+  userName?: string
+  nickname?: string
+}
+
 export interface RawLibraryMvItem {
   id?: number
+  vid?: number | string
   name?: string
+  title?: string
   cover?: string
   coverUrl?: string
   imgurl16v9?: string
   artistName?: string
   artists?: RawMvArtist[]
+  creator?: RawMvCreator[]
   playCount?: number
   publishTime?: number
 }

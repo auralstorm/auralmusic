@@ -3,6 +3,7 @@ import type {
   ArtistDetailParams,
   ArtistListPageParams,
   ArtistListParams,
+  ArtistSongsParams,
   SubscribedArtistListParams,
   ToggleArtistSubscriptionParams,
 } from '@/types/api'
@@ -27,6 +28,12 @@ export function getArtistDetail(params: ArtistDetailParams) {
 
 export function getArtistTopSongs(params: ArtistDetailParams) {
   return request.get('/artist/top/song', {
+    params,
+  })
+}
+
+export function getArtistSongs(params: ArtistSongsParams) {
+  return request.get('/artist/songs', {
     params,
   })
 }

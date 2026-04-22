@@ -6,6 +6,7 @@ import { searchResources } from '@/api/search'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
+import { useMvDrawerStore } from '@/stores/mv-drawer-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useSearchDialogStore } from '@/stores/search-dialog-store'
 
@@ -25,6 +26,7 @@ const SEARCH_DEBOUNCE_MS = 350
 const SearchDialog = () => {
   const navigate = useNavigate()
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
+  const openMvDrawer = useMvDrawerStore(state => state.openDrawer)
   const open = useSearchDialogStore(state => state.open)
   const setOpen = useSearchDialogStore(state => state.setOpen)
   const openDialog = useSearchDialogStore(state => state.openDialog)
@@ -94,6 +96,12 @@ const SearchDialog = () => {
   const handleSelect = (item: SearchResultRowItem) => {
     if (item.type === 'song' && item.playbackTrack) {
       playQueueFromIndex([item.playbackTrack], 0)
+      setOpen(false)
+      return
+    }
+
+    if (item.type === 'mv') {
+      openMvDrawer(item.targetId)
       setOpen(false)
       return
     }

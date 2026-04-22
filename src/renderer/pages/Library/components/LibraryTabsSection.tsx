@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 
 import { ChevronDown, Plus } from 'lucide-react'
 
@@ -34,6 +34,19 @@ const LibraryTabsSection = ({
   onOpenCreatePlaylist,
 }: LibraryTabsSectionProps) => {
   const [activeTab, setActiveTab] = useState<LibraryTabValue>('playlists')
+  const handleActiveTabChange = useCallback((value: string) => {
+    setActiveTab(value as LibraryTabValue)
+  }, [])
+  const handleOpenPlaylistsTab = useCallback(() => {
+    setActiveTab('playlists')
+  }, [])
+  const handlePlaylistSourceValueChange = useCallback(
+    (value: string) => {
+      setActiveTab('playlists')
+      onPlaylistSourceChange(value as PlaylistSourceValue)
+    },
+    [onPlaylistSourceChange]
+  )
 
   const currentPlaylistLabel =
     PLAYLIST_FILTER_OPTIONS.find(option => option.value === playlistSource)
@@ -44,7 +57,7 @@ const LibraryTabsSection = ({
       <div className='grid w-full items-center'>
         <Tabs
           value={activeTab}
-          onValueChange={value => setActiveTab(value as LibraryTabValue)}
+          onValueChange={handleActiveTabChange}
           className='w-full'
         >
           <div className='relative flex w-full items-center justify-between gap-4'>
@@ -58,7 +71,7 @@ const LibraryTabsSection = ({
               >
                 <button
                   type='button'
-                  onClick={() => setActiveTab('playlists')}
+                  onClick={handleOpenPlaylistsTab}
                   className='cursor-pointer'
                 >
                   {currentPlaylistLabel}
@@ -78,10 +91,7 @@ const LibraryTabsSection = ({
                   <DropdownMenuContent align='start' className='min-w-[140px]'>
                     <DropdownMenuRadioGroup
                       value={playlistSource}
-                      onValueChange={value => {
-                        setActiveTab('playlists')
-                        onPlaylistSourceChange(value as PlaylistSourceValue)
-                      }}
+                      onValueChange={handlePlaylistSourceValueChange}
                     >
                       {PLAYLIST_FILTER_OPTIONS.map(option => (
                         <DropdownMenuRadioItem
@@ -157,4 +167,4 @@ const LibraryTabsSection = ({
   )
 }
 
-export default LibraryTabsSection
+export default memo(LibraryTabsSection)

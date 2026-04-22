@@ -24,6 +24,7 @@ const routeComponents = [
   ['MvDetail', '@/pages/Mv/Detail'],
   ['Artists', '@/pages/Artists'],
   ['ArtistDetail', '@/pages/Artists/Detail'],
+  ['ArtistSongs', '@/pages/Artists/Songs'],
   ['Albums', '@/pages/Albums'],
   ['AlbumDetail', '@/pages/Albums/Detail'],
 ] as const

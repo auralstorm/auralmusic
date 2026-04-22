@@ -30,7 +30,7 @@ const Header = ({ className = '' }: HeaderProps) => {
   }
   return (
     <header
-      className={`bg-background/70 supports-backdrop-filter:bg-background/70 transition-colors duration-300 supports-backdrop-filter:backdrop-blur-md ${className}`}
+      className={`bg-background/50 backdrop-blur-2xl transition-colors duration-300 ${className}`}
       onDoubleClick={event => {
         if (
           event.target instanceof HTMLElement &&

@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { Pause, Play, SkipForward, ThumbsDown } from 'lucide-react'
@@ -131,4 +133,4 @@ const FmFeatureCard = ({
   )
 }
 
-export default FmFeatureCard
+export default memo(FmFeatureCard)

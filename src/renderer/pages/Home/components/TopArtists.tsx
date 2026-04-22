@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { Autoplay, Virtual } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/swiper.css'
@@ -30,10 +30,13 @@ const ArtistCard = memo(({ artist, onToArtistDetail }: ArtistCardProps) => (
 
 const TopArtists = ({ list = [], isLoading = false }: TopArtistsProps) => {
   const navigate = useNavigate()
-  const handleOpenArtistDetail = (artistId: number) => {
-    if (!artistId) return
-    navigate(`/artists/${artistId}`)
-  }
+  const handleOpenArtistDetail = useCallback(
+    (artistId: number) => {
+      if (!artistId) return
+      navigate(`/artists/${artistId}`)
+    },
+    [navigate]
+  )
   return (
     <div className='mt-10'>
       <h3 className='mb-10 text-2xl font-semibold'>热门歌手</h3>

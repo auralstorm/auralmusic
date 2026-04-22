@@ -1,5 +1,5 @@
 import { Maximize2, Minimize2, X } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 
 import {
   Drawer,
@@ -87,18 +87,21 @@ const PlayerScene = () => {
     }
   }, [closePlayerScene, isExpanded, isOpen])
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && isExpanded && !isWindows && canExpand) {
-      void toggleExpanded().finally(() => {
-        setPlayerSceneOpen(nextOpen)
-      })
-      return
-    }
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && isExpanded && !isWindows && canExpand) {
+        void toggleExpanded().finally(() => {
+          setPlayerSceneOpen(nextOpen)
+        })
+        return
+      }
 
-    setPlayerSceneOpen(nextOpen)
-  }
+      setPlayerSceneOpen(nextOpen)
+    },
+    [canExpand, isExpanded, isWindows, setPlayerSceneOpen, toggleExpanded]
+  )
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (isExpanded && !isWindows && canExpand) {
       void toggleExpanded().finally(() => {
         closePlayerScene()
@@ -107,9 +110,9 @@ const PlayerScene = () => {
     }
 
     closePlayerScene()
-  }
+  }, [canExpand, closePlayerScene, isExpanded, isWindows, toggleExpanded])
 
-  const handleToggleFullscreen = () => {
+  const handleToggleFullscreen = useCallback(() => {
     if (!canExpand) {
       return
     }
@@ -117,7 +120,7 @@ const PlayerScene = () => {
     void toggleExpanded().catch(error => {
       console.error('toggle player scene expanded state failed', error)
     })
-  }
+  }, [canExpand, toggleExpanded])
 
   const coverUrl = useMemo(() => {
     return currentTrack?.coverUrl || ''
@@ -143,6 +146,14 @@ const PlayerScene = () => {
 
     return isExpanded ? '还原窗口' : '最大化窗口'
   }, [isExpanded, isWindows])
+  const fullscreenToggleIcon = useMemo(() => {
+    return isExpanded ? (
+      <Minimize2 className='size-5' />
+    ) : (
+      <Maximize2 className='size-5' />
+    )
+  }, [isExpanded])
+  const closeIcon = useMemo(() => <X className='size-5' />, [])
 
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange} direction='bottom'>
@@ -184,11 +195,7 @@ const PlayerScene = () => {
             onReveal={handleChromePointerActivity}
             onClick={handleToggleFullscreen}
           >
-            {isExpanded ? (
-              <Minimize2 className='size-5' />
-            ) : (
-              <Maximize2 className='size-5' />
-            )}
+            {fullscreenToggleIcon}
           </PlayerSceneChromeButton>
 
           <PlayerSceneChromeButton
@@ -199,7 +206,7 @@ const PlayerScene = () => {
             onReveal={handleChromePointerActivity}
             onClick={handleClose}
           >
-            <X className='size-5' />
+            {closeIcon}
           </PlayerSceneChromeButton>
 
           <div className='relative z-10 grid h-full min-h-0 grid-cols-[minmax(320px,0.86fr)_minmax(420px,1.14fr)] items-center gap-16 px-14 py-16 xl:px-20'>
