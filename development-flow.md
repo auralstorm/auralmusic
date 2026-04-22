@@ -123,7 +123,7 @@ src/renderer/pages/FeatureX/
 
 - `electron-builder.yml` 已配置 GitHub publish：
   - `provider: github`
-  - `owner: 1769762790`
+  - `owner: auralstorm`
   - `repo: auralmusic`
 - `.release-it.json` 已启用：
   - `git.push: true`

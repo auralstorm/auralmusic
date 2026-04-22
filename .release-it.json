@@ -1,7 +1,7 @@
 {
   "git": {
     "commitMessage": "chore: release v${version}",
-    "pushRepo": "https://github.com/1769762790/auralmusic.git",
+    "pushRepo": "https://github.com/auralstorm/auralmusic.git",
     "tagName": "v${version}",
     "requireCleanWorkingDir": true,
     "requireBranch": ["main", "master"],

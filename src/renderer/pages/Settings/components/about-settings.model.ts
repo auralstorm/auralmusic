@@ -86,7 +86,7 @@ export function createAboutUpdatePreviewSnapshot({
     latestVersion: resolveAboutUpdatePreviewVersion(currentVersion),
     releaseNotes: ABOUT_UPDATE_PREVIEW_RELEASE_NOTES,
     releaseDate: new Date().toISOString().slice(0, 10),
-    releaseUrl: 'https://github.com/1769762790/auralmusic/releases/latest',
+    releaseUrl: 'https://github.com/auralstorm/auralmusic/releases/latest',
     actionMode: platform === 'linux' ? 'external-link' : 'install',
     downloadProgress: 0,
     downloadedBytes: 0,
