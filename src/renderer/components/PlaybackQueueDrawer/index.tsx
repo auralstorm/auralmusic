@@ -78,6 +78,11 @@ const PlaybackQueueDrawer = ({
       return
     }
 
+    if (!queueSourceKey) {
+      setHydrating(false)
+      return
+    }
+
     const sourceDescriptor = resolveQueueSourceDescriptor(queueSourceKey)
 
     if (!sourceDescriptor) {
