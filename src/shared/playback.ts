@@ -22,6 +22,8 @@ export type PlaybackTrack = {
   sourceUrl?: string
 }
 
+const PLAYLIST_QUEUE_SOURCE_PREFIX = 'playlist:'
+
 export type PlaybackQueueSnapshot = {
   queue: PlaybackTrack[]
   currentIndex: number
@@ -209,6 +211,35 @@ export function createPlaybackQueueSnapshot(
     currentIndex,
     currentTrack: queue[currentIndex] || null,
   }
+}
+
+export function createPlaylistQueueSourceKey(playlistId: number | string) {
+  const normalizedId =
+    typeof playlistId === 'number'
+      ? playlistId
+      : Number.parseInt(String(playlistId), 10)
+
+  return normalizedId > 0
+    ? `${PLAYLIST_QUEUE_SOURCE_PREFIX}${normalizedId}`
+    : PLAYLIST_QUEUE_SOURCE_PREFIX
+}
+
+export function resolvePlaylistIdFromQueueSourceKey(
+  sourceKey: string | null | undefined
+) {
+  if (
+    typeof sourceKey !== 'string' ||
+    !sourceKey.startsWith(PLAYLIST_QUEUE_SOURCE_PREFIX)
+  ) {
+    return null
+  }
+
+  const playlistId = Number.parseInt(
+    sourceKey.slice(PLAYLIST_QUEUE_SOURCE_PREFIX.length),
+    10
+  )
+
+  return playlistId > 0 ? playlistId : null
 }
 
 export function getNextQueueIndex(

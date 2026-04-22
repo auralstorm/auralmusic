@@ -9,6 +9,7 @@ import { shouldShowInitialPlaylistSkeleton } from './playlist-loading.model'
 import ArtistCover from '@/components/ArtistCover'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { toast } from 'sonner'
+import { createPlaylistQueueSourceKey } from '../../../../../shared/playback.ts'
 import {
   buildPlaylistPlaybackTracksRequest,
   normalizePlaylistPlaybackQueue,
@@ -83,7 +84,7 @@ const AllPlaylist = ({ categories = { sub: [] } }: AllPlaylistProps) => {
         return
       }
 
-      playQueueFromIndex(queue, 0)
+      playQueueFromIndex(queue, 0, createPlaylistQueueSourceKey(playListId))
     } catch (error) {
       console.error('playlist play failed', error)
       toast.error('歌单播放失败，请稍后重试')

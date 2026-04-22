@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { usePlaybackStore } from '@/stores/playback-store'
+import { createPlaylistQueueSourceKey } from '../../../shared/playback.ts'
 import { OnlinePlaylistFeatureCard } from './components/OnlinePlaylistFeatureCard'
 import AllPlayList from './components/AllPlayList'
 import {
@@ -83,7 +84,7 @@ const PlayList = () => {
         return
       }
 
-      playQueueFromIndex(queue, 0)
+      playQueueFromIndex(queue, 0, createPlaylistQueueSourceKey(playlistId))
     } catch (error) {
       console.error('feature playlist play failed', error)
       toast.error('歌单播放失败，请稍后重试')

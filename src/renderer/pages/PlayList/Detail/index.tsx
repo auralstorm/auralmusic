@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
 import { toast } from 'sonner'
+import { createPlaylistQueueSourceKey } from '../../../../shared/playback.ts'
 
 import PlaylistDetailHero from './components/PlaylistDetailHero'
 import PlaylistDetailMoreActions from './components/PlaylistDetailMoreActions'
@@ -46,6 +47,7 @@ const PlaylistDetail = () => {
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [deleteSubmitting, setDeleteSubmitting] = useState(false)
+  const playbackQueueKey = createPlaylistQueueSourceKey(playlistId)
 
   const loadPlaylistDetail = useCallback(
     async (bustCache = false) => {
@@ -165,7 +167,7 @@ const PlaylistDetail = () => {
       return
     }
 
-    playQueueFromIndex(state.tracks, 0)
+    playQueueFromIndex(state.tracks, 0, playbackQueueKey)
   }
 
   const handleTogglePlaylistFavorite = async () => {
@@ -299,7 +301,7 @@ const PlaylistDetail = () => {
           ) : null
         }
       />
-      <TrackList data={state.tracks} />
+      <TrackList data={state.tracks} playbackQueueKey={playbackQueueKey} />
     </section>
   )
 }

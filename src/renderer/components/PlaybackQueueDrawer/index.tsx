@@ -1,7 +1,14 @@
-import { forwardRef, type ComponentProps, useEffect, useState } from 'react'
+import {
+  forwardRef,
+  type ComponentProps,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Music2, Pause, Play } from 'lucide-react'
 import { Virtuoso } from 'react-virtuoso'
 
+import { getPlaylistTracks } from '@/api/list'
 import AvatarCover from '@/components/AvatarCover'
 import {
   Drawer,
@@ -13,7 +20,12 @@ import {
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
-import { getPlaybackQueueItemState } from '../../../shared/playback.ts'
+import {
+  getPlaybackQueueItemState,
+  resolvePlaylistIdFromQueueSourceKey,
+  type PlaybackTrack,
+} from '../../../shared/playback.ts'
+import { normalizePlaylistPlaybackQueue } from '@/pages/PlayList/components/AllPlayList/playlist-playback.model'
 import type { PlaybackQueueDrawerProps } from './types'
 
 const PlaybackQueueScroller = forwardRef<HTMLDivElement, ComponentProps<'div'>>(
@@ -33,9 +45,14 @@ const PlaybackQueueDrawer = ({
   onOpenChange,
 }: PlaybackQueueDrawerProps) => {
   const [openVersion, setOpenVersion] = useState(0)
+  const playlistQueueCacheRef = useRef(new Map<number, PlaybackTrack[]>())
   const queue = usePlaybackStore(state => state.queue)
+  const queueSourceKey = usePlaybackStore(state => state.queueSourceKey)
   const currentIndex = usePlaybackStore(state => state.currentIndex)
   const status = usePlaybackStore(state => state.status)
+  const syncQueueFromSource = usePlaybackStore(
+    state => state.syncQueueFromSource
+  )
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
   const togglePlay = usePlaybackStore(state => state.togglePlay)
 
@@ -46,6 +63,54 @@ const PlaybackQueueDrawer = ({
       setOpenVersion(version => version + 1)
     }
   }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const playlistId = resolvePlaylistIdFromQueueSourceKey(queueSourceKey)
+
+    if (!playlistId) {
+      return
+    }
+
+    const cachedQueue = playlistQueueCacheRef.current.get(playlistId)
+    if (cachedQueue) {
+      syncQueueFromSource(queueSourceKey, cachedQueue)
+      return
+    }
+
+    let cancelled = false
+
+    void getPlaylistTracks({ id: playlistId })
+      .then(response => {
+        if (cancelled) {
+          return
+        }
+
+        const nextQueue = normalizePlaylistPlaybackQueue(response.data)
+
+        if (!nextQueue.length) {
+          return
+        }
+
+        playlistQueueCacheRef.current.set(playlistId, nextQueue)
+        syncQueueFromSource(queueSourceKey, nextQueue)
+      })
+      .catch(error => {
+        if (!cancelled) {
+          console.error(
+            'playback queue drawer playlist hydration failed',
+            error
+          )
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, queueSourceKey, syncQueueFromSource])
 
   const initialTopMostItemIndex =
     currentIndex >= 0 && currentIndex < queue.length ? currentIndex : 0
@@ -104,7 +169,7 @@ const PlaybackQueueDrawer = ({
                     return
                   }
 
-                  playQueueFromIndex(queue, index)
+                  playQueueFromIndex(queue, index, queueSourceKey ?? null)
                 }
 
                 return (
