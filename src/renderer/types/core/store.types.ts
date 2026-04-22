@@ -212,6 +212,7 @@ export interface PlaybackStoreState {
     startIndex: number,
     sourceKey?: string | null
   ) => void
+  playCurrentQueueIndex: (index: number) => void
   appendToQueue: (tracks: PlaybackTrack[]) => void
   syncQueueFromSource: (sourceKey: string, tracks: PlaybackTrack[]) => void
   togglePlay: () => void

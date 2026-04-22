@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getUserCloud } from '@/api/cloud'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import type { DailySongRowItem } from '@/pages/DailySongs/types'
+import { useAuthStore } from '@/stores/auth-store'
+import { createCloudQueueSourceKey } from '../../../../shared/playback'
 
 import { normalizeLibraryCloudPage } from '../library-cloud.model'
 import TrackList from '@/components/TrackList'
@@ -11,8 +13,12 @@ import type { LibraryCloudPanelProps } from '../types'
 const PAGE_SIZE = 30
 
 const LibraryCloudPanel = ({ active }: LibraryCloudPanelProps) => {
+  const userId = useAuthStore(state => state.user?.userId)
   const [isInitialLoading, setIsInitialLoading] = useState(false)
   const hasActivatedRef = useRef(false)
+  const playbackQueueKey = userId
+    ? createCloudQueueSourceKey(userId)
+    : undefined
 
   const fetchCloudSongs = useCallback(async (offset: number, limit: number) => {
     try {
@@ -77,6 +83,7 @@ const LibraryCloudPanel = ({ active }: LibraryCloudPanelProps) => {
       <div className='border-border/40 bg-background/70 overflow-hidden rounded-[24px] border'>
         <TrackList
           data={songs}
+          playbackQueueKey={playbackQueueKey}
           onEndReached={() => void loadMore()}
           hasMore={hasMore}
           loading={loading && !isInitialLoading}

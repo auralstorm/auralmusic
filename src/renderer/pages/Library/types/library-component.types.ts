@@ -36,6 +36,7 @@ export interface LibraryHeroProps {
   coverImgUrl?: string
   likedSongsPreviewRefreshing?: boolean
   onOpenLikedSongs: () => void
+  onPlayLikedSongs: () => void
   onSongLikeChangeSuccess: (songId: number, nextLiked: boolean) => void
 }
 

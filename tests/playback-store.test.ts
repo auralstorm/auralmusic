@@ -126,6 +126,63 @@ test('syncQueueFromSource extends the active playback queue for the same list so
   assert.equal(state.requestId, 1)
 })
 
+test('syncQueueFromSource does not publish redundant updates for an already synced queue', () => {
+  usePlaybackStore.getState().resetPlayback()
+  usePlaybackStore
+    .getState()
+    .playQueueFromIndex(tracks, 1, 'artist-songs:6452:hot')
+  usePlaybackStore.getState().syncQueueFromSource('artist-songs:6452:hot', [
+    ...tracks,
+    {
+      id: 4,
+      name: 'Track 4',
+      artistNames: 'Artist 4',
+      albumName: 'Album 4',
+      coverUrl: 'cover-4',
+      duration: 220000,
+    },
+  ])
+
+  let updateCount = 0
+  const unsubscribe = usePlaybackStore.subscribe(() => {
+    updateCount += 1
+  })
+
+  usePlaybackStore.getState().syncQueueFromSource('artist-songs:6452:hot', [
+    ...tracks,
+    {
+      id: 4,
+      name: 'Track 4',
+      artistNames: 'Artist 4',
+      albumName: 'Album 4',
+      coverUrl: 'cover-4',
+      duration: 220000,
+    },
+  ])
+
+  unsubscribe()
+
+  assert.equal(updateCount, 0)
+})
+
+test('playCurrentQueueIndex switches tracks without rebuilding the queue reference', () => {
+  usePlaybackStore.getState().resetPlayback()
+  usePlaybackStore
+    .getState()
+    .playQueueFromIndex(tracks, 0, 'artist-songs:6452:hot')
+
+  const queueBeforeSelect = usePlaybackStore.getState().queue
+
+  usePlaybackStore.getState().playCurrentQueueIndex(2)
+
+  const state = usePlaybackStore.getState()
+  assert.equal(state.queue, queueBeforeSelect)
+  assert.equal(state.currentIndex, 2)
+  assert.equal(state.currentTrack?.id, 3)
+  assert.equal(state.queueSourceKey, 'artist-songs:6452:hot')
+  assert.equal(state.status, 'loading')
+})
+
 test('playQueueFromIndex preserves local source urls on playback tracks', () => {
   usePlaybackStore.getState().resetPlayback()
 

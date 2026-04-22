@@ -283,6 +283,7 @@ export const PLAYLIST_FILTER_OPTIONS: PlaylistFilterOption[] = [
 export const EMPTY_LIBRARY_PAGE_DATA: LibraryPageData = {
   likedSongs: [],
   likedSongCount: 0,
+  likedPlaylistId: null,
   likedPlaylistCoverUrl: '',
   playlists: [],
 }

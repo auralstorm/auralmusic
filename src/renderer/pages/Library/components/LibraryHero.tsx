@@ -11,6 +11,7 @@ const LibraryHero = ({
   coverImgUrl: _coverImgUrl,
   likedSongsPreviewRefreshing = false,
   onOpenLikedSongs,
+  onPlayLikedSongs,
   onSongLikeChangeSuccess,
 }: LibraryHeroProps) => {
   return (
@@ -56,12 +57,17 @@ const LibraryHero = ({
                 <p className='mt-1 text-sm font-medium'>{songCount} 首</p>
               </div>
 
-              <div
+              <button
+                type='button'
+                aria-label='播放我喜欢的音乐'
                 className='bg-primary text-background flex size-12 items-center justify-center rounded-full shadow-2xl transition-transform group-hover:scale-105'
-                aria-hidden='true'
+                onClick={event => {
+                  event.stopPropagation()
+                  onPlayLikedSongs()
+                }}
               >
                 <Play className='ml-0.5 size-5 fill-current' />
-              </div>
+              </button>
             </div>
           </div>
         </div>

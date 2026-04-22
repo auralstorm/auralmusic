@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getPlaylistTrackAll } from '@/api/list'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import { useUserStore } from '@/stores/user'
-import { createPlaylistQueueSourceKey } from '../../../../shared/playback'
+import { createLikedSongsQueueSourceKey } from '../../../../shared/playback'
 import { filterLikedSongsListItems } from '../../../../shared/liked-song-visibility'
 
 import { normalizeLikedSongsTrackPage } from '../liked-songs.model'
@@ -48,7 +48,7 @@ const LikedSongsTrackPanel = ({
   const [hiddenSongIds, setHiddenSongIds] = useState<Set<number>>(new Set())
   const likedSongIds = useUserStore(state => state.likedSongIds)
   const likedSongsLoaded = useUserStore(state => state.likedSongsLoaded)
-  const playbackQueueKey = createPlaylistQueueSourceKey(playlist.id)
+  const playbackQueueKey = createLikedSongsQueueSourceKey(playlist.id)
 
   const fetchTrackPage = useCallback(
     async (offset: number, limit: number) => {

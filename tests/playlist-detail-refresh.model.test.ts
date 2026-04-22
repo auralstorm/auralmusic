@@ -13,7 +13,7 @@ test('buildPlaylistDetailLoadRequest adds timestamp when busting cache', () => {
     },
     tracks: {
       id: 9527,
-      limit: 1000,
+      limit: 30,
       offset: 0,
       timestamp: 123456789,
     },
@@ -30,7 +30,7 @@ test('buildPlaylistDetailLoadRequest omits timestamp for normal loads', () => {
     },
     tracks: {
       id: 9527,
-      limit: 1000,
+      limit: 30,
       offset: 0,
       timestamp: undefined,
     },

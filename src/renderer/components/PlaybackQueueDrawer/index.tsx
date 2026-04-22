@@ -8,7 +8,6 @@ import {
 import { Music2, Pause, Play } from 'lucide-react'
 import { Virtuoso } from 'react-virtuoso'
 
-import { getPlaylistTracks } from '@/api/list'
 import AvatarCover from '@/components/AvatarCover'
 import {
   Drawer,
@@ -18,14 +17,16 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
+import {
+  ensureQueueSourceHydration,
+  getCachedQueueSource,
+} from '@/model/playback-queue-hydration.model'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
 import {
   getPlaybackQueueItemState,
-  resolvePlaylistIdFromQueueSourceKey,
-  type PlaybackTrack,
+  resolveQueueSourceDescriptor,
 } from '../../../shared/playback.ts'
-import { normalizePlaylistPlaybackQueue } from '@/pages/PlayList/components/AllPlayList/playlist-playback.model'
 import type { PlaybackQueueDrawerProps } from './types'
 
 const PlaybackQueueScroller = forwardRef<HTMLDivElement, ComponentProps<'div'>>(
@@ -45,7 +46,7 @@ const PlaybackQueueDrawer = ({
   onOpenChange,
 }: PlaybackQueueDrawerProps) => {
   const [openVersion, setOpenVersion] = useState(0)
-  const playlistQueueCacheRef = useRef(new Map<number, PlaybackTrack[]>())
+  const [hydrating, setHydrating] = useState(false)
   const queue = usePlaybackStore(state => state.queue)
   const queueSourceKey = usePlaybackStore(state => state.queueSourceKey)
   const currentIndex = usePlaybackStore(state => state.currentIndex)
@@ -53,10 +54,17 @@ const PlaybackQueueDrawer = ({
   const syncQueueFromSource = usePlaybackStore(
     state => state.syncQueueFromSource
   )
-  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
+  const playCurrentQueueIndex = usePlaybackStore(
+    state => state.playCurrentQueueIndex
+  )
   const togglePlay = usePlaybackStore(state => state.togglePlay)
+  const queueRef = useRef(queue)
 
   const hasQueue = queue.length > 0
+
+  useEffect(() => {
+    queueRef.current = queue
+  }, [queue])
 
   useEffect(() => {
     if (open) {
@@ -66,49 +74,48 @@ const PlaybackQueueDrawer = ({
 
   useEffect(() => {
     if (!open) {
+      setHydrating(false)
       return
     }
 
-    const playlistId = resolvePlaylistIdFromQueueSourceKey(queueSourceKey)
+    const sourceDescriptor = resolveQueueSourceDescriptor(queueSourceKey)
 
-    if (!playlistId) {
+    if (!sourceDescriptor) {
+      setHydrating(false)
       return
     }
 
-    const cachedQueue = playlistQueueCacheRef.current.get(playlistId)
+    const cachedQueue = getCachedQueueSource(queueSourceKey)
     if (cachedQueue) {
+      setHydrating(false)
       syncQueueFromSource(queueSourceKey, cachedQueue)
       return
     }
 
     let cancelled = false
+    setHydrating(true)
 
-    void getPlaylistTracks({ id: playlistId })
-      .then(response => {
-        if (cancelled) {
-          return
-        }
+    const seedQueue = queueRef.current
 
-        const nextQueue = normalizePlaylistPlaybackQueue(response.data)
-
-        if (!nextQueue.length) {
-          return
-        }
-
-        playlistQueueCacheRef.current.set(playlistId, nextQueue)
-        syncQueueFromSource(queueSourceKey, nextQueue)
-      })
+    void ensureQueueSourceHydration({
+      sourceKey: queueSourceKey,
+      seedQueue,
+      startOffset: seedQueue.length,
+    })
       .catch(error => {
         if (!cancelled) {
-          console.error(
-            'playback queue drawer playlist hydration failed',
-            error
-          )
+          console.error('playback queue drawer source hydration failed', error)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setHydrating(false)
         }
       })
 
     return () => {
       cancelled = true
+      setHydrating(false)
     }
   }, [open, queueSourceKey, syncQueueFromSource])
 
@@ -133,7 +140,7 @@ const PlaybackQueueDrawer = ({
         </DrawerHeader>
 
         {hasQueue ? (
-          <div className='min-h-0 flex-1 px-3 pb-3'>
+          <div className='relative min-h-0 flex-1 px-3 pb-3'>
             <Virtuoso
               key={openVersion}
               data={queue}
@@ -169,7 +176,7 @@ const PlaybackQueueDrawer = ({
                     return
                   }
 
-                  playQueueFromIndex(queue, index, queueSourceKey ?? null)
+                  playCurrentQueueIndex(index)
                 }
 
                 return (
@@ -229,6 +236,13 @@ const PlaybackQueueDrawer = ({
                 )
               }}
             />
+            {hydrating ? (
+              <div className='bg-background/72 absolute inset-0 z-10 flex items-center justify-center rounded-[24px] backdrop-blur-[2px]'>
+                <div className='border-border/60 bg-background/88 text-foreground rounded-full border px-4 py-2 text-sm font-medium shadow-[0_12px_30px_rgba(15,23,42,0.1)]'>
+                  正在同步播放列表...
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className='flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center'>

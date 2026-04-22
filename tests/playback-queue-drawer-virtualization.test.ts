@@ -24,9 +24,26 @@ test('PlaybackQueueDrawer uses react-virtuoso for queue virtualization', () => {
 
 test('PlaybackQueueDrawer toggles the current track instead of reloading it', () => {
   assert.match(drawerSource, /togglePlay/)
+  assert.match(drawerSource, /playCurrentQueueIndex/)
   assert.match(drawerSource, /if\s*\(\s*isActive\s*\)\s*\{\s*togglePlay\(\)/)
-  assert.match(
+  assert.match(drawerSource, /playCurrentQueueIndex\(index\)/)
+  assert.doesNotMatch(
     drawerSource,
     /playQueueFromIndex\(queue,\s*index,\s*queueSourceKey\s*\?\?\s*null\)/
   )
+})
+
+test('PlaybackQueueDrawer shows a loading overlay while hydrating uncached playlist queues', () => {
+  assert.match(
+    drawerSource,
+    /const\s+\[hydrating,\s*setHydrating\]\s*=\s*useState\(false\)/
+  )
+  assert.match(drawerSource, /setHydrating\(true\)/)
+  assert.match(drawerSource, /setHydrating\(false\)/)
+  assert.match(
+    drawerSource,
+    /absolute inset-0 z-10 flex items-center justify-center/
+  )
+  assert.match(drawerSource, /backdrop-blur-\[2px\]/)
+  assert.match(drawerSource, /正在同步播放列表/)
 })

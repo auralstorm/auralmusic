@@ -107,6 +107,17 @@ function isQueueExtensionOfCurrentQueue(
   return currentQueue.every((track, index) => nextQueue[index]?.id === track.id)
 }
 
+function isSamePlaybackQueue(
+  currentQueue: PlaybackTrack[],
+  nextQueue: PlaybackTrack[]
+) {
+  if (currentQueue.length !== nextQueue.length) {
+    return false
+  }
+
+  return currentQueue.every((track, index) => nextQueue[index]?.id === track.id)
+}
+
 export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   ...INITIAL_PLAYBACK_STATE,
 
@@ -127,6 +138,35 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
       error: '',
       requestId: snapshot.currentTrack ? state.requestId + 1 : state.requestId,
     }))
+  },
+
+  playCurrentQueueIndex: index => {
+    set(state => {
+      if (
+        index < 0 ||
+        index >= state.queue.length ||
+        index === state.currentIndex
+      ) {
+        return state
+      }
+
+      const currentTrack = state.queue[index]
+
+      if (!currentTrack) {
+        return state
+      }
+
+      return {
+        ...createTrackPatch(state.queue, index, state.requestId),
+        queue: state.queue,
+        queueSourceKey: state.queueSourceKey,
+        shuffleOrder:
+          state.playbackMode === 'shuffle'
+            ? createShuffleOrder(state.queue.length, index)
+            : state.shuffleOrder,
+        shuffleCursor: 0,
+      }
+    })
   },
 
   appendToQueue: tracks => {
@@ -190,6 +230,13 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
       )
 
       if (nextCurrentIndex < 0) {
+        return state
+      }
+
+      if (
+        isSamePlaybackQueue(state.queue, nextSnapshot.queue) &&
+        nextCurrentIndex === state.currentIndex
+      ) {
         return state
       }
 

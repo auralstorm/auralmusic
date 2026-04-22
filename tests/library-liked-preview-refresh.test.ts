@@ -55,7 +55,15 @@ test('library liked songs preview refreshes after a like state change succeeds',
   )
   assert.match(
     libraryComponentTypesSource,
+    /onPlayLikedSongs:\s*\(\)\s*=>\s*void/
+  )
+  assert.match(
+    libraryComponentTypesSource,
     /likedSongsPreviewRefreshing\?:\s*boolean/
+  )
+  assert.match(
+    libraryHeroSource,
+    /<button[\s\S]*aria-label='播放我喜欢的音乐'[\s\S]*onClick=\{event => \{[\s\S]*event\.stopPropagation\(\)[\s\S]*onPlayLikedSongs\(\)/
   )
   assert.match(
     libraryHeroSource,

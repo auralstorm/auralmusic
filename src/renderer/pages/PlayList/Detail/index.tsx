@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
@@ -9,6 +9,8 @@ import {
   updatePlaylist,
 } from '@/api/list'
 import TrackList from '@/components/TrackList'
+import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
+import { ensureQueueSourceHydration } from '@/model/playback-queue-hydration.model'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
 import { usePlaybackStore } from '@/stores/playback-store'
@@ -19,13 +21,18 @@ import { createPlaylistQueueSourceKey } from '../../../../shared/playback.ts'
 import PlaylistDetailHero from './components/PlaylistDetailHero'
 import PlaylistDetailMoreActions from './components/PlaylistDetailMoreActions'
 import PlaylistDetailSkeleton from './components/PlaylistDetailSkeleton'
-import { buildPlaylistDetailLoadRequest } from './playlist-detail-refresh.model'
+import {
+  buildPlaylistDetailLoadRequest,
+  buildPlaylistTrackPageRequest,
+} from './playlist-detail-refresh.model'
 import {
   EMPTY_PLAYLIST_DETAIL_STATE,
   normalizePlaylistDetailHero,
   normalizePlaylistTracks,
 } from './playlist-detail.model'
 import type { PlaylistDetailPageState } from './types'
+
+const PAGE_SIZE = 30
 
 const PlaylistDetail = () => {
   useScrollToTopOnRouteEnter()
@@ -42,99 +49,134 @@ const PlaylistDetail = () => {
   const [state, setState] = useState<PlaylistDetailPageState>(
     EMPTY_PLAYLIST_DETAIL_STATE
   )
-  const [loading, setLoading] = useState(true)
+  const [pageLoading, setPageLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [error, setError] = useState('')
+  const [trackError, setTrackError] = useState('')
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [deleteSubmitting, setDeleteSubmitting] = useState(false)
   const playbackQueueKey = createPlaylistQueueSourceKey(playlistId)
+  const requestTimestampRef = useRef<number | undefined>(undefined)
 
-  const loadPlaylistDetail = useCallback(
-    async (bustCache = false) => {
+  const fetchTrackPage = useCallback(
+    async (offset: number, limit: number) => {
       if (!playlistId) {
-        setLoading(false)
-        setError('无效的歌单 ID')
-        return
+        if (offset === 0) {
+          setError('无效的歌单 ID')
+          setIsInitialLoading(false)
+        }
+
+        return { list: [], hasMore: false }
       }
 
-      setLoading(true)
-      setError('')
-      setState(EMPTY_PLAYLIST_DETAIL_STATE)
-
       try {
-        const request = buildPlaylistDetailLoadRequest(playlistId, bustCache)
+        if (offset === 0) {
+          setTrackError('')
+        }
 
-        const [detailResponse, tracksResponse] = await Promise.all([
-          getPlaylistDetail(request.detail.id, request.detail.timestamp),
-          getPlaylistTracks(request.tracks),
-        ])
+        const response = await getPlaylistTracks(
+          buildPlaylistTrackPageRequest({
+            playlistId,
+            offset,
+            limit,
+            timestamp: offset === 0 ? requestTimestampRef.current : undefined,
+          })
+        )
+        const tracks = normalizePlaylistTracks(response.data)
 
-        setState({
-          hero: normalizePlaylistDetailHero(detailResponse.data),
-          tracks: normalizePlaylistTracks(tracksResponse.data),
-        })
+        return {
+          list: tracks,
+          hasMore: tracks.length >= limit,
+        }
       } catch (fetchError) {
-        console.error('playlist detail fetch failed', fetchError)
-        setError('歌单详情加载失败，请稍后重试')
+        console.error('playlist track page fetch failed', fetchError)
+
+        if (offset === 0) {
+          setTrackError('歌单详情加载失败，请稍后重试')
+        }
+
+        return {
+          list: [],
+          hasMore: false,
+        }
       } finally {
-        setLoading(false)
+        if (offset === 0) {
+          setIsInitialLoading(false)
+        }
       }
     },
     [playlistId]
   )
 
-  useEffect(() => {
-    let cancelled = false
+  const {
+    data: tracks,
+    loading,
+    hasMore,
+    loadMore,
+    reset,
+  } = useIntersectionLoadMore(fetchTrackPage, {
+    limit: PAGE_SIZE,
+  })
 
-    const run = async () => {
+  const loadPlaylistDetail = useCallback(
+    async (bustCache = false) => {
       if (!playlistId) {
-        setLoading(false)
+        setPageLoading(false)
+        setIsInitialLoading(false)
         setError('无效的歌单 ID')
+        setState(EMPTY_PLAYLIST_DETAIL_STATE)
         return
       }
 
-      setLoading(true)
+      const request = buildPlaylistDetailLoadRequest(playlistId, bustCache)
+
+      requestTimestampRef.current = request.detail.timestamp
+      setPageLoading(true)
+      setIsInitialLoading(true)
       setError('')
+      setTrackError('')
       setState(EMPTY_PLAYLIST_DETAIL_STATE)
+      reset()
 
       try {
-        const request = buildPlaylistDetailLoadRequest(playlistId, true)
+        const detailResponse = await getPlaylistDetail(
+          request.detail.id,
+          request.detail.timestamp
+        )
 
-        const [detailResponse, tracksResponse] = await Promise.all([
-          getPlaylistDetail(request.detail.id, request.detail.timestamp),
-          getPlaylistTracks(request.tracks),
-        ])
-
-        if (cancelled) {
-          return
-        }
-
-        setState({
+        setState(previous => ({
           hero: normalizePlaylistDetailHero(detailResponse.data),
-          tracks: normalizePlaylistTracks(tracksResponse.data),
-        })
+          tracks: previous.tracks,
+        }))
       } catch (fetchError) {
-        if (cancelled) {
-          return
-        }
-
         console.error('playlist detail fetch failed', fetchError)
         setError('歌单详情加载失败，请稍后重试')
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        setPageLoading(false)
       }
-    }
+    },
+    [playlistId, reset]
+  )
 
-    void run()
+  useEffect(() => {
+    void loadPlaylistDetail(true)
+  }, [loadPlaylistDetail])
 
-    return () => {
-      cancelled = true
-    }
-  }, [playlistId])
+  useEffect(() => {
+    setState(previous => {
+      if (previous.tracks === tracks) {
+        return previous
+      }
 
-  if (loading && !state.hero) {
+      return {
+        ...previous,
+        tracks,
+      }
+    })
+  }, [tracks])
+
+  if (pageLoading && !state.hero) {
     return <PlaylistDetailSkeleton />
   }
 
@@ -168,6 +210,11 @@ const PlaylistDetail = () => {
     }
 
     playQueueFromIndex(state.tracks, 0, playbackQueueKey)
+    void ensureQueueSourceHydration({
+      sourceKey: playbackQueueKey,
+      seedQueue: state.tracks,
+      startOffset: state.tracks.length,
+    })
   }
 
   const handleTogglePlaylistFavorite = async () => {
@@ -301,7 +348,25 @@ const PlaylistDetail = () => {
           ) : null
         }
       />
-      <TrackList data={state.tracks} playbackQueueKey={playbackQueueKey} />
+      {trackError && state.tracks.length === 0 && !isInitialLoading ? (
+        <div className='border-border/60 bg-card/70 text-muted-foreground rounded-[28px] border px-6 py-10 text-center text-sm'>
+          {trackError}
+        </div>
+      ) : isInitialLoading && state.tracks.length === 0 ? (
+        <div className='border-border/60 bg-card/70 text-muted-foreground rounded-[28px] border px-6 py-10 text-center text-sm'>
+          正在加载歌单歌曲...
+        </div>
+      ) : (
+        <TrackList
+          data={state.tracks}
+          playbackQueueKey={playbackQueueKey}
+          onEndReached={() => void loadMore()}
+          hasMore={hasMore}
+          loading={loading && !isInitialLoading}
+          loadingText='正在加载更多歌曲...'
+          endText='没有更多歌曲了'
+        />
+      )}
     </section>
   )
 }

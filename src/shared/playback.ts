@@ -23,11 +23,19 @@ export type PlaybackTrack = {
 }
 
 const PLAYLIST_QUEUE_SOURCE_PREFIX = 'playlist:'
+const LIKED_SONGS_QUEUE_SOURCE_PREFIX = 'liked-songs:'
+const ALBUM_QUEUE_SOURCE_PREFIX = 'album:'
+const CLOUD_QUEUE_SOURCE_PREFIX = 'cloud:'
 
 export type PlaybackQueueSnapshot = {
   queue: PlaybackTrack[]
   currentIndex: number
   currentTrack: PlaybackTrack | null
+}
+
+export type PlaybackQueueSourceDescriptor = {
+  type: 'playlist' | 'liked-songs' | 'album' | 'cloud'
+  id: number
 }
 
 export type SongUrlV1Result = {
@@ -214,32 +222,103 @@ export function createPlaybackQueueSnapshot(
 }
 
 export function createPlaylistQueueSourceKey(playlistId: number | string) {
-  const normalizedId =
-    typeof playlistId === 'number'
-      ? playlistId
-      : Number.parseInt(String(playlistId), 10)
+  return createPrefixedQueueSourceKey(PLAYLIST_QUEUE_SOURCE_PREFIX, playlistId)
+}
 
-  return normalizedId > 0
-    ? `${PLAYLIST_QUEUE_SOURCE_PREFIX}${normalizedId}`
-    : PLAYLIST_QUEUE_SOURCE_PREFIX
+export function createLikedSongsQueueSourceKey(playlistId: number | string) {
+  return createPrefixedQueueSourceKey(
+    LIKED_SONGS_QUEUE_SOURCE_PREFIX,
+    playlistId
+  )
+}
+
+export function createAlbumQueueSourceKey(albumId: number | string) {
+  return createPrefixedQueueSourceKey(ALBUM_QUEUE_SOURCE_PREFIX, albumId)
+}
+
+export function createCloudQueueSourceKey(userId: number | string) {
+  return createPrefixedQueueSourceKey(CLOUD_QUEUE_SOURCE_PREFIX, userId)
+}
+
+function createPrefixedQueueSourceKey(
+  prefix: string,
+  sourceId: number | string
+) {
+  const normalizedId =
+    typeof sourceId === 'number'
+      ? sourceId
+      : Number.parseInt(String(sourceId), 10)
+
+  return normalizedId > 0 ? `${prefix}${normalizedId}` : prefix
 }
 
 export function resolvePlaylistIdFromQueueSourceKey(
   sourceKey: string | null | undefined
 ) {
-  if (
-    typeof sourceKey !== 'string' ||
-    !sourceKey.startsWith(PLAYLIST_QUEUE_SOURCE_PREFIX)
-  ) {
+  return resolvePrefixedQueueSourceId(sourceKey, PLAYLIST_QUEUE_SOURCE_PREFIX)
+}
+
+function resolvePrefixedQueueSourceId(
+  sourceKey: string | null | undefined,
+  prefix: string
+) {
+  if (typeof sourceKey !== 'string' || !sourceKey.startsWith(prefix)) {
     return null
   }
 
-  const playlistId = Number.parseInt(
-    sourceKey.slice(PLAYLIST_QUEUE_SOURCE_PREFIX.length),
-    10
-  )
+  const sourceId = Number.parseInt(sourceKey.slice(prefix.length), 10)
 
-  return playlistId > 0 ? playlistId : null
+  return sourceId > 0 ? sourceId : null
+}
+
+export function resolveQueueSourceDescriptor(
+  sourceKey: string | null | undefined
+): PlaybackQueueSourceDescriptor | null {
+  const playlistId = resolvePrefixedQueueSourceId(
+    sourceKey,
+    PLAYLIST_QUEUE_SOURCE_PREFIX
+  )
+  if (playlistId) {
+    return {
+      type: 'playlist',
+      id: playlistId,
+    }
+  }
+
+  const likedSongsId = resolvePrefixedQueueSourceId(
+    sourceKey,
+    LIKED_SONGS_QUEUE_SOURCE_PREFIX
+  )
+  if (likedSongsId) {
+    return {
+      type: 'liked-songs',
+      id: likedSongsId,
+    }
+  }
+
+  const albumId = resolvePrefixedQueueSourceId(
+    sourceKey,
+    ALBUM_QUEUE_SOURCE_PREFIX
+  )
+  if (albumId) {
+    return {
+      type: 'album',
+      id: albumId,
+    }
+  }
+
+  const cloudUserId = resolvePrefixedQueueSourceId(
+    sourceKey,
+    CLOUD_QUEUE_SOURCE_PREFIX
+  )
+  if (cloudUserId) {
+    return {
+      type: 'cloud',
+      id: cloudUserId,
+    }
+  }
+
+  return null
 }
 
 export function getNextQueueIndex(

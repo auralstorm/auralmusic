@@ -5,10 +5,12 @@ import { toast } from 'sonner'
 
 import { getAlbumDetail, toggleAlbumSubscription } from '@/api/album'
 import TrackList from '@/components/TrackList'
+import { ensureQueueSourceHydration } from '@/model/playback-queue-hydration.model'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { useAuthStore } from '@/stores/auth-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
+import { createAlbumQueueSourceKey } from '../../../../shared/playback.ts'
 
 import AlbumDetailHero from './components/AlbumDetailHero'
 import AlbumDetailSkeleton from './components/AlbumDetailSkeleton'
@@ -39,6 +41,7 @@ const AlbumDetail = () => {
   const isLiked = useUserStore(state =>
     albumId ? state.likedAlbumIds.has(albumId) : false
   )
+  const playbackQueueKey = createAlbumQueueSourceKey(albumId)
 
   useScrollToTopOnRouteEnter()
 
@@ -138,7 +141,12 @@ const AlbumDetail = () => {
       return
     }
 
-    playQueueFromIndex(state.tracks, 0)
+    playQueueFromIndex(state.tracks, 0, playbackQueueKey)
+    void ensureQueueSourceHydration({
+      sourceKey: playbackQueueKey,
+      seedQueue: state.tracks,
+      startOffset: state.tracks.length,
+    })
   }
 
   if (loading && !state.hero) {
@@ -174,7 +182,11 @@ const AlbumDetail = () => {
         onToggleLiked={handleToggleLikedAlbum}
         onPlay={handlePlayAlbum}
       />
-      <TrackList data={state.tracks} coverUrl={state.hero.coverUrl} />
+      <TrackList
+        data={state.tracks}
+        playbackQueueKey={playbackQueueKey}
+        coverUrl={state.hero.coverUrl}
+      />
     </section>
   )
 }

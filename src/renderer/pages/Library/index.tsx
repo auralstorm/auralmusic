@@ -12,8 +12,10 @@ import { toast } from 'sonner'
 import { createPlaylist, getPlaylistTrackAll } from '@/api/list'
 import { userPlaylist } from '@/api/user'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
+import { ensureQueueSourceHydration } from '@/model/playback-queue-hydration.model'
 import { useAuthStore } from '@/stores/auth-store'
 import { useMvDrawerStore } from '@/stores/mv-drawer-store'
+import { usePlaybackStore } from '@/stores/playback-store'
 
 import CreatePlaylistDialog from './components/CreatePlaylistDialog'
 import LibraryHero from './components/LibraryHero'
@@ -27,9 +29,11 @@ import {
   resolveLibraryLikedPlaylist,
 } from './library.model'
 import { isDef } from '@/lib/utils'
+import { createLikedSongsQueueSourceKey } from '../../../shared/playback'
 import type {
   CreatePlaylistPayload,
   LibraryPageData,
+  LibrarySongItem,
   PlaylistSourceValue,
 } from './types'
 
@@ -38,6 +42,7 @@ const Library = () => {
 
   const navigate = useNavigate()
   const openMvDrawer = useMvDrawerStore(state => state.openDrawer)
+  const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
   const user = useAuthStore(state => state.user)
   const loginStatus = useAuthStore(state => state.loginStatus)
   const hasHydrated = useAuthStore(state => state.hasHydrated)
@@ -102,9 +107,11 @@ const Library = () => {
 
       let likedSongs = EMPTY_LIBRARY_PAGE_DATA.likedSongs
       let likedSongCount = 0
+      let likedPlaylistId: number | null = null
       let likedPlaylistCoverUrl = ''
 
       if (likedPlaylist?.id) {
+        likedPlaylistId = likedPlaylist.id
         likedSongCount = likedPlaylist.trackCount
         likedPlaylistCoverUrl = likedPlaylist.coverImgUrl
 
@@ -124,6 +131,7 @@ const Library = () => {
       return {
         likedSongs,
         likedSongCount,
+        likedPlaylistId,
         likedPlaylistCoverUrl,
       }
     },
@@ -234,6 +242,47 @@ const Library = () => {
     navigate('/library/liked-songs')
   }, [navigate])
 
+  const handlePlayLikedSongs = useCallback(async () => {
+    if (!data.likedPlaylistId) {
+      return
+    }
+
+    const previewLimit = 100
+    const timestamp = Date.now()
+
+    try {
+      const response = await getPlaylistTrackAll(
+        data.likedPlaylistId,
+        previewLimit,
+        0,
+        timestamp
+      )
+      const queue: LibrarySongItem[] = normalizeLibrarySongs(response.data)
+
+      if (!queue.length) {
+        toast.error('暂无可播放的喜欢歌曲')
+        return
+      }
+
+      playQueueFromIndex(
+        queue,
+        0,
+        createLikedSongsQueueSourceKey(data.likedPlaylistId)
+      )
+
+      if (data.likedSongCount > queue.length) {
+        void ensureQueueSourceHydration({
+          sourceKey: createLikedSongsQueueSourceKey(data.likedPlaylistId),
+          seedQueue: queue,
+          startOffset: queue.length,
+        })
+      }
+    } catch (playbackError) {
+      console.error('library liked songs playback failed', playbackError)
+      toast.error('我喜欢的音乐播放失败，请稍后重试')
+    }
+  }, [data.likedPlaylistId, data.likedSongCount, playQueueFromIndex])
+
   const handleOpenPlaylist = useCallback(
     (playlistId: number) => {
       if (!isDef(playlistId)) return
@@ -327,6 +376,7 @@ const Library = () => {
             coverImgUrl={data.likedPlaylistCoverUrl}
             likedSongsPreviewRefreshing={likedSongsPreviewRefreshing}
             onOpenLikedSongs={handleOpenLikedSongs}
+            onPlayLikedSongs={handlePlayLikedSongs}
             onSongLikeChangeSuccess={handleRefreshLikedSongsPreview}
           />
 

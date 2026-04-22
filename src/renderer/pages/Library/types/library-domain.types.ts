@@ -39,6 +39,7 @@ export interface LibraryMvItem {
 export interface LibraryPageData {
   likedSongs: LibrarySongItem[]
   likedSongCount: number
+  likedPlaylistId: number | null
   likedPlaylistCoverUrl: string
   playlists: LibraryPlaylistItem[]
 }
