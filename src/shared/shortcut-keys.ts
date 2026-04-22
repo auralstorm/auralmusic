@@ -6,7 +6,11 @@ export const SHORTCUT_ACTIONS = [
   'volumeDown',
   'likeSong',
   'togglePlayer',
-  'openSearch',
+  'toggleFullscreen',
+  'toggleSearch',
+  'navigateBack',
+  'navigateForward',
+  'togglePlaylist',
 ] as const
 
 export const SHORTCUT_ACTION_CHANNEL = 'shortcut:action'
@@ -66,9 +70,25 @@ export const DEFAULT_SHORTCUT_BINDINGS: ShortcutBindings = {
     local: 'Ctrl+M',
     global: 'Alt+Ctrl+M',
   },
-  openSearch: {
+  toggleFullscreen: {
+    local: 'Ctrl+Shift+F',
+    global: 'Alt+Ctrl+Shift+F',
+  },
+  toggleSearch: {
     local: 'Ctrl+K',
     global: 'Alt+Ctrl+K',
+  },
+  navigateBack: {
+    local: 'Alt+ArrowLeft',
+    global: 'Alt+Ctrl+Shift+ArrowLeft',
+  },
+  navigateForward: {
+    local: 'Alt+ArrowRight',
+    global: 'Alt+Ctrl+Shift+ArrowRight',
+  },
+  togglePlaylist: {
+    local: 'Ctrl+Shift+L',
+    global: 'Alt+Ctrl+Shift+L',
   },
 }
 

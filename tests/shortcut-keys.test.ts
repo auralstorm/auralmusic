@@ -16,7 +16,7 @@ import {
 } from '../src/shared/shortcut-keys.ts'
 
 test('default shortcut bindings include all supported actions', () => {
-  assert.equal(Object.keys(DEFAULT_SHORTCUT_BINDINGS).length, 8)
+  assert.equal(Object.keys(DEFAULT_SHORTCUT_BINDINGS).length, 12)
   assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.playPause, {
     local: 'Ctrl+P',
     global: 'Alt+Ctrl+P',
@@ -25,9 +25,25 @@ test('default shortcut bindings include all supported actions', () => {
     local: 'Ctrl+ArrowRight',
     global: 'Alt+Ctrl+ArrowRight',
   })
-  assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.openSearch, {
+  assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.toggleSearch, {
     local: 'Ctrl+K',
     global: 'Alt+Ctrl+K',
+  })
+  assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.toggleFullscreen, {
+    local: 'Ctrl+Shift+F',
+    global: 'Alt+Ctrl+Shift+F',
+  })
+  assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.navigateBack, {
+    local: 'Alt+ArrowLeft',
+    global: 'Alt+Ctrl+Shift+ArrowLeft',
+  })
+  assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.navigateForward, {
+    local: 'Alt+ArrowRight',
+    global: 'Alt+Ctrl+Shift+ArrowRight',
+  })
+  assert.deepEqual(DEFAULT_SHORTCUT_BINDINGS.togglePlaylist, {
+    local: 'Ctrl+Shift+L',
+    global: 'Alt+Ctrl+Shift+L',
   })
 })
 
@@ -168,7 +184,7 @@ test('resolveEnabledGlobalShortcutRegistrations returns normalized unique global
     registrations.some(registration => registration.actionId === 'nextTrack'),
     false
   )
-  assert.equal(registrations.length, 7)
+  assert.equal(registrations.length, 11)
 })
 
 test('resolveGlobalShortcutRegistrationStatuses marks only failed global registrations as unregistered', () => {
@@ -186,8 +202,24 @@ test('resolveGlobalShortcutRegistrationStatuses marks only failed global registr
     accelerator: 'Alt+Ctrl+Right',
     registered: false,
   })
-  assert.deepEqual(statuses.openSearch, {
+  assert.deepEqual(statuses.toggleSearch, {
     accelerator: 'Alt+Ctrl+K',
+    registered: true,
+  })
+  assert.deepEqual(statuses.toggleFullscreen, {
+    accelerator: 'Alt+Ctrl+Shift+F',
+    registered: true,
+  })
+  assert.deepEqual(statuses.navigateBack, {
+    accelerator: 'Alt+Ctrl+Shift+Left',
+    registered: true,
+  })
+  assert.deepEqual(statuses.navigateForward, {
+    accelerator: 'Alt+Ctrl+Shift+Right',
+    registered: true,
+  })
+  assert.deepEqual(statuses.togglePlaylist, {
+    accelerator: 'Alt+Ctrl+Shift+L',
     registered: true,
   })
 })
