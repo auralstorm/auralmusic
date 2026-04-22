@@ -1,4 +1,4 @@
-# Aural Music
+# <center>Aural Music</center>
 
 <p align="center">
   <img src="./build/icons/256x256.png" alt="Aural Music Logo" width="128" height="128">
