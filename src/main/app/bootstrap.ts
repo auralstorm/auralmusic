@@ -53,7 +53,7 @@ export function bootstrapMainApp() {
   const updateService = createUpdateService({
     platform: process.platform,
     currentVersion: app.getVersion(),
-    owner: '1769762790',
+    owner: 'auralstorm',
     repo: 'auralmusic',
     enabled: app.isPackaged,
   })

@@ -21,7 +21,7 @@ asar: true
 
 publish:
   - provider: github
-    owner: 1769762790
+    owner: auralstorm
     repo: auralmusic
     releaseType: release
 
