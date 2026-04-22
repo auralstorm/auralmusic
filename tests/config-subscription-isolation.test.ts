@@ -44,7 +44,7 @@ test('playback engine avoids subscribing to the full config object', () => {
   )
   assert.match(
     playbackEngineSource,
-    /const\s+musicSourceEnabled\s*=\s*useConfigStore\(state\s*=>\s*state\.config\.musicSourceEnabled\)/
+    /const\s+musicSourceEnabled\s*=\s*useConfigStore\([\s\S]*state\s*=>\s*state\.config\.musicSourceEnabled[\s\S]*\)/
   )
   assert.match(
     playbackEngineSource,
