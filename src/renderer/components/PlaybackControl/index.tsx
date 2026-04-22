@@ -1,17 +1,19 @@
-import { memo, useCallback, useState } from 'react'
+import { memo } from 'react'
 
 import PlaybackQueueDrawer from '@/components/PlaybackQueueDrawer'
 import PlaybackPreferenceControls from './PlaybackPreferenceControls'
 import PlaybackProgressBar from './PlaybackProgressBar'
 import PlaybackTrackInfo from './PlaybackTrackInfo'
 import PlaybackTransportControls from './PlaybackTransportControls'
+import { usePlaybackQueueDrawerStore } from '@/stores/playback-queue-drawer-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 
 const PlaybackControl = () => {
   const track = usePlaybackStore(state => state.currentTrack)
-  const [isQueueDrawerOpen, setIsQueueDrawerOpen] = useState(false)
-  const openQueueDrawer = useCallback(() => setIsQueueDrawerOpen(true), [])
   const isOpen = usePlaybackStore(state => state.isPlayerSceneOpen)
+  const isQueueDrawerOpen = usePlaybackQueueDrawerStore(state => state.open)
+  const setQueueDrawerOpen = usePlaybackQueueDrawerStore(state => state.setOpen)
+  const openQueueDrawer = usePlaybackQueueDrawerStore(state => state.openDrawer)
 
   // 避免在播放器打开状态下继续渲染
   if (isOpen) {
@@ -31,7 +33,7 @@ const PlaybackControl = () => {
 
       <PlaybackQueueDrawer
         open={isQueueDrawerOpen}
-        onOpenChange={setIsQueueDrawerOpen}
+        onOpenChange={setQueueDrawerOpen}
       />
     </>
   )

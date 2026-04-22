@@ -33,9 +33,12 @@ const SHORTCUT_ACTION_LABELS = {
   volumeDown: '减少音量',
   likeSong: '喜欢歌曲',
   togglePlayer: '隐藏/显示播放器',
+  toggleFullscreen: '全屏/非全屏',
+  toggleSearch: '显示/隐藏搜索',
+  navigateBack: '后退',
+  navigateForward: '前进',
+  togglePlaylist: '显示/隐藏播放列表',
 } as Record<ShortcutActionId, string>
-
-SHORTCUT_ACTION_LABELS.openSearch = '呼出搜索'
 
 const MODIFIER_KEY_NAMES = new Set(['Alt', 'Control', 'Meta', 'Shift'])
 

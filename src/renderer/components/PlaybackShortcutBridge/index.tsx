@@ -4,9 +4,12 @@ import { toast } from 'sonner'
 import { toggleSongLike } from '@/api/list'
 import { useAuthStore } from '@/stores/auth-store'
 import { useConfigStore } from '@/stores/config-store'
+import { usePlaybackQueueDrawerStore } from '@/stores/playback-queue-drawer-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useSearchDialogStore } from '@/stores/search-dialog-store'
 import { useUserStore } from '@/stores/user'
+import { getElectronWindowApi } from '@/lib/electron-runtime'
+import router from '@/router'
 import {
   findShortcutActionByAccelerator,
   keyboardEventToShortcut,
@@ -120,8 +123,28 @@ const PlaybackShortcutBridge = () => {
         return
       }
 
-      if (actionId === 'openSearch') {
-        useSearchDialogStore.getState().openDialog()
+      if (actionId === 'toggleFullscreen') {
+        void getElectronWindowApi()?.toggleFullScreen()
+        return
+      }
+
+      if (actionId === 'toggleSearch') {
+        useSearchDialogStore.getState().toggleDialog()
+        return
+      }
+
+      if (actionId === 'navigateBack') {
+        void router.navigate(-1)
+        return
+      }
+
+      if (actionId === 'navigateForward') {
+        void router.navigate(1)
+        return
+      }
+
+      if (actionId === 'togglePlaylist') {
+        usePlaybackQueueDrawerStore.getState().toggleDrawer()
       }
     },
     [setConfig]

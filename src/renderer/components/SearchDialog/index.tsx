@@ -29,7 +29,7 @@ const SearchDialog = () => {
   const openMvDrawer = useMvDrawerStore(state => state.openDrawer)
   const open = useSearchDialogStore(state => state.open)
   const setOpen = useSearchDialogStore(state => state.setOpen)
-  const openDialog = useSearchDialogStore(state => state.openDialog)
+  const toggleDialog = useSearchDialogStore(state => state.toggleDialog)
   const [keyword, setKeyword] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
   const [type, setType] = useState<SearchType>('song')
@@ -120,8 +120,8 @@ const SearchDialog = () => {
         variant='ghost'
         size='icon-sm'
         className='window-no-drag mr-3 cursor-pointer rounded-full'
-        aria-label='打开搜索'
-        onClick={openDialog}
+        aria-label='显示或隐藏搜索'
+        onClick={toggleDialog}
       >
         <SearchIcon className='size-5' />
       </Button>
