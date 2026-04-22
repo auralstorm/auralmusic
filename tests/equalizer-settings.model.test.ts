@@ -5,6 +5,8 @@ import {
   createEqualizerPresetOptions,
   createEqualizerSettingsDraft,
   formatEqualizerGainLabel,
+  hasEqualizerBandGainChanged,
+  hasEqualizerPreampChanged,
   resolveEqualizerPresetLabel,
   resolveEqualizerSliderCommitValue,
 } from '../src/renderer/pages/Settings/components/equalizer-settings.model.ts'
@@ -32,4 +34,17 @@ test('equalizer preset labels expose custom state for the UI', () => {
     value: 'custom',
     label: '自定义',
   })
+})
+
+test('equalizer settings model detects whether commit values actually changed', () => {
+  assert.equal(hasEqualizerPreampChanged(DEFAULT_EQUALIZER_CONFIG, 0), false)
+  assert.equal(hasEqualizerPreampChanged(DEFAULT_EQUALIZER_CONFIG, -3), true)
+  assert.equal(
+    hasEqualizerBandGainChanged(DEFAULT_EQUALIZER_CONFIG, 31, 0),
+    false
+  )
+  assert.equal(
+    hasEqualizerBandGainChanged(DEFAULT_EQUALIZER_CONFIG, 31, 4),
+    true
+  )
 })

@@ -3,6 +3,7 @@ import {
   EQ_GAIN_MIN,
   EQ_PRESETS,
   normalizeEqualizerConfig,
+  type EqualizerBandFrequency,
   type EqualizerConfig,
 } from '../../../../shared/equalizer.ts'
 import type { EqualizerPresetOption } from '../types'
@@ -43,6 +44,27 @@ export function createEqualizerSettingsDraft(config: unknown): EqualizerConfig {
 
 export function resolveEqualizerSliderCommitValue(value: number[]) {
   return clampEqualizerValue(value[0])
+}
+
+export function hasEqualizerBandGainChanged(
+  config: EqualizerConfig,
+  frequency: EqualizerBandFrequency,
+  gain: number
+) {
+  const normalizedConfig = normalizeEqualizerConfig(config)
+  const normalizedGain = clampEqualizerValue(gain)
+
+  return (
+    normalizedConfig.bands.find(band => band.frequency === frequency)?.gain !==
+    normalizedGain
+  )
+}
+
+export function hasEqualizerPreampChanged(
+  config: EqualizerConfig,
+  preamp: number
+) {
+  return normalizeEqualizerConfig(config).preamp !== clampEqualizerValue(preamp)
 }
 
 export function formatEqualizerGainLabel(value: unknown) {

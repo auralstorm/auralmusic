@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
+import { playbackRuntime } from '@/audio/playback-runtime/playback-runtime'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,11 +36,13 @@ import {
   EQUALIZER_SLIDER_MIN,
   EQUALIZER_SLIDER_STEP,
   formatEqualizerGainLabel,
+  hasEqualizerBandGainChanged,
+  hasEqualizerPreampChanged,
   resolveEqualizerSliderCommitValue,
 } from './equalizer-settings.model'
 import type { EqualizerSettingsDialogProps } from '../types'
 
-function setEqualizerPreview(nextConfig: EqualizerConfig) {
+function syncPersistedEqualizerConfig(nextConfig: EqualizerConfig) {
   useConfigStore.setState(state => ({
     config: {
       ...state.config,
@@ -62,6 +65,10 @@ const EqualizerSettingsDialog = ({
     createEqualizerSettingsDraft(savedEqualizerConfig)
   )
   const draftRef = useRef(draft)
+
+  const applyEqualizerPreview = (nextConfig: EqualizerConfig) => {
+    playbackRuntime.applyEqualizer(nextConfig)
+  }
 
   useEffect(() => {
     draftRef.current = draft
@@ -94,7 +101,7 @@ const EqualizerSettingsDialog = ({
   const updateDraftPreview = (nextConfig: EqualizerConfig) => {
     draftRef.current = nextConfig
     setDraft(nextConfig)
-    setEqualizerPreview(nextConfig)
+    applyEqualizerPreview(nextConfig)
   }
 
   const persistDraft = async (nextConfig: EqualizerConfig) => {
@@ -102,13 +109,15 @@ const EqualizerSettingsDialog = ({
 
     try {
       await window.electronConfig.setConfig('equalizer', nextConfig)
-      committedConfigRef.current = createEqualizerSettingsDraft(nextConfig)
+      const persistedConfig = createEqualizerSettingsDraft(nextConfig)
+      committedConfigRef.current = persistedConfig
+      syncPersistedEqualizerConfig(persistedConfig)
     } catch (error) {
       const rollbackConfig = committedConfigRef.current
 
       draftRef.current = rollbackConfig
       setDraft(rollbackConfig)
-      setEqualizerPreview(rollbackConfig)
+      applyEqualizerPreview(rollbackConfig)
       toast.error(
         error instanceof Error
           ? error.message
@@ -143,7 +152,7 @@ const EqualizerSettingsDialog = ({
     const committedConfig = committedConfigRef.current
     draftRef.current = committedConfig
     setDraft(committedConfig)
-    setEqualizerPreview(committedConfig)
+    applyEqualizerPreview(committedConfig)
     onOpenChange(false)
   }
 
@@ -258,10 +267,18 @@ const EqualizerSettingsDialog = ({
                         )
                       }}
                       onValueCommit={value => {
-                        const nextConfig = updatePreampDraft(
+                        const nextGain =
                           resolveEqualizerSliderCommitValue(value)
-                        )
-                        void persistDraft(nextConfig)
+
+                        if (
+                          hasEqualizerPreampChanged(draftRef.current, nextGain)
+                        ) {
+                          const nextConfig = updatePreampDraft(nextGain)
+                          void persistDraft(nextConfig)
+                          return
+                        }
+
+                        void persistDraft(draftRef.current)
                       }}
                     />
                     <div className='space-y-1 text-center'>
@@ -301,11 +318,25 @@ const EqualizerSettingsDialog = ({
                             )
                           }}
                           onValueCommit={value => {
-                            const nextConfig = updateBandDraft(
-                              band.frequency,
+                            const nextGain =
                               resolveEqualizerSliderCommitValue(value)
-                            )
-                            void persistDraft(nextConfig)
+
+                            if (
+                              hasEqualizerBandGainChanged(
+                                draftRef.current,
+                                band.frequency,
+                                nextGain
+                              )
+                            ) {
+                              const nextConfig = updateBandDraft(
+                                band.frequency,
+                                nextGain
+                              )
+                              void persistDraft(nextConfig)
+                              return
+                            }
+
+                            void persistDraft(draftRef.current)
                           }}
                         />
                         <div className='text-sm font-medium'>{band.label}</div>
