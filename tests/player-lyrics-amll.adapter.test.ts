@@ -128,6 +128,15 @@ test('PlayerSceneAmllLyrics wires lyric line clicks to the playback seek callbac
     ),
     'utf8'
   )
+  const playerSceneTypesSource = await readFile(
+    fileURLToPath(
+      new URL(
+        '../src/renderer/components/PlayerScene/types/player-scene-component.types.ts',
+        import.meta.url
+      )
+    ),
+    'utf8'
+  )
   const playerSceneSource = await readFile(
     fileURLToPath(
       new URL(
@@ -138,14 +147,42 @@ test('PlayerSceneAmllLyrics wires lyric line clicks to the playback seek callbac
     'utf8'
   )
 
-  assert.match(
-    playerSceneLyricsSource,
-    /onSeek: \(positionMs: number\) => void/
-  )
+  assert.match(playerSceneTypesSource, /onSeek: \(positionMs: number\) => void/)
   assert.match(playerSceneLyricsSource, /resolveAmllLyricClickSeekTime/)
   assert.match(
     playerSceneLyricsSource,
     /onLyricLineClick=\{handleLyricLineClick\}/
   )
   assert.match(playerSceneSource, /onSeek=\{seekTo\}/)
+})
+
+test('PlayerScene remounts AMLL lyrics when the active track changes', async () => {
+  const playerSceneLyricsSource = await readFile(
+    fileURLToPath(
+      new URL(
+        '../src/renderer/components/PlayerScene/PlayerSceneAmllLyrics.tsx',
+        import.meta.url
+      )
+    ),
+    'utf8'
+  )
+  const playerSceneSource = await readFile(
+    fileURLToPath(
+      new URL(
+        '../src/renderer/components/PlayerScene/index.tsx',
+        import.meta.url
+      )
+    ),
+    'utf8'
+  )
+
+  assert.match(playerSceneSource, /trackId=\{currentTrack\?\.id \?\? null\}/)
+  assert.match(
+    playerSceneLyricsSource,
+    /const lyricPlayerKey = trackId \?\? 'no-track'/
+  )
+  assert.match(
+    playerSceneLyricsSource,
+    /<LyricPlayer[\s\S]*key=\{lyricPlayerKey\}/
+  )
 })

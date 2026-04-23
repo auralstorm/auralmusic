@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   advancePlaybackAfterTrackEnd,
   canStartPlaybackSourceLoad,
+  shouldApplyRuntimePlaybackProgress,
   shouldSyncPlaybackProgressFrame,
   isPlaybackRequestStale,
   prepareAudioForPendingTrack,
@@ -123,6 +124,35 @@ test('shouldSyncPlaybackProgressFrame throttles progress updates to 30fps', () =
       frameTimestamp: 43.5,
     }),
     true
+  )
+})
+
+test('shouldApplyRuntimePlaybackProgress ignores stale runtime progress while a new track is loading', () => {
+  assert.equal(
+    shouldApplyRuntimePlaybackProgress({
+      status: 'loading',
+      audioPaused: false,
+      audioEnded: false,
+    }),
+    false
+  )
+
+  assert.equal(
+    shouldApplyRuntimePlaybackProgress({
+      status: 'paused',
+      audioPaused: true,
+      audioEnded: false,
+    }),
+    true
+  )
+
+  assert.equal(
+    shouldApplyRuntimePlaybackProgress({
+      status: 'playing',
+      audioPaused: false,
+      audioEnded: true,
+    }),
+    false
   )
 })
 

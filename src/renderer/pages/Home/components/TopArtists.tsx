@@ -6,6 +6,7 @@ import type { ArtistCardProps, TopArtistsProps } from '../types'
 import { TopArtistsSkeleton } from './HomeSkeletons'
 import { useNavigate } from 'react-router-dom'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
+import { useHomeTopArtistsAutoplay } from '../hooks/useHomeTopArtistsAutoplay'
 
 const ArtistCard = memo(({ artist, onToArtistDetail }: ArtistCardProps) => (
   <div className='flex flex-col items-center text-center'>
@@ -30,6 +31,7 @@ const ArtistCard = memo(({ artist, onToArtistDetail }: ArtistCardProps) => (
 
 const TopArtists = ({ list = [], isLoading = false }: TopArtistsProps) => {
   const navigate = useNavigate()
+  const { setSwiperInstance } = useHomeTopArtistsAutoplay()
   const handleOpenArtistDetail = useCallback(
     (artistId: number) => {
       if (!artistId) return
@@ -53,6 +55,7 @@ const TopArtists = ({ list = [], isLoading = false }: TopArtistsProps) => {
           virtual
           loop
           className='w-full'
+          onSwiper={setSwiperInstance}
           autoplay={{
             delay: 2500,
             pauseOnMouseEnter: true,

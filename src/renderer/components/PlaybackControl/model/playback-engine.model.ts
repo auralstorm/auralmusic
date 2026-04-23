@@ -42,6 +42,26 @@ export function shouldSyncPlaybackProgressFrame({
   )
 }
 
+export function shouldApplyRuntimePlaybackProgress(input: {
+  status: 'idle' | 'loading' | 'playing' | 'paused' | 'error'
+  audioPaused: boolean
+  audioEnded: boolean
+}) {
+  if (input.status === 'loading') {
+    return false
+  }
+
+  if (input.audioEnded) {
+    return false
+  }
+
+  if (input.audioPaused) {
+    return true
+  }
+
+  return input.status === 'playing'
+}
+
 export function canStartPlaybackSourceLoad({
   hasCurrentTrack,
   requestId,

@@ -235,6 +235,7 @@ const PlayerScene = () => {
             </div>
 
             <PlayerSceneAmllLyrics
+              trackId={currentTrack?.id ?? null}
               lines={lyrics}
               progressMs={progress}
               showTranslation={showLyricTranslation}

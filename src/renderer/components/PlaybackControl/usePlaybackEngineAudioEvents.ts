@@ -5,6 +5,7 @@ import {
   PLAYBACK_UNAVAILABLE_MESSAGE,
   shouldSyncPlaybackProgressFrame,
   advancePlaybackAfterTrackEnd,
+  shouldApplyRuntimePlaybackProgress,
 } from './model'
 import type { PlaybackEngineAudioEventsOptions } from './types'
 
@@ -38,13 +39,25 @@ export function usePlaybackEngineAudioEvents({
         return
       }
 
+      const playbackState = usePlaybackStore.getState()
+      if (
+        !shouldApplyRuntimePlaybackProgress({
+          status: playbackState.status,
+          audioPaused: audio.paused,
+          audioEnded: audio.ended,
+        })
+      ) {
+        frameId = requestAnimationFrame(syncProgress)
+        return
+      }
+
       if (
         shouldSyncPlaybackProgressFrame({
           lastSyncTimestamp: lastProgressSyncTimestamp,
           frameTimestamp,
         })
       ) {
-        usePlaybackStore.getState().setProgress(audio.currentTime * 1000)
+        playbackState.setProgress(audio.currentTime * 1000)
         lastProgressSyncTimestamp = frameTimestamp
       }
 
@@ -60,8 +73,16 @@ export function usePlaybackEngineAudioEvents({
     }
 
     const handleTimeUpdate = () => {
-      if (audio.paused || audio.ended) {
-        usePlaybackStore.getState().setProgress(audio.currentTime * 1000)
+      const playbackState = usePlaybackStore.getState()
+      if (
+        (audio.paused || audio.ended) &&
+        shouldApplyRuntimePlaybackProgress({
+          status: playbackState.status,
+          audioPaused: audio.paused,
+          audioEnded: audio.ended,
+        })
+      ) {
+        playbackState.setProgress(audio.currentTime * 1000)
       }
     }
 
