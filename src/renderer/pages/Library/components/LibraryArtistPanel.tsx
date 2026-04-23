@@ -90,7 +90,7 @@ const LibraryArtistPanel = ({ active }: LibraryArtistPanelProps) => {
 
   return (
     <div className='space-y-6'>
-      <div className='3xl:grid-cols-7 grid grid-cols-2 gap-10 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6'>
+      <div className='3xl:grid-cols-7 grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6'>
         {artists.map(artist => (
           <ArtistCover
             key={artist.id}

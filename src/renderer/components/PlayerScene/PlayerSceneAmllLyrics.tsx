@@ -17,6 +17,7 @@ const AMLL_PLAYER_STYLE = {
 } as CSSProperties
 
 const PlayerSceneAmllLyrics = ({
+  trackId,
   lines,
   progressMs,
   showTranslation,
@@ -34,6 +35,7 @@ const PlayerSceneAmllLyrics = ({
       }),
     [karaokeEnabled, lines, showTranslation]
   )
+  const lyricPlayerKey = trackId ?? 'no-track'
 
   const handleLyricLineClick = useCallback<LyricLineClickHandler>(
     event => {
@@ -74,6 +76,7 @@ const PlayerSceneAmllLyrics = ({
         style={AMLL_PLAYER_STYLE}
       >
         <LyricPlayer
+          key={lyricPlayerKey}
           lyricLines={lyricLines}
           currentTime={Math.round(progressMs)}
           playing={playing}

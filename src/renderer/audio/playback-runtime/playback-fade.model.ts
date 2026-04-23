@@ -1,4 +1,4 @@
-export const DEFAULT_PLAYBACK_FADE_DURATION_MS = 380
+export const DEFAULT_PLAYBACK_FADE_DURATION_MS = 500
 
 export function shouldFadePlaybackStart(input: {
   enabled: boolean

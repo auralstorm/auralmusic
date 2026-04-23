@@ -118,7 +118,7 @@ const QrLoginPanel = () => {
               {qrStatus === 'expired' ? (
                 <button
                   aria-label='二维码失效，点击重新获取'
-                  className='absolute inset-0 flex cursor-pointer items-center justify-center border-0 bg-black/35 px-6 text-center text-white backdrop-blur-sm'
+                  className='app-intel-dark-surface absolute inset-0 flex cursor-pointer items-center justify-center border-0 bg-black/35 px-6 text-center text-white backdrop-blur-sm'
                   type='button'
                   onClick={handleRefreshQrCode}
                 >
@@ -134,7 +134,7 @@ const QrLoginPanel = () => {
           </div>
         </div>
 
-        <p className='text-primary/50 text-center text-xs leading-6'>
+        <p className='text-foreground/50 text-center text-xs leading-6'>
           请使用网易云音乐 App 扫码，二维码通常只会短暂有效。
         </p>
       </div>

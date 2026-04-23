@@ -35,20 +35,43 @@ function unwrapLibraryCloudBody(
 }
 
 function formatArtistNames(artists?: RawCloudArtist[]) {
-  const joined =
-    artists
-      ?.map(artist => artist.name?.trim() || '')
-      .filter(Boolean)
-      .join(' / ') || ''
+  const normalizedArtists = (artists || [])
+    .map(artist => {
+      const name = artist.name?.trim() || ''
+      if (!name) {
+        return null
+      }
 
-  return joined
+      if (artist.id) {
+        return {
+          id: artist.id,
+          name,
+        }
+      }
+
+      return {
+        name,
+      }
+    })
+    .filter((artist): artist is { id?: number; name: string } =>
+      Boolean(artist)
+    )
+
+  return {
+    artists: normalizedArtists,
+    artistNames: normalizedArtists.map(artist => artist.name).join(' / '),
+  }
 }
 
-function resolveArtistNames(item: RawCloudItem) {
-  const simpleSongArtists = formatArtistNames(item.simpleSong?.ar)
-
+function resolveArtistNames(
+  item: RawCloudItem,
+  simpleSongArtists: {
+    artists: Array<{ id?: number; name: string }>
+    artistNames: string
+  }
+) {
   return (
-    simpleSongArtists ||
+    simpleSongArtists.artistNames ||
     item.artist?.trim() ||
     item.artistName?.trim() ||
     '未知歌手'
@@ -67,6 +90,8 @@ function normalizeLibraryCloudList(items?: RawCloudItem[]): DailySongRowItem[] {
       return []
     }
 
+    const simpleSongArtistState = formatArtistNames(item.simpleSong?.ar)
+
     return [
       {
         id,
@@ -76,7 +101,10 @@ function normalizeLibraryCloudList(items?: RawCloudItem[]): DailySongRowItem[] {
           item.name ||
           item.fileName ||
           '未知歌曲',
-        artistNames: resolveArtistNames(item),
+        artistNames: resolveArtistNames(item, simpleSongArtistState),
+        artists: simpleSongArtistState.artists.length
+          ? simpleSongArtistState.artists
+          : undefined,
         albumName:
           item.simpleSong?.al?.name ||
           item.album?.trim() ||

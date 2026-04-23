@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import TrackListPlaybackItem from '@/components/TrackList/TrackListPlaybackItem'
 import { createArtistTopSongPlaybackQueue } from '../model'
 import type { ArtistTopSongsProps } from '../types'
+import { Button } from '@/components/ui/button'
 
 const ArtistTopSongs = ({
   artistId,
@@ -37,13 +38,13 @@ const ArtistTopSongs = ({
               ))}
             </div>
             {artistId > 0 ? (
-              <button
-                type='button'
-                className='text-foreground/88 mt-5 text-sm transition-opacity hover:opacity-80'
+              <Button
+                variant='link'
+                className='text-foreground/88 text-foreground/50 hover:text-foreground mt-5 cursor-pointer px-0 py-0 text-sm transition-opacity hover:opacity-80'
                 onClick={onViewAll}
               >
                 查看全部
-              </button>
+              </Button>
             ) : null}
           </div>
         )}

@@ -71,7 +71,7 @@ const CreatePlaylistDialog = ({
             <DialogClose asChild>
               <button
                 type='button'
-                className='text-primary/50 hover:text-primary hover:bg-background/5 inline-flex size-8 items-center justify-center rounded-full transition-colors'
+                className='text-foreground/70 hover:text-primary hover:bg-background/5 inline-flex size-8 items-center justify-center rounded-full transition-colors'
                 aria-label='关闭新建歌单弹窗'
               >
                 <X className='size-4' />

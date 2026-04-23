@@ -82,7 +82,7 @@ const LibraryTabsSection = ({
                     <button
                       type='button'
                       aria-label='切换歌单来源'
-                      className='hover:bg-primary/20 text-primary/50 ml-2 inline-flex size-5 items-center justify-center rounded-full transition-colors hover:text-neutral-800'
+                      className='hover:bg-primary/20 text-foreground/70 ml-2 inline-flex size-5 items-center justify-center rounded-full transition-colors hover:text-neutral-800'
                     >
                       <ChevronDown className='size-3.5' />
                     </button>
@@ -128,7 +128,7 @@ const LibraryTabsSection = ({
                 type='button'
                 variant='ghost'
                 onClick={onOpenCreatePlaylist}
-                className='text-primary/50 absolute right-0 h-10 rounded-[16px] px-5 text-base font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.04)]'
+                className='text-foreground/70 absolute right-0 h-10 rounded-[16px] px-5 text-base font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.04)]'
               >
                 <Plus className='mr-2 size-4' />
                 新建歌单

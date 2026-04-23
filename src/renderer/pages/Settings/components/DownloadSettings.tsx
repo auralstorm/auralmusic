@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { type KeyboardEvent, useEffect, useState } from 'react'
 import { FolderOpen, PencilLine } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -128,17 +128,38 @@ function SingleChoiceCard({
   example: string
   onSelect: () => void
 }) {
+  const handleSelect = () => {
+    if (disabled) {
+      return
+    }
+
+    onSelect()
+  }
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) {
+      return
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onSelect()
+    }
+  }
+
   return (
-    <button
-      type='button'
+    <div
       role='radio'
       aria-checked={checked}
-      disabled={disabled}
-      onClick={onSelect}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+      onClick={handleSelect}
+      onKeyDown={handleKeyDown}
       className={cn(
-        'border-border/70 bg-muted/20 hover:bg-muted/45 flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors disabled:pointer-events-none disabled:opacity-50',
+        'border-border/70 bg-muted/20 hover:bg-muted/45 flex w-full items-start gap-3 rounded-2xl px-4 py-3 text-left transition-colors',
+        disabled && 'pointer-events-none opacity-50',
         checked &&
-          'border-primary/45 bg-primary/6 shadow-[0_0_0_1px_hsl(var(--primary)/0.14)]'
+          'border-primary !border shadow-[0_0_0_1px_hsl(var(--primary)/0.14)]'
       )}
     >
       <Checkbox
@@ -152,7 +173,7 @@ function SingleChoiceCard({
         </span>
         <span className='text-muted-foreground block text-xs'>{example}</span>
       </span>
-    </button>
+    </div>
   )
 }
 

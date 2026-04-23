@@ -33,10 +33,10 @@ const LibraryMvCard = ({ mv, onOpen }: LibraryMvCardProps) => {
       </div>
 
       <div className='mt-3 space-y-1'>
-        <h3 className='truncate text-[1.05rem] font-bold text-neutral-950'>
+        <h3 className='text-foreground-950 truncate text-[1.05rem] font-bold'>
           {mv.name}
         </h3>
-        <p className='truncate text-sm text-neutral-500'>{mv.artistName}</p>
+        <p className='text-foreground/50 truncate text-sm'>{mv.artistName}</p>
       </div>
     </article>
   )

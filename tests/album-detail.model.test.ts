@@ -37,7 +37,7 @@ test('normalizeAlbumTracks uses album cover fallback when track cover is missing
           name: 'Track without cover',
           dt: 180000,
           al: { name: 'Album A' },
-          ar: [{ name: 'Artist A' }],
+          ar: [{ id: 201, name: 'Artist A' }],
         },
         {
           id: 102,
@@ -47,7 +47,7 @@ test('normalizeAlbumTracks uses album cover fallback when track cover is missing
             name: 'Album A',
             picUrl: 'https://img.example.com/track.jpg',
           },
-          ar: [{ name: 'Artist A' }],
+          ar: [{ id: 201, name: 'Artist A' }],
         },
       ],
     },
@@ -56,4 +56,5 @@ test('normalizeAlbumTracks uses album cover fallback when track cover is missing
 
   assert.equal(tracks[0].coverUrl, 'https://img.example.com/album.jpg')
   assert.equal(tracks[1].coverUrl, 'https://img.example.com/track.jpg')
+  assert.deepEqual(tracks[0].artists, [{ id: 201, name: 'Artist A' }])
 })

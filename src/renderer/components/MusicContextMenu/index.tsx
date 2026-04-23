@@ -66,7 +66,7 @@ const MusicContextMenu = ({
             />
             <div className='min-w-0 flex-1'>
               <div className='text-md truncate'>{name}</div>
-              <div className='text-primary/50 truncate'>{artistName}</div>
+              <div className='text-foreground/70 truncate'>{artistName}</div>
             </div>
           </div>
         </ContextMenuItem>

@@ -274,7 +274,7 @@ const MvDrawer = () => {
             aria-label='关闭 MV 播放器'
             onClick={() => void handleClose()}
             className={cn(
-              'inline-flex size-10 items-center justify-center rounded-full border border-white/12 bg-black/38 text-white shadow-[0_8px_24px_rgba(0,0,0,0.32)] backdrop-blur-md transition-colors hover:bg-black/56 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none',
+              'app-intel-dark-surface inline-flex size-10 items-center justify-center rounded-full border border-white/12 bg-black/38 text-white shadow-[0_8px_24px_rgba(0,0,0,0.32)] backdrop-blur-md transition-colors hover:bg-black/56 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none',
               'pointer-events-auto cursor-pointer'
             )}
           >

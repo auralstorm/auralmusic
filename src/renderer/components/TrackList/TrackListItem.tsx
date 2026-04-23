@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import { Heart } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { toggleSongLike } from '@/api/list'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
@@ -15,8 +16,12 @@ import {
   handleTrackDownload,
   TRACK_DOWNLOAD_TOASTS,
 } from './track-list-download.model'
-import { formatTrackListArtistNames } from './model'
+import {
+  formatTrackListArtistNames,
+  shouldNavigateToArtistDetail,
+} from './model'
 import type { TrackListItemProps } from './types'
+import { Button } from '../ui/button'
 
 const TrackListItem = ({
   item,
@@ -28,6 +33,8 @@ const TrackListItem = ({
   onAddToQueue,
   onLikeChangeSuccess,
 }: TrackListItemProps) => {
+  const location = useLocation()
+  const navigate = useNavigate()
   const userId = useAuthStore(state => state.user?.userId)
   const hasHydrated = useAuthStore(state => state.hasHydrated)
   const openLoginDialog = useAuthStore(state => state.openLoginDialog)
@@ -37,10 +44,11 @@ const TrackListItem = ({
   const openCollectToPlaylistDrawer = useCollectToPlaylistStore(
     state => state.openDrawer
   )
-  const downloadConfig = useConfigStore(state => state.config)
-  const downloadEnabled = downloadConfig.downloadEnabled
-  const downloadQuality = downloadConfig.downloadQuality
-  const downloadQualityPolicy = downloadConfig.downloadQualityPolicy
+  const downloadEnabled = useConfigStore(state => state.config.downloadEnabled)
+  const downloadQuality = useConfigStore(state => state.config.downloadQuality)
+  const downloadQualityPolicy = useConfigStore(
+    state => state.config.downloadQualityPolicy
+  )
   const isLiked = useUserStore(state =>
     item.id ? state.likedSongIds.has(item.id) : false
   )
@@ -50,6 +58,60 @@ const TrackListItem = ({
 
   const artistName =
     item.artistNames || formatTrackListArtistNames(item.artists)
+  const artistList = (item.artists || []).filter(artist =>
+    Boolean(artist.name?.trim())
+  )
+  const hotArtistName = formatTrackListArtistNames(artistList)
+  const displayedArtistName =
+    type === 'hot' ? hotArtistName || artistName : artistName
+  const shouldRenderArtistLinks = artistList.some(artist => Boolean(artist.id))
+
+  const handleOpenArtistDetail = (
+    event: MouseEvent<HTMLButtonElement>,
+    artistId?: number
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (!artistId) {
+      return
+    }
+
+    if (!shouldNavigateToArtistDetail(location.pathname, artistId)) {
+      return
+    }
+
+    navigate(`/artists/${artistId}`)
+  }
+
+  const renderArtistName = () => {
+    if (!shouldRenderArtistLinks) {
+      return displayedArtistName
+    }
+
+    return artistList.map((artist, index) => (
+      <span key={`${artist.id || artist.name}-${index}`} className='inline'>
+        {artist.id ? (
+          <Button
+            variant='link'
+            onClick={event => handleOpenArtistDetail(event, artist.id)}
+            onDoubleClick={event => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+            className='hover:text-foreground text-foreground/50 inline cursor-pointer px-0 py-0 underline-offset-2 transition-colors hover:underline focus-visible:underline focus-visible:outline-none'
+          >
+            {artist.name}
+          </Button>
+        ) : (
+          <span>{artist.name}</span>
+        )}
+        {index < artistList.length - 1 ? (
+          <span className='text-foreground/50 mx-1'>/</span>
+        ) : null}
+      </span>
+    ))
+  }
 
   const handleToggleSongLike = async (
     event?: MouseEvent<HTMLButtonElement>
@@ -166,7 +228,7 @@ const TrackListItem = ({
       <div
         onDoubleClick={() => onPlay?.()}
         className={cn(
-          'hover:bg-primary/5 grid cursor-pointer items-center rounded-[15px] px-4 py-4 transition-colors',
+          'hover:bg-foreground/8 grid cursor-pointer items-center rounded-[15px] px-4 py-4 transition-colors',
           isActive && 'bg-primary/8',
           type === 'default'
             ? 'grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)_120px] gap-4'
@@ -194,21 +256,19 @@ const TrackListItem = ({
             >
               {item.name}
             </div>
-            <div className='text-primary/50 truncate text-xs md:text-sm'>
-              {type === 'hot'
-                ? formatTrackListArtistNames(item.artists)
-                : artistName}
+            <div className='text-foreground/70 truncate text-xs md:text-sm'>
+              {renderArtistName()}
             </div>
           </div>
         </div>
 
         {type === 'default' && (
-          <div className='text-primary/50 hidden truncate text-[15px] md:block'>
+          <div className='text-foreground/70 hidden truncate text-[15px] md:block'>
             {item.albumName}
           </div>
         )}
 
-        <div className='text-primary/50 flex items-center justify-end gap-5 text-[15px]'>
+        <div className='text-foreground/70 flex items-center justify-end gap-5 text-[15px]'>
           <button
             type='button'
             disabled={!item.id || isLikePending}

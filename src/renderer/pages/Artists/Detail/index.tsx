@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { getAlbumDetail } from '@/api/album'
 import {
   followArtist,
   getArtistAlbums,
@@ -12,10 +13,13 @@ import {
 } from '@/api/artist'
 import { useIntersectionLoadMore } from '@/hooks/useLoadMore'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
+import { ensureQueueSourceHydration } from '@/model/playback-queue-hydration.model'
+import { normalizeAlbumTracks } from '@/pages/Albums/Detail/album-detail.model'
 import { useAuthStore } from '@/stores/auth-store'
 import { useMvDrawerStore } from '@/stores/mv-drawer-store'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useUserStore } from '@/stores/user'
+import { createAlbumQueueSourceKey } from '../../../../shared/playback.ts'
 import ArtistDetailSkeleton from './components/ArtistDetailSkeleton'
 import ArtistHero from './components/ArtistHero'
 import ArtistLatestRelease from './components/ArtistLatestRelease'
@@ -60,6 +64,7 @@ const ArtistDetail = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [similarArtistsLoading, setSimilarArtistsLoading] = useState(true)
+  const [latestAlbumPlayLoading, setLatestAlbumPlayLoading] = useState(false)
   const userId = useAuthStore(state => state.user?.userId)
   const hasHydrated = useAuthStore(state => state.hasHydrated)
   const openLoginDialog = useAuthStore(state => state.openLoginDialog)
@@ -303,6 +308,43 @@ const ArtistDetail = () => {
     playQueueFromIndex(topSongPlaybackQueue, 0)
   }, [playQueueFromIndex, topSongPlaybackQueue])
 
+  const handlePlayLatestAlbum = useCallback(
+    async (albumId: number, fallbackCoverUrl?: string) => {
+      if (!albumId || latestAlbumPlayLoading) {
+        return
+      }
+
+      const playbackQueueKey = createAlbumQueueSourceKey(albumId)
+
+      try {
+        setLatestAlbumPlayLoading(true)
+
+        const response = await getAlbumDetail(albumId)
+        const tracks = normalizeAlbumTracks(response.data, {
+          fallbackCoverUrl,
+        })
+
+        if (!tracks.length) {
+          toast.error('暂无可播放的专辑歌曲')
+          return
+        }
+
+        playQueueFromIndex(tracks, 0, playbackQueueKey)
+        void ensureQueueSourceHydration({
+          sourceKey: playbackQueueKey,
+          seedQueue: tracks,
+          startOffset: tracks.length,
+        })
+      } catch (fetchError) {
+        console.error('latest album playback failed', fetchError)
+        toast.error('专辑歌曲加载失败')
+      } finally {
+        setLatestAlbumPlayLoading(false)
+      }
+    },
+    [latestAlbumPlayLoading, playQueueFromIndex]
+  )
+
   const handleToggleFollowedArtist = useCallback(async () => {
     if (!hasHydrated || !userId) {
       openLoginDialog()
@@ -382,6 +424,7 @@ const ArtistDetail = () => {
         mvsLoading={mvsLoading}
         onToAlbumDetail={navigateToAlbumDetail}
         onToMvDetail={navigateToMvDetail}
+        onPlayLatestAlbum={handlePlayLatestAlbum}
       />
       <ArtistTopSongs
         artistId={artistId}

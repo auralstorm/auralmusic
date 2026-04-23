@@ -1,6 +1,7 @@
 import type { MutableRefObject } from 'react'
 import type { AppConfig, AudioQualityLevel } from '../../../../shared/config.ts'
 import type { EqualizerConfig } from '../../../../shared/equalizer.ts'
+import type { PlaybackResolverConfig } from '@/types/core'
 import type { PlaybackStoreState } from '@/types/core'
 
 export interface PlaybackEngineRef {
@@ -16,7 +17,7 @@ export interface CurrentPlaybackSource {
 
 export interface PlaybackEngineRuntimeRefs {
   volumeRef: MutableRefObject<number>
-  configRef: MutableRefObject<AppConfig>
+  configRef: MutableRefObject<PlaybackResolverConfig>
   qualityRef: MutableRefObject<AudioQualityLevel>
   equalizerRef: MutableRefObject<EqualizerConfig>
   currentPlaybackSourceRef: MutableRefObject<CurrentPlaybackSource | null>
@@ -56,7 +57,7 @@ export type PlaybackEngineAudioEventsOptions = Pick<
 >
 
 export type PlaybackEngineRuntimeSyncOptions = PlaybackEngineRuntimeRefs & {
-  config: AppConfig
+  config: PlaybackResolverConfig
   quality: AudioQualityLevel
   equalizer: EqualizerConfig
   playbackFadeEnabled: AppConfig['playbackFadeEnabled']

@@ -9,7 +9,7 @@ import {
 } from '../src/renderer/audio/playback-runtime/playback-fade.model.ts'
 
 test('playback fade model uses a short default duration', () => {
-  assert.equal(DEFAULT_PLAYBACK_FADE_DURATION_MS, 380)
+  assert.equal(DEFAULT_PLAYBACK_FADE_DURATION_MS, 500)
 })
 
 test('playback fade start requires config enabled and a valid loaded source', () => {

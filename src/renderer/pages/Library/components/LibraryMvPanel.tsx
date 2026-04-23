@@ -77,7 +77,7 @@ const LibraryMvPanel = ({ active, onOpen }: LibraryMvPanelProps) => {
 
   return (
     <div className='space-y-6'>
-      <div className='3xl:grid-cols-5 grid grid-cols-2 gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'>
+      <div className='3xl:grid-cols-5 grid grid-cols-2 gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4'>
         {mvs.map(mv => (
           <LibraryMvCard key={mv.id} mv={mv} onOpen={() => onOpen(mv.id)} />
         ))}

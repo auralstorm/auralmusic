@@ -18,6 +18,7 @@ export interface PlayerSceneAmllBackgroundOverlayProps {
 }
 
 export interface PlayerSceneAmllLyricsProps {
+  trackId: number | null
   lines: LyricLine[]
   progressMs: number
   showTranslation: boolean

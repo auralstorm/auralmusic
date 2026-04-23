@@ -9,9 +9,15 @@ const NewAlbumList = ({
   onPlayAlbum,
 }: NewAlbumListProps) => {
   const navigate = useNavigate()
+
   const navigateToAlbumDetail = (albumId: number) => {
     if (!albumId) return
     navigate(`/albums/${albumId}`)
+  }
+
+  const navigateToArtistDetail = (artistId?: number) => {
+    if (!artistId) return
+    navigate(`/artists/${artistId}`)
   }
 
   return (
@@ -35,6 +41,7 @@ const NewAlbumList = ({
               key={item.id}
               onPlay={() => onPlayAlbum?.(item)}
               onClickCover={() => navigateToAlbumDetail(item.id)}
+              onClickSubTitle={() => navigateToArtistDetail(item.artist?.id)}
             />
           ))}
         </div>

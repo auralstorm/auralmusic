@@ -8,7 +8,7 @@ import {
 import type { MvDrawerControlBarProps } from '../types'
 
 const buttonClassName =
-  'inline-flex size-9 items-center justify-center rounded-full border border-white/12 bg-black/38 text-white shadow-[0_8px_24px_rgba(0,0,0,0.32)] backdrop-blur-md transition-colors hover:bg-black/56 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 cursor-pointer'
+  'app-intel-dark-surface inline-flex size-9 items-center justify-center rounded-full border border-white/12 bg-black/38 text-white shadow-[0_8px_24px_rgba(0,0,0,0.32)] backdrop-blur-md transition-colors hover:bg-black/56 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 cursor-pointer'
 
 const MvDrawerControlBar = ({
   canPlay,
@@ -45,7 +45,7 @@ const MvDrawerControlBar = ({
           )}
         </button>
 
-        <div className='min-w-0 flex-1 rounded-full bg-black/28 px-2 py-2 backdrop-blur-sm'>
+        <div className='app-intel-dark-surface min-w-0 flex-1 rounded-full bg-black/28 px-2 py-2 backdrop-blur-sm'>
           <Slider
             aria-label='MV 播放进度'
             min={0}
@@ -73,7 +73,7 @@ const MvDrawerControlBar = ({
           <VolumeIcon className='size-4.5' />
         </button>
 
-        <div className='w-24 rounded-full bg-black/28 px-2 py-2 backdrop-blur-sm'>
+        <div className='app-intel-dark-surface w-24 rounded-full bg-black/28 px-2 py-2 backdrop-blur-sm'>
           <Slider
             aria-label='MV 音量'
             min={0}

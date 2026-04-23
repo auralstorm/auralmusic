@@ -16,3 +16,11 @@ export interface AnimationEffectRoot {
     animationEffect?: string
   }
 }
+
+export interface RuntimeEnvironmentRoot {
+  dataset: {
+    runtimePlatform?: string
+    runtimeArch?: string
+    backdropBlur?: string
+  }
+}

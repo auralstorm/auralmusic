@@ -29,6 +29,23 @@ export interface ArtistLatestReleaseProps {
   mvsLoading?: boolean
   onToAlbumDetail: (id: number) => void
   onToMvDetail: (id: number) => void
+  onPlayLatestAlbum: (id: number, coverUrl?: string) => void
+}
+
+export interface ArtistLatestReleaseCardProps {
+  kindLabel: string
+  title?: string
+  publishDate?: string
+  metaLabel?: string
+  coverUrl?: string
+  coverWidth: number
+  coverHeight: number
+  loading?: boolean
+  loadingText: string
+  emptyText: string
+  playAriaLabel?: string
+  onOpen?: () => void
+  onPlay?: () => void
 }
 
 export interface ArtistMediaTabsProps {

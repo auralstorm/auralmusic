@@ -13,6 +13,7 @@ export interface LibrarySongItem {
   id: number
   name: string
   artistNames: string
+  artists?: Array<{ id?: number; name: string }>
   albumName: string
   coverUrl: string
   duration: number
@@ -61,6 +62,7 @@ export interface PlaylistFilterOption {
 }
 
 export interface RawDailySongArtist {
+  id?: number
   name?: string
 }
 
@@ -226,6 +228,7 @@ export interface LibraryMvPage {
 }
 
 export interface RawCloudArtist {
+  id?: number
   name?: string
 }
 

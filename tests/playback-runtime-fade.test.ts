@@ -118,16 +118,16 @@ test('equalizer graph holds the interpolated gain value before starting a new fa
   })
 
   graph.setMasterVolume(0)
-  graph.fadeTo(1, 380)
-  graph.fadeTo(0, 380)
+  graph.fadeTo(1, 500)
+  graph.fadeTo(0, 500)
 
   const masterGain = context.gains[0]
 
   assert.deepEqual(masterGain?.gain.holdCalls, [10, 10])
   assert.equal(masterGain?.gain.setCalls.length, 0)
   assert.deepEqual(masterGain?.gain.rampCalls, [
-    { value: 1, time: 10.38 },
-    { value: 0, time: 10.38 },
+    { value: 1, time: 10.5 },
+    { value: 0, time: 10.5 },
   ])
 })
 
@@ -191,7 +191,7 @@ test('playback runtime fades in before audible playback when enabled', async () 
   )
   await runtime.playWithFade()
 
-  assert.deepEqual(fadeCalls, [{ volume: 1, durationMs: 380 }])
+  assert.deepEqual(fadeCalls, [{ volume: 1, durationMs: 500 }])
   assert.equal(audio.playCount, 1)
 })
 
@@ -229,7 +229,7 @@ test('playback runtime fades out before pause when enabled', async () => {
   masterVolumeCalls.length = 0
   await runtime.pauseWithFade()
 
-  assert.deepEqual(fadeCalls[0], { volume: 0, durationMs: 380 })
+  assert.deepEqual(fadeCalls[0], { volume: 0, durationMs: 500 })
   assert.equal(audio.pauseCount >= 2, true)
   assert.deepEqual(masterVolumeCalls, [])
 })
@@ -301,8 +301,8 @@ test('playback runtime swaps sources with fade when enabled', async () => {
   )
 
   assert.deepEqual(fadeCalls, [
-    { volume: 0, durationMs: 380 },
-    { volume: 1, durationMs: 380 },
+    { volume: 0, durationMs: 500 },
+    { volume: 1, durationMs: 500 },
   ])
   assert.equal(
     audio.src,
@@ -345,8 +345,8 @@ test('playback runtime ignores stale faded pause when playback resumes before fa
 
   assert.equal(audio.paused, false)
   assert.deepEqual(fadeCalls, [
-    { volume: 1, durationMs: 380 },
-    { volume: 0, durationMs: 380 },
-    { volume: 1, durationMs: 380 },
+    { volume: 1, durationMs: 500 },
+    { volume: 0, durationMs: 500 },
+    { volume: 1, durationMs: 500 },
   ])
 })

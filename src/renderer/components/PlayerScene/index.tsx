@@ -136,9 +136,15 @@ const PlayerScene = () => {
     coverUrl
   )
   const showPlayerBackground = useMemo(
-    () => amllBackgroundState.enabled,
-    [amllBackgroundState.enabled]
+    () => isOpen && amllBackgroundState.enabled,
+    [amllBackgroundState.enabled, isOpen]
   )
+  const shouldPlayAmllBackground = useMemo(
+    () => isOpen && amllBackgroundState.playing,
+    [amllBackgroundState.playing, isOpen]
+  )
+  const shouldRenderAmllLyrics = isOpen
+  const shouldPlayAmllLyrics = isOpen && isPlaying
   const fullscreenToggleLabel = useMemo(() => {
     if (!isWindows) {
       return isExpanded ? '退出全屏' : '全屏播放'
@@ -172,9 +178,9 @@ const PlayerScene = () => {
         >
           <PlayerSceneAmllBackground
             coverUrl={coverUrl}
-            playing={amllBackgroundState.playing}
+            playing={shouldPlayAmllBackground}
             hasLyrics={lyrics.length > 0}
-            enabled={amllBackgroundState.enabled}
+            enabled={showPlayerBackground}
             staticMode={amllBackgroundState.staticMode}
           />
           <PlayerSceneAmllBackgroundOverlay
@@ -234,16 +240,19 @@ const PlayerScene = () => {
               />
             </div>
 
-            <PlayerSceneAmllLyrics
-              lines={lyrics}
-              progressMs={progress}
-              showTranslation={showLyricTranslation}
-              karaokeEnabled={lyricsKaraokeEnabled}
-              playing={isPlaying}
-              loading={lyricsLoading}
-              error={lyricsError}
-              onSeek={seekTo}
-            />
+            {shouldRenderAmllLyrics ? (
+              <PlayerSceneAmllLyrics
+                trackId={currentTrack?.id ?? null}
+                lines={lyrics}
+                progressMs={progress}
+                showTranslation={showLyricTranslation}
+                karaokeEnabled={lyricsKaraokeEnabled}
+                playing={shouldPlayAmllLyrics}
+                loading={lyricsLoading}
+                error={lyricsError}
+                onSeek={seekTo}
+              />
+            ) : null}
           </div>
         </div>
       </DrawerContent>
