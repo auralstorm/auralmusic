@@ -27,7 +27,7 @@ const PlayerSceneChromeButton = ({
         aria-hidden={!visible}
         tabIndex={visible ? tabIndex : -1}
         className={cn(
-          'app-intel-dark-surface flex size-11 items-center justify-center rounded-full bg-white/12 text-[var(--player-muted)] backdrop-blur-xl transition-[opacity,background-color,color] duration-300 hover:bg-white/20 hover:text-[var(--player-foreground)]',
+          'app-intel-dark-surface !hover:bg-white/50 flex size-11 cursor-pointer items-center justify-center rounded-full !bg-white/12 text-[var(--player-muted)] backdrop-blur-xl transition-[opacity,background-color,color] duration-300 hover:text-[var(--player-foreground)]',
           visible
             ? 'pointer-events-auto opacity-100'
             : 'pointer-events-none opacity-0',
