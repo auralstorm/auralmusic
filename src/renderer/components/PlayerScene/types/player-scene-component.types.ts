@@ -1,5 +1,6 @@
 import type { LyricPlayerProps } from '@applemusic-like-lyrics/react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { RetroCoverPreset } from '../../../../shared/config.ts'
 
 import type { LyricLine } from './player-scene-model.types'
 
@@ -39,6 +40,7 @@ export interface PlayerSceneArtworkProps {
   artistNames: string
   isPlaying: boolean
   dynamicCoverEnabled: boolean
+  retroCoverPreset: RetroCoverPreset
   isSceneOpen: boolean
 }
 
@@ -85,15 +87,10 @@ export interface PlayerSceneProgressProps {
   onSeek: (positionMs: number) => void
 }
 
-export interface WaterRipple3DCoverProps {
+export interface PlayerScenePixiCoverProps {
   src: string
   className?: string
-  playBeat?: boolean
-  blurEnabled?: boolean
-}
-
-export interface WaterSurfaceProps {
-  url: string
-  playBeat: boolean
-  onLoad: () => void
+  shouldAnimate: boolean
+  isVisible: boolean
+  retroCoverPreset: RetroCoverPreset
 }

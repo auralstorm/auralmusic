@@ -21,6 +21,7 @@ import {
   normalizeEnhancedSourceModules,
   normalizeEqualizerConfigValue,
   normalizeImmersivePlayerControls,
+  normalizeRetroCoverPreset,
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
@@ -112,6 +113,7 @@ function normalizeConfig(config: AppConfig): AppConfig {
     dynamicCoverEnabled: normalizeDynamicCoverEnabled(
       config.dynamicCoverEnabled
     ),
+    retroCoverPreset: normalizeRetroCoverPreset(config.retroCoverPreset),
     showLyricTranslation: normalizeShowLyricTranslation(
       config.showLyricTranslation
     ),

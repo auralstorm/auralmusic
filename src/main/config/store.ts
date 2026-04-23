@@ -8,6 +8,7 @@ import {
   DOWNLOAD_FILE_NAME_PATTERNS,
   ENHANCED_SOURCE_MODULES,
   MUSIC_SOURCE_PROVIDERS,
+  RETRO_COVER_PRESETS,
   defaultConfig,
   normalizeDiskCacheDir,
   normalizeDiskCacheEnabled,
@@ -27,6 +28,7 @@ import {
   normalizeEqualizerConfigValue,
   normalizeAnimationEffect,
   normalizeImmersivePlayerControls,
+  normalizeRetroCoverPreset,
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
@@ -149,6 +151,10 @@ const CONFIG_STORE_SCHEMA = {
   },
   rememberPlaybackSession: { type: 'boolean' },
   dynamicCoverEnabled: { type: 'boolean' },
+  retroCoverPreset: {
+    type: 'string',
+    enum: RETRO_COVER_PRESETS,
+  },
   showLyricTranslation: { type: 'boolean' },
   lyricsKaraokeEnabled: { type: 'boolean' },
   musicSourceEnabled: { type: 'boolean' },
@@ -322,6 +328,13 @@ class ConfigStore {
           'dynamicCoverEnabled',
           normalizedDynamicCoverEnabled
         )
+      }
+
+      const retroCoverPreset = ConfigStore.instance.get('retroCoverPreset')
+      const normalizedRetroCoverPreset =
+        normalizeRetroCoverPreset(retroCoverPreset)
+      if (retroCoverPreset !== normalizedRetroCoverPreset) {
+        ConfigStore.instance.set('retroCoverPreset', normalizedRetroCoverPreset)
       }
 
       const playerBackgroundMode = ConfigStore.instance.get(

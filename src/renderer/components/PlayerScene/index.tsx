@@ -38,6 +38,9 @@ const PlayerScene = () => {
   const dynamicCoverEnabled = useConfigStore(
     state => state.config.dynamicCoverEnabled
   )
+  const retroCoverPreset = useConfigStore(
+    state => state.config.retroCoverPreset
+  )
   const showLyricTranslation = useConfigStore(
     state => state.config.showLyricTranslation
   )
@@ -223,6 +226,7 @@ const PlayerScene = () => {
                 artistNames={artistNames}
                 isPlaying={isPlaying}
                 dynamicCoverEnabled={dynamicCoverEnabled}
+                retroCoverPreset={retroCoverPreset}
                 isSceneOpen={isOpen}
               />
               <PlayerSceneControls

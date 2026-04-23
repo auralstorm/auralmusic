@@ -5,6 +5,7 @@ export * from '../player-lyrics.data'
 export * from '../player-lyrics.model'
 export * from '../player-lyrics.service'
 export * from '../player-scene-artwork.model'
+export * from '../player-scene-retro.model'
 export * from '../player-scene-chrome.model'
 export type {
   AmllBackgroundState,

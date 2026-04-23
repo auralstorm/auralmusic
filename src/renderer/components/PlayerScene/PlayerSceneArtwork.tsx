@@ -2,7 +2,7 @@ import { Music2 } from 'lucide-react'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { shouldRenderDynamicPlayerSceneArtwork } from './player-scene-artwork.model'
-import WaterRipple3DCover from './WaterRippleCover'
+import PlayerScenePixiCover from './WaterRippleCover'
 import type { PlayerSceneArtworkProps } from './types'
 import { memo } from 'react'
 
@@ -12,6 +12,7 @@ const PlayerSceneArtwork = ({
   artistNames,
   isPlaying,
   dynamicCoverEnabled,
+  retroCoverPreset,
   isSceneOpen,
 }: PlayerSceneArtworkProps) => {
   const sizedCoverUrl = resizeImageUrl(
@@ -19,9 +20,10 @@ const PlayerSceneArtwork = ({
     imageSizes.playerCover.width,
     imageSizes.playerCover.height
   )
-  const shouldRenderDynamicArtwork = shouldRenderDynamicPlayerSceneArtwork({
+  const shouldAnimateArtwork = shouldRenderDynamicPlayerSceneArtwork({
     coverUrl,
     dynamicCoverEnabled,
+    isPlaying,
     isSceneOpen,
   })
 
@@ -39,18 +41,13 @@ const PlayerSceneArtwork = ({
       >
         {/* 封面容器：宽高100%，确保尺寸传递 */}
         <div className='relative h-full w-full overflow-hidden rounded-[20px] border border-white/18 bg-white/10 shadow-[0_42px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl'>
-          {shouldRenderDynamicArtwork ? (
-            <WaterRipple3DCover
+          {coverUrl ? (
+            <PlayerScenePixiCover
               src={sizedCoverUrl}
-              // playBeat={isPlaying}
               className='h-full w-full'
-            />
-          ) : coverUrl ? (
-            <img
-              src={sizedCoverUrl}
-              alt={title}
-              className='h-full w-full object-cover'
-              draggable={false}
+              shouldAnimate={shouldAnimateArtwork}
+              isVisible={isSceneOpen}
+              retroCoverPreset={retroCoverPreset}
             />
           ) : (
             <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-white/18 to-white/6 text-white/70'>

@@ -30,6 +30,7 @@ function createConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     playbackSpeed: 1,
     rememberPlaybackSession: false,
     dynamicCoverEnabled: true,
+    retroCoverPreset: 'off',
     showLyricTranslation: false,
     lyricsKaraokeEnabled: true,
     musicSourceEnabled: true,

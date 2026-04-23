@@ -13,7 +13,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useConfigStore } from '@/stores/config-store'
-import type { AudioQualityLevel } from '../../../../shared/config.ts'
+import {
+  RETRO_COVER_PRESET_OPTIONS,
+  type AudioQualityLevel,
+  type RetroCoverPreset,
+} from '../../../../shared/config.ts'
 import {
   DEFAULT_AUDIO_OUTPUT_DEVICE_ID,
   mergeSelectedAudioOutputDevice,
@@ -114,6 +118,9 @@ const PlaySettings = () => {
   )
   const dynamicCoverEnabled = useConfigStore(
     state => state.config.dynamicCoverEnabled
+  )
+  const retroCoverPreset = useConfigStore(
+    state => state.config.retroCoverPreset
   )
   const showLyricTranslation = useConfigStore(
     state => state.config.showLyricTranslation
@@ -424,6 +431,36 @@ const PlaySettings = () => {
             void setConfig('dynamicCoverEnabled', !dynamicCoverEnabled)
           }
         />
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(220px,280px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            复古封面质感
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            仅影响播放器大界面的中心封面，静态与动态封面共用同一套复古预设。
+          </p>
+        </div>
+        <Select
+          value={retroCoverPreset}
+          disabled={isConfigLoading}
+          onValueChange={value =>
+            void setConfig('retroCoverPreset', value as RetroCoverPreset)
+          }
+        >
+          <SelectTrigger className='bg-muted/60 h-9 w-full border-none px-4 shadow-none'>
+            <SelectValue placeholder='选择复古封面质感' />
+          </SelectTrigger>
+          <SelectContent align='end'>
+            {RETRO_COVER_PRESET_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <Separator />
 

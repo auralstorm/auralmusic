@@ -61,6 +61,24 @@ export type EnhancedSourceModule = (typeof ENHANCED_SOURCE_MODULES)[number]
 export type CloseBehavior = 'ask' | 'minimize' | 'quit'
 export type PlayerBackgroundMode = 'off' | 'static' | 'dynamic'
 
+// 复古预设只保留一份元数据，避免设置页和 schema 长期各自维护一套枚举。
+export const RETRO_COVER_PRESET_OPTIONS = [
+  { label: '关闭', value: 'off' },
+  { label: 'CCD 数码复古', value: 'ccd' },
+  { label: '柯达金胶卷（90 年代）', value: 'kodak90s' },
+  { label: '千禧 Y2K', value: 'y2k' },
+  { label: '港风电影复古', value: 'hkCinema' },
+  { label: '低饱和灰调旧胶片', value: 'desaturatedFilm' },
+  { label: '经典黑胶封面', value: 'vinylClassic' },
+  { label: 'CRT 老式显像管', value: 'crt' },
+  { label: '拍立得复古', value: 'polaroid' },
+] as const
+export type RetroCoverPreset =
+  (typeof RETRO_COVER_PRESET_OPTIONS)[number]['value']
+export const RETRO_COVER_PRESETS = RETRO_COVER_PRESET_OPTIONS.map(
+  option => option.value
+) as readonly RetroCoverPreset[]
+
 export const ANIMATION_EFFECT_LEVELS = ['standard', 'reduced', 'off'] as const
 
 export type AnimationEffectLevel = (typeof ANIMATION_EFFECT_LEVELS)[number]
@@ -80,6 +98,7 @@ export interface AppConfig {
   equalizer: EqualizerConfig
   rememberPlaybackSession: boolean
   dynamicCoverEnabled: boolean
+  retroCoverPreset: RetroCoverPreset
   showLyricTranslation: boolean
   lyricsKaraokeEnabled: boolean
   musicSourceEnabled: boolean
@@ -128,6 +147,7 @@ export const defaultConfig: AppConfig = {
   equalizer: DEFAULT_EQUALIZER_CONFIG,
   rememberPlaybackSession: false,
   dynamicCoverEnabled: true,
+  retroCoverPreset: 'off',
   showLyricTranslation: false,
   lyricsKaraokeEnabled: true,
   musicSourceEnabled: false,
@@ -167,6 +187,13 @@ export const defaultConfig: AppConfig = {
 
 export function normalizeDynamicCoverEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.dynamicCoverEnabled
+}
+
+export function normalizeRetroCoverPreset(value: unknown): RetroCoverPreset {
+  return typeof value === 'string' &&
+    RETRO_COVER_PRESETS.includes(value as RetroCoverPreset)
+    ? (value as RetroCoverPreset)
+    : defaultConfig.retroCoverPreset
 }
 
 export function normalizeRememberPlaybackSession(value: unknown) {
