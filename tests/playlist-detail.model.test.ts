@@ -1,7 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { normalizePlaylistDetailHero } from '../src/renderer/pages/PlayList/Detail/playlist-detail.model.ts'
+import {
+  normalizePlaylistDetailHero,
+  normalizePlaylistTracks,
+} from '../src/renderer/pages/PlayList/Detail/playlist-detail.model.ts'
 
 test('normalizePlaylistDetailHero maps creator user id from playlist detail payload', () => {
   const hero = normalizePlaylistDetailHero({
@@ -43,4 +46,34 @@ test('normalizePlaylistDetailHero falls back to null creator user id when creato
 
   assert.equal(hero?.creatorUserId, null)
   assert.equal(hero?.isSubscribed, false)
+})
+
+test('normalizePlaylistTracks preserves artist ids for track list navigation', () => {
+  const tracks = normalizePlaylistTracks({
+    songs: [
+      {
+        id: 3001,
+        name: 'Track A',
+        dt: 201000,
+        al: { name: 'Album A', picUrl: 'https://img.example.com/a.jpg' },
+        ar: [
+          { id: 1001, name: 'Artist A' },
+          { id: 1002, name: 'Artist B' },
+        ],
+      },
+    ],
+  })
+
+  assert.deepEqual(tracks[0], {
+    id: 3001,
+    name: 'Track A',
+    artistNames: 'Artist A / Artist B',
+    artists: [
+      { id: 1001, name: 'Artist A' },
+      { id: 1002, name: 'Artist B' },
+    ],
+    albumName: 'Album A',
+    duration: 201000,
+    coverUrl: 'https://img.example.com/a.jpg',
+  })
 })

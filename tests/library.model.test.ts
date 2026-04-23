@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  normalizeLibrarySongs,
   normalizeLibraryUserPlaylists,
   resolveLibraryLikedSongIds,
   resolveLibraryLikedPlaylist,
@@ -138,4 +139,37 @@ test('resolveLibraryLikedSongIds falls back to idsData payload', () => {
   })
 
   assert.deepEqual(ids, [201, 202])
+})
+
+test('normalizeLibrarySongs preserves artist ids for track list artist navigation', () => {
+  const songs = normalizeLibrarySongs({
+    songs: [
+      {
+        id: 501,
+        name: 'Library Song',
+        dt: 190000,
+        al: {
+          name: 'Library Album',
+          picUrl: 'https://img.example.com/library.jpg',
+        },
+        ar: [
+          { id: 7001, name: 'Library Artist A' },
+          { id: 7002, name: 'Library Artist B' },
+        ],
+      },
+    ],
+  })
+
+  assert.deepEqual(songs[0], {
+    id: 501,
+    name: 'Library Song',
+    artistNames: 'Library Artist A / Library Artist B',
+    artists: [
+      { id: 7001, name: 'Library Artist A' },
+      { id: 7002, name: 'Library Artist B' },
+    ],
+    albumName: 'Library Album',
+    coverUrl: 'https://img.example.com/library.jpg',
+    duration: 190000,
+  })
 })

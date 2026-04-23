@@ -2,6 +2,7 @@ export interface DailySongRowItem {
   id: number
   name: string
   artistNames: string
+  artists?: Array<{ id?: number; name: string }>
   albumName: string
   coverUrl: string
   duration: number
@@ -12,6 +13,7 @@ export interface DailySongsPageState {
 }
 
 export interface RawDailySongArtist {
+  id?: number
   name?: string
 }
 

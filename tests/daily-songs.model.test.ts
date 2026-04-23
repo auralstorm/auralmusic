@@ -17,7 +17,10 @@ test('normalizeDailySongs maps recommend songs payload into list items', () => {
           name: 'album title',
           picUrl: 'https://img.example.com/song.jpg',
         },
-        ar: [{ name: 'Artist A' }, { name: 'Artist B' }],
+        ar: [
+          { id: 11, name: 'Artist A' },
+          { id: 22, name: 'Artist B' },
+        ],
       },
     ],
   })
@@ -27,6 +30,10 @@ test('normalizeDailySongs maps recommend songs payload into list items', () => {
       id: 1,
       name: 'song title',
       artistNames: 'Artist A / Artist B',
+      artists: [
+        { id: 11, name: 'Artist A' },
+        { id: 22, name: 'Artist B' },
+      ],
       albumName: 'album title',
       coverUrl: 'https://img.example.com/song.jpg',
       duration: 245000,

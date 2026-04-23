@@ -9,6 +9,7 @@ const ArtistCover = ({
   rounded,
   onClickCover,
   subTitle,
+  onClickSubTitle,
 }: ArtistCoverProps) => {
   return (
     <div>
@@ -36,11 +37,24 @@ const ArtistCover = ({
         ) : null}
       </div>
       <div className='mt-2 truncate text-center text-[16px]'>{artistName}</div>
-      {subTitle && (
-        <div className='text-foreground/70 mt-1 truncate text-center text-[14px]'>
-          {subTitle}
-        </div>
-      )}
+      {subTitle &&
+        (onClickSubTitle ? (
+          <button
+            type='button'
+            onClick={event => {
+              event.preventDefault()
+              event.stopPropagation()
+              onClickSubTitle()
+            }}
+            className='text-foreground/70 hover:text-foreground mt-1 w-full truncate text-center text-[14px] transition-colors hover:underline'
+          >
+            {subTitle}
+          </button>
+        ) : (
+          <div className='text-foreground/70 mt-1 truncate text-center text-[14px]'>
+            {subTitle}
+          </div>
+        ))}
     </div>
   )
 }

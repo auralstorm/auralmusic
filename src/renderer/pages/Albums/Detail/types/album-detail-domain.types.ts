@@ -12,6 +12,7 @@ export interface AlbumTrackItem {
   id: number
   name: string
   artistNames: string
+  artists?: Array<{ id?: number; name: string }>
   albumName: string
   duration: number
   coverUrl: string
@@ -42,6 +43,7 @@ export interface RawAlbumDetailResponse {
 }
 
 export interface RawTrackArtist {
+  id?: number
   name?: string
 }
 

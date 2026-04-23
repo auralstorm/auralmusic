@@ -70,6 +70,30 @@ const Albums = () => {
     navigate(`/albums/${albumId}`)
   }
 
+  const navigateToArtistDetail = (artistId?: number) => {
+    if (!artistId) {
+      return
+    }
+
+    navigate(`/artists/${artistId}`)
+  }
+
+  const resolveAlbumArtistName = (item: AlbumListItem) => {
+    if (item.artist?.name) {
+      return item.artist.name
+    }
+
+    return item.artists?.map(artist => artist.name).join(' / ')
+  }
+
+  const resolvePrimaryAlbumArtistId = (item: AlbumListItem) => {
+    if (item.artist?.id) {
+      return item.artist.id
+    }
+
+    return item.artists?.[0]?.id
+  }
+
   const isEmpty = !isInitialLoading && albums.length === 0
 
   return (
@@ -94,11 +118,14 @@ const Albums = () => {
             {albums.map(item => (
               <ArtistCover
                 artistCoverUrl={item.picUrl}
-                subTitle={item.artist?.name}
+                subTitle={resolveAlbumArtistName(item)}
                 artistName={item.name}
                 key={item.id}
                 // onPlay={() => handlePlay(item)}
                 onClickCover={() => navigateToAlbumDetail(item.id)}
+                onClickSubTitle={() =>
+                  navigateToArtistDetail(resolvePrimaryAlbumArtistId(item))
+                }
               />
             ))}
           </div>

@@ -6,6 +6,7 @@ export interface AlbumFilterOption<T> {
 export type AlbumArea = 'ALL' | 'ZH' | 'EA' | 'KR' | 'JP'
 
 export interface AlbumArtist {
+  id?: number
   name: string
 }
 

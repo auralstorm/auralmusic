@@ -29,13 +29,34 @@ function unwrapDailySongs(
 }
 
 function formatArtistNames(artists: RawDailySongArtist[] | undefined) {
-  const joined =
-    (artists || [])
-      .map(artist => artist.name || '')
-      .filter(Boolean)
-      .join(' / ') || ''
+  const normalizedArtists = (artists || [])
+    .map(artist => {
+      const name = artist.name?.trim() || ''
+      if (!name) {
+        return null
+      }
 
-  return joined || '未知歌手'
+      if (artist.id) {
+        return {
+          id: artist.id,
+          name,
+        }
+      }
+
+      return {
+        name,
+      }
+    })
+    .filter((artist): artist is { id?: number; name: string } =>
+      Boolean(artist)
+    )
+
+  const joined = normalizedArtists.map(artist => artist.name).join(' / ') || ''
+
+  return {
+    artists: normalizedArtists,
+    artistNames: joined || '未知歌手',
+  }
 }
 
 export function normalizeDailySongs(
@@ -46,11 +67,14 @@ export function normalizeDailySongs(
       return []
     }
 
+    const artistState = formatArtistNames(song.ar)
+
     return [
       {
         id: song.id,
         name: song.name || '未知歌曲',
-        artistNames: formatArtistNames(song.ar),
+        artistNames: artistState.artistNames,
+        artists: artistState.artists.length ? artistState.artists : undefined,
         albumName: song.al?.name || '未知专辑',
         coverUrl: song.al?.picUrl || '',
         duration: song.dt || 0,

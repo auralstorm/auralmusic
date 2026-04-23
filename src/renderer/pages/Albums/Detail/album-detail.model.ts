@@ -55,18 +55,41 @@ export function normalizeAlbumTracks(
   const fallbackCoverUrl =
     options.fallbackCoverUrl || payload?.album?.picUrl || ''
 
-  return (payload?.songs || []).map(track => ({
-    id: track.id,
-    name: track.name || '未知歌曲',
-    artistNames:
-      (track.ar || [])
-        .map(artist => artist.name || '未知歌手')
-        .filter(Boolean)
-        .join(' / ') || '未知歌手',
-    albumName: track.al?.name || '未知专辑',
-    duration: track.dt || 0,
-    coverUrl: track.al?.picUrl || fallbackCoverUrl,
-  }))
+  return (payload?.songs || []).map(track => {
+    const artists = (track.ar || [])
+      .map(artist => {
+        const name = artist.name?.trim() || ''
+        if (!name) {
+          return null
+        }
+
+        if (artist.id) {
+          return {
+            id: artist.id,
+            name,
+          }
+        }
+
+        return {
+          name,
+        }
+      })
+      .filter((artist): artist is { id?: number; name: string } =>
+        Boolean(artist)
+      )
+    const artistNames =
+      artists.map(artist => artist.name).join(' / ') || '未知歌手'
+
+    return {
+      id: track.id,
+      name: track.name || '未知歌曲',
+      artistNames,
+      artists: artists.length ? artists : undefined,
+      albumName: track.al?.name || '未知专辑',
+      duration: track.dt || 0,
+      coverUrl: track.al?.picUrl || fallbackCoverUrl,
+    }
+  })
 }
 
 export function formatAlbumPublishDate(timestamp?: number) {

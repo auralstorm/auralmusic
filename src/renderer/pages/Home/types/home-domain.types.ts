@@ -9,11 +9,13 @@ export interface AlbumSummary {
   name: string
   picUrl: string
   artist: {
+    id?: number
     name: string
   }
 }
 
 export interface RawArtist {
+  id?: number
   name?: string
 }
 

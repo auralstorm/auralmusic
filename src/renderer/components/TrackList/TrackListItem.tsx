@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import { Heart } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { toggleSongLike } from '@/api/list'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
@@ -15,8 +16,12 @@ import {
   handleTrackDownload,
   TRACK_DOWNLOAD_TOASTS,
 } from './track-list-download.model'
-import { formatTrackListArtistNames } from './model'
+import {
+  formatTrackListArtistNames,
+  shouldNavigateToArtistDetail,
+} from './model'
 import type { TrackListItemProps } from './types'
+import { Button } from '../ui/button'
 
 const TrackListItem = ({
   item,
@@ -28,6 +33,8 @@ const TrackListItem = ({
   onAddToQueue,
   onLikeChangeSuccess,
 }: TrackListItemProps) => {
+  const location = useLocation()
+  const navigate = useNavigate()
   const userId = useAuthStore(state => state.user?.userId)
   const hasHydrated = useAuthStore(state => state.hasHydrated)
   const openLoginDialog = useAuthStore(state => state.openLoginDialog)
@@ -51,6 +58,60 @@ const TrackListItem = ({
 
   const artistName =
     item.artistNames || formatTrackListArtistNames(item.artists)
+  const artistList = (item.artists || []).filter(artist =>
+    Boolean(artist.name?.trim())
+  )
+  const hotArtistName = formatTrackListArtistNames(artistList)
+  const displayedArtistName =
+    type === 'hot' ? hotArtistName || artistName : artistName
+  const shouldRenderArtistLinks = artistList.some(artist => Boolean(artist.id))
+
+  const handleOpenArtistDetail = (
+    event: MouseEvent<HTMLButtonElement>,
+    artistId?: number
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (!artistId) {
+      return
+    }
+
+    if (!shouldNavigateToArtistDetail(location.pathname, artistId)) {
+      return
+    }
+
+    navigate(`/artists/${artistId}`)
+  }
+
+  const renderArtistName = () => {
+    if (!shouldRenderArtistLinks) {
+      return displayedArtistName
+    }
+
+    return artistList.map((artist, index) => (
+      <span key={`${artist.id || artist.name}-${index}`} className='inline'>
+        {artist.id ? (
+          <Button
+            variant='link'
+            onClick={event => handleOpenArtistDetail(event, artist.id)}
+            onDoubleClick={event => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+            className='hover:text-foreground text-foreground/50 inline cursor-pointer px-0 py-0 underline-offset-2 transition-colors hover:underline focus-visible:underline focus-visible:outline-none'
+          >
+            {artist.name}
+          </Button>
+        ) : (
+          <span>{artist.name}</span>
+        )}
+        {index < artistList.length - 1 ? (
+          <span className='text-foreground/50 mx-1'>/</span>
+        ) : null}
+      </span>
+    ))
+  }
 
   const handleToggleSongLike = async (
     event?: MouseEvent<HTMLButtonElement>
@@ -196,9 +257,7 @@ const TrackListItem = ({
               {item.name}
             </div>
             <div className='text-foreground/70 truncate text-xs md:text-sm'>
-              {type === 'hot'
-                ? formatTrackListArtistNames(item.artists)
-                : artistName}
+              {renderArtistName()}
             </div>
           </div>
         </div>
