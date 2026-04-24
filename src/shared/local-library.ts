@@ -81,12 +81,59 @@ export interface LocalLibraryStats {
   lastScannedAt: number | null
 }
 
+export interface LocalLibraryOverviewSnapshot {
+  roots: LocalLibraryRootRecord[]
+  stats: LocalLibraryStats
+}
+
 export interface LocalLibrarySnapshot {
   roots: LocalLibraryRootRecord[]
   stats: LocalLibraryStats
   tracks: LocalLibraryTrackRecord[]
   albums: LocalLibraryAlbumRecord[]
   artists: LocalLibraryArtistRecord[]
+}
+
+export interface LocalLibraryTrackQueryInput {
+  keyword: string
+  scopeType: 'all' | 'album' | 'artist'
+  scopeValue: string | null
+  scopeArtistName: string | null
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryTrackQueryResult {
+  items: LocalLibraryTrackRecord[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryAlbumQueryInput {
+  keyword: string
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryAlbumQueryResult {
+  items: LocalLibraryAlbumRecord[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryArtistQueryInput {
+  keyword: string
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryArtistQueryResult {
+  items: LocalLibraryArtistRecord[]
+  total: number
+  offset: number
+  limit: number
 }
 
 export interface LocalLibraryScanSummary {

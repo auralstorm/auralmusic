@@ -14,8 +14,7 @@ const LocalLibraryArtistCard = ({
   onOpen,
 }: LocalLibraryArtistCardProps) => {
   return (
-    <button
-      type='button'
+    <div
       className='group flex min-w-0 flex-col gap-3 text-left'
       onClick={() => onOpen(artist)}
     >
@@ -34,17 +33,15 @@ const LocalLibraryArtistCard = ({
         )}
 
         <div className='absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/24' />
-        <Button
-          type='button'
-          size='icon'
-          className='absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/18 bg-white/14 text-white opacity-0 shadow-none backdrop-blur-md transition-all duration-300 group-hover:opacity-100'
+        {/* <div
+          className='absolute top-1/2 left-1/2 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/18 bg-white/14 text-white opacity-0 shadow-none backdrop-blur-md transition-all duration-300 group-hover:opacity-100'
           onClick={event => {
             event.stopPropagation()
             onOpen(artist)
           }}
         >
           <Play className='ml-0.5 size-4 fill-current' />
-        </Button>
+        </div> */}
       </div>
 
       <div className='min-w-0 space-y-1'>
@@ -55,7 +52,7 @@ const LocalLibraryArtistCard = ({
           {artist.trackCount} 首歌曲
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 

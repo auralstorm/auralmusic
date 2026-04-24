@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Tabs, TabsContent } from '@/components/ui/tabs'
@@ -9,10 +9,10 @@ import { parseLocalMediaUrl } from '../../../shared/local-media.ts'
 import { normalizeLocalLibraryRoots } from '../../../shared/config.ts'
 import type {
   LocalLibraryAlbumRecord,
-  LocalLibraryTrackDeleteMode,
-  LocalLibraryEntityType,
   LocalLibraryArtistRecord,
-  LocalLibrarySnapshot,
+  LocalLibraryEntityType,
+  LocalLibraryOverviewSnapshot,
+  LocalLibraryTrackDeleteMode,
   LocalLibraryTrackRecord,
 } from '../../../shared/local-library.ts'
 import LocalLibraryAlbumCard from './components/LocalLibraryAlbumCard'
@@ -22,11 +22,16 @@ import LocalLibraryOverview from './components/LocalLibraryOverview'
 import LocalLibraryTrackList from './components/LocalLibraryTrackList'
 import LocalLibraryToolbar from './components/LocalLibraryToolbar'
 import {
-  EMPTY_LOCAL_LIBRARY_SNAPSHOT,
-  filterLocalLibraryAlbums,
-  filterLocalLibraryArtists,
-  filterLocalLibraryTracks,
+  buildLocalLibraryAlbumQueryInput,
+  buildLocalLibraryArtistQueryInput,
+  buildLocalLibraryTrackQueryInput,
+  createEmptyLocalLibraryPagedState,
+  DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT,
+  DEFAULT_LOCAL_LIBRARY_TRACK_QUERY_LIMIT,
+  EMPTY_LOCAL_LIBRARY_OVERVIEW,
+  EMPTY_LOCAL_LIBRARY_SONG_SCOPE,
   getLocalLibraryEmptyState,
+  type LocalLibraryPagedState,
   type LocalLibrarySongScope,
 } from './local-library.model'
 import {
@@ -39,8 +44,102 @@ function getLocalLibraryApi() {
   return window.electronLocalLibrary ?? null
 }
 
-function resolveParentDirectory(filePath: string) {
-  return filePath.replace(/[\\/][^\\/]+$/, '')
+function mergeTrackItems(
+  currentItems: LocalLibraryTrackRecord[],
+  nextItems: LocalLibraryTrackRecord[]
+) {
+  const seenFilePaths = new Set(currentItems.map(track => track.filePath))
+  const mergedItems = [...currentItems]
+
+  for (const nextItem of nextItems) {
+    if (seenFilePaths.has(nextItem.filePath)) {
+      continue
+    }
+
+    seenFilePaths.add(nextItem.filePath)
+    mergedItems.push(nextItem)
+  }
+
+  return mergedItems
+}
+
+async function queryAllTrackPages(
+  keyword: string,
+  scope: LocalLibrarySongScope,
+  limit = 200
+) {
+  const localLibraryApi = getLocalLibraryApi()
+  if (!localLibraryApi) {
+    return []
+  }
+
+  const tracks: LocalLibraryTrackRecord[] = []
+  let offset = 0
+
+  while (true) {
+    const result = await localLibraryApi.queryTracks(
+      buildLocalLibraryTrackQueryInput(keyword, scope, offset, limit)
+    )
+
+    tracks.push(...result.items)
+    offset += result.items.length
+
+    if (result.items.length === 0 || offset >= result.total) {
+      break
+    }
+  }
+
+  return tracks
+}
+
+async function queryAllAlbumPages(keyword: string, limit = 120) {
+  const localLibraryApi = getLocalLibraryApi()
+  if (!localLibraryApi) {
+    return [] as LocalLibraryAlbumRecord[]
+  }
+
+  const albums: LocalLibraryAlbumRecord[] = []
+  let offset = 0
+
+  while (true) {
+    const result = await localLibraryApi.queryAlbums(
+      buildLocalLibraryAlbumQueryInput(keyword, offset, limit)
+    )
+
+    albums.push(...result.items)
+    offset += result.items.length
+
+    if (result.items.length === 0 || offset >= result.total) {
+      break
+    }
+  }
+
+  return albums
+}
+
+async function queryAllArtistPages(keyword: string, limit = 120) {
+  const localLibraryApi = getLocalLibraryApi()
+  if (!localLibraryApi) {
+    return [] as LocalLibraryArtistRecord[]
+  }
+
+  const artists: LocalLibraryArtistRecord[] = []
+  let offset = 0
+
+  while (true) {
+    const result = await localLibraryApi.queryArtists(
+      buildLocalLibraryArtistQueryInput(keyword, offset, limit)
+    )
+
+    artists.push(...result.items)
+    offset += result.items.length
+
+    if (result.items.length === 0 || offset >= result.total) {
+      break
+    }
+  }
+
+  return artists
 }
 
 const LocalLibrary = () => {
@@ -58,8 +157,27 @@ const LocalLibrary = () => {
   )
   const setConfig = useConfigStore(state => state.setConfig)
 
-  const [snapshot, setSnapshot] = useState<LocalLibrarySnapshot>(
-    EMPTY_LOCAL_LIBRARY_SNAPSHOT
+  const [overview, setOverview] = useState<LocalLibraryOverviewSnapshot>(
+    EMPTY_LOCAL_LIBRARY_OVERVIEW
+  )
+  const [tracksState, setTracksState] = useState<
+    LocalLibraryPagedState<LocalLibraryTrackRecord>
+  >(() =>
+    createEmptyLocalLibraryPagedState(DEFAULT_LOCAL_LIBRARY_TRACK_QUERY_LIMIT)
+  )
+  const [albumsState, setAlbumsState] = useState<
+    LocalLibraryPagedState<LocalLibraryAlbumRecord>
+  >(() =>
+    createEmptyLocalLibraryPagedState(
+      DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+    )
+  )
+  const [artistsState, setArtistsState] = useState<
+    LocalLibraryPagedState<LocalLibraryArtistRecord>
+  >(() =>
+    createEmptyLocalLibraryPagedState(
+      DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+    )
   )
   const [isLoading, setIsLoading] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
@@ -68,59 +186,306 @@ const LocalLibrary = () => {
   )
   const [activeTab, setActiveTab] = useState<LocalLibraryEntityType>('songs')
   const [keyword, setKeyword] = useState('')
-  // 扫描中持续展示当前已入库数量，避免首次导入时只有“在转”没有反馈。
+  // 扫描中持续展示已入库数量，避免首次导入时只有 loading 没有进度感知。
   const [importedTrackCount, setImportedTrackCount] = useState(0)
-  const [songScope, setSongScope] = useState<LocalLibrarySongScope>({
-    type: 'all',
-    key: null,
-    value: null,
-    artistName: null,
-  })
+  const [songScope, setSongScope] = useState<LocalLibrarySongScope>(
+    EMPTY_LOCAL_LIBRARY_SONG_SCOPE
+  )
+
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoScanRootKeyRef = useRef<string | null>(null)
+  const overviewRequestIdRef = useRef(0)
+  const trackQueryRequestIdRef = useRef(0)
+  const albumQueryRequestIdRef = useRef(0)
+  const artistQueryRequestIdRef = useRef(0)
+  const tracksStateRef = useRef(tracksState)
 
-  const readSnapshot = useCallback(async () => {
+  useEffect(() => {
+    tracksStateRef.current = tracksState
+  }, [tracksState])
+
+  const resetQueryStates = useCallback(() => {
+    setTracksState(
+      createEmptyLocalLibraryPagedState(DEFAULT_LOCAL_LIBRARY_TRACK_QUERY_LIMIT)
+    )
+    setAlbumsState(
+      createEmptyLocalLibraryPagedState(
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+    )
+    setArtistsState(
+      createEmptyLocalLibraryPagedState(
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+    )
+  }, [])
+
+  const readOverview = useCallback(async () => {
     const localLibraryApi = getLocalLibraryApi()
     if (!localLibraryApi) {
       return null
     }
 
-    return localLibraryApi.getSnapshot()
+    return localLibraryApi.getOverview()
   }, [])
 
-  const loadSnapshot = useCallback(async () => {
-    // 未配置目录时直接展示空态，避免首屏把“未开始使用”误判成加载失败。
+  const loadOverview = useCallback(async () => {
     if (configuredRoots.length === 0) {
-      setSnapshot(EMPTY_LOCAL_LIBRARY_SNAPSHOT)
+      setOverview(EMPTY_LOCAL_LIBRARY_OVERVIEW)
+      resetQueryStates()
       setIsLoading(false)
-      return
+      return EMPTY_LOCAL_LIBRARY_OVERVIEW
     }
 
     const localLibraryApi = getLocalLibraryApi()
     if (!localLibraryApi) {
-      setSnapshot(EMPTY_LOCAL_LIBRARY_SNAPSHOT)
+      setOverview(EMPTY_LOCAL_LIBRARY_OVERVIEW)
+      resetQueryStates()
       setIsLoading(false)
+      return EMPTY_LOCAL_LIBRARY_OVERVIEW
+    }
+
+    const requestId = ++overviewRequestIdRef.current
+
+    try {
+      const nextOverview = await readOverview()
+      if (!nextOverview || overviewRequestIdRef.current !== requestId) {
+        return null
+      }
+
+      setOverview(nextOverview)
+      return nextOverview
+    } catch (error) {
+      console.error('failed to load local library overview', error)
+      toast.error('本地乐库加载失败，请稍后重试')
+      return null
+    } finally {
+      if (overviewRequestIdRef.current === requestId) {
+        setIsLoading(false)
+      }
+    }
+  }, [configuredRoots.length, readOverview, resetQueryStates])
+
+  const loadTracks = useCallback(
+    async (append: boolean) => {
+      const localLibraryApi = getLocalLibraryApi()
+      if (!localLibraryApi) {
+        setTracksState(
+          createEmptyLocalLibraryPagedState(
+            DEFAULT_LOCAL_LIBRARY_TRACK_QUERY_LIMIT
+          )
+        )
+        return null
+      }
+
+      const currentTracksState = tracksStateRef.current
+      const offset = append ? currentTracksState.items.length : 0
+      if (
+        append &&
+        (currentTracksState.isLoading ||
+          currentTracksState.items.length >= currentTracksState.total)
+      ) {
+        return null
+      }
+
+      const requestId = ++trackQueryRequestIdRef.current
+
+      setTracksState(previousState => ({
+        ...previousState,
+        isLoading: true,
+        ...(append
+          ? {}
+          : {
+              items: [],
+              total: 0,
+              offset: 0,
+              hasLoaded: previousState.hasLoaded,
+            }),
+      }))
+
+      try {
+        const result = await localLibraryApi.queryTracks(
+          buildLocalLibraryTrackQueryInput(
+            keyword,
+            songScope,
+            offset,
+            currentTracksState.limit
+          )
+        )
+
+        if (trackQueryRequestIdRef.current !== requestId) {
+          return null
+        }
+
+        setTracksState(previousState => ({
+          ...previousState,
+          items: append
+            ? mergeTrackItems(previousState.items, result.items)
+            : result.items,
+          total: result.total,
+          offset: result.offset + result.items.length,
+          limit: result.limit,
+          isLoading: false,
+          hasLoaded: true,
+        }))
+
+        return result
+      } catch (error) {
+        console.error('failed to query local library tracks', error)
+        toast.error('本地歌曲加载失败，请稍后重试')
+
+        if (trackQueryRequestIdRef.current === requestId) {
+          setTracksState(previousState => ({
+            ...previousState,
+            isLoading: false,
+            hasLoaded: true,
+          }))
+        }
+
+        return null
+      }
+    },
+    [keyword, songScope]
+  )
+
+  const loadAlbums = useCallback(async () => {
+    const requestId = ++albumQueryRequestIdRef.current
+
+    setAlbumsState(previousState => ({
+      ...previousState,
+      items: [],
+      total: 0,
+      offset: 0,
+      isLoading: true,
+    }))
+
+    try {
+      const items = await queryAllAlbumPages(
+        keyword,
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+
+      if (albumQueryRequestIdRef.current !== requestId) {
+        return
+      }
+
+      setAlbumsState({
+        items,
+        total: items.length,
+        offset: items.length,
+        limit: DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT,
+        isLoading: false,
+        hasLoaded: true,
+      })
+    } catch (error) {
+      console.error('failed to query local library albums', error)
+      toast.error('本地专辑加载失败，请稍后重试')
+
+      if (albumQueryRequestIdRef.current === requestId) {
+        setAlbumsState(previousState => ({
+          ...previousState,
+          isLoading: false,
+          hasLoaded: true,
+        }))
+      }
+    }
+  }, [keyword])
+
+  const loadArtists = useCallback(async () => {
+    const requestId = ++artistQueryRequestIdRef.current
+
+    setArtistsState(previousState => ({
+      ...previousState,
+      items: [],
+      total: 0,
+      offset: 0,
+      isLoading: true,
+    }))
+
+    try {
+      const items = await queryAllArtistPages(
+        keyword,
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+
+      if (artistQueryRequestIdRef.current !== requestId) {
+        return
+      }
+
+      setArtistsState({
+        items,
+        total: items.length,
+        offset: items.length,
+        limit: DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT,
+        isLoading: false,
+        hasLoaded: true,
+      })
+    } catch (error) {
+      console.error('failed to query local library artists', error)
+      toast.error('本地歌手加载失败，请稍后重试')
+
+      if (artistQueryRequestIdRef.current === requestId) {
+        setArtistsState(previousState => ({
+          ...previousState,
+          isLoading: false,
+          hasLoaded: true,
+        }))
+      }
+    }
+  }, [keyword])
+
+  const loadQueueTracksForSource = useCallback(async (sourceKey: string) => {
+    const descriptor = resolveLocalLibraryQueueSourceDescriptor(sourceKey)
+    if (!descriptor) {
+      return []
+    }
+
+    if (descriptor.type === 'artist') {
+      return queryAllTrackPages(
+        '',
+        {
+          type: 'artist',
+          key: null,
+          value: descriptor.artistName,
+          artistName: null,
+        },
+        200
+      )
+    }
+
+    if (descriptor.type === 'album') {
+      return queryAllTrackPages(
+        '',
+        {
+          type: 'album',
+          key: null,
+          value: descriptor.albumName,
+          artistName: descriptor.artistName,
+        },
+        200
+      )
+    }
+
+    return queryAllTrackPages('', EMPTY_LOCAL_LIBRARY_SONG_SCOPE, 200)
+  }, [])
+
+  const refreshActiveQuery = useCallback(async () => {
+    if (activeTab === 'albums') {
+      await loadAlbums()
       return
     }
 
-    try {
-      const nextSnapshot = await readSnapshot()
-      if (!nextSnapshot) {
-        setSnapshot(EMPTY_LOCAL_LIBRARY_SNAPSHOT)
-        return
-      }
-      setSnapshot(nextSnapshot)
-    } catch (error) {
-      console.error('failed to load local library snapshot', error)
-      toast.error('本地乐库加载失败，请稍后重试')
-    } finally {
-      setIsLoading(false)
+    if (activeTab === 'artists') {
+      await loadArtists()
+      return
     }
-  }, [configuredRoots.length, readSnapshot])
+
+    await loadTracks(false)
+  }, [activeTab, loadAlbums, loadArtists, loadTracks])
 
   useEffect(() => {
-    void loadSnapshot()
-  }, [loadSnapshot])
+    void loadOverview()
+  }, [loadOverview])
 
   useEffect(() => {
     return () => {
@@ -129,6 +494,42 @@ const LocalLibrary = () => {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (isLoading) {
+      return
+    }
+
+    const emptyState = getLocalLibraryEmptyState(
+      overview,
+      configuredRoots.length
+    )
+    if (emptyState) {
+      return
+    }
+
+    if (activeTab === 'albums') {
+      void loadAlbums()
+      return
+    }
+
+    if (activeTab === 'artists') {
+      void loadArtists()
+      return
+    }
+
+    void loadTracks(false)
+  }, [
+    activeTab,
+    configuredRoots.length,
+    isLoading,
+    keyword,
+    loadAlbums,
+    loadArtists,
+    loadTracks,
+    overview,
+    songScope,
+  ])
 
   const stopProgressPolling = useCallback(() => {
     if (progressTimerRef.current) {
@@ -141,30 +542,31 @@ const LocalLibrary = () => {
     stopProgressPolling()
 
     progressTimerRef.current = setInterval(() => {
-      void readSnapshot().then(nextSnapshot => {
-        if (!nextSnapshot) {
+      void readOverview().then(nextOverview => {
+        if (!nextOverview) {
           return
         }
 
-        setImportedTrackCount(nextSnapshot.stats.trackCount)
+        setImportedTrackCount(nextOverview.stats.trackCount)
       })
     }, 300)
-  }, [readSnapshot, stopProgressPolling])
+  }, [readOverview, stopProgressPolling])
 
   const runScanFlow = useCallback(async () => {
     const localLibraryApi = getLocalLibraryApi()
     if (!localLibraryApi || isScanning) {
-      return
+      return null
     }
 
     setIsScanning(true)
-    setImportedTrackCount(snapshot.stats.trackCount)
+    setImportedTrackCount(overview.stats.trackCount)
     startProgressPolling()
 
     try {
       const summary = await localLibraryApi.scan()
       setImportedTrackCount(summary.importedCount)
-      await loadSnapshot()
+      await loadOverview()
+      await refreshActiveQuery()
       return summary
     } catch (error) {
       console.error('failed to scan local library', error)
@@ -176,8 +578,9 @@ const LocalLibrary = () => {
     }
   }, [
     isScanning,
-    loadSnapshot,
-    snapshot.stats.trackCount,
+    loadOverview,
+    overview.stats.trackCount,
+    refreshActiveQuery,
     startProgressPolling,
     stopProgressPolling,
   ])
@@ -195,6 +598,7 @@ const LocalLibrary = () => {
       toast.error('当前环境不支持本地乐库目录选择')
       return
     }
+
     if (isScanning) {
       return
     }
@@ -224,21 +628,9 @@ const LocalLibrary = () => {
     }
   }, [configuredRoots, isScanning, runScanFlow, setConfig])
 
-  const filteredTracks = useMemo(() => {
-    return filterLocalLibraryTracks(snapshot.tracks, keyword, songScope)
-  }, [keyword, snapshot.tracks, songScope])
-
-  const filteredAlbums = useMemo(() => {
-    return filterLocalLibraryAlbums(snapshot.albums, keyword)
-  }, [keyword, snapshot.albums])
-
-  const filteredArtists = useMemo(() => {
-    return filterLocalLibraryArtists(snapshot.artists, keyword)
-  }, [keyword, snapshot.artists])
-
-  const emptyState = getLocalLibraryEmptyState(snapshot, configuredRoots.length)
+  const emptyState = getLocalLibraryEmptyState(overview, configuredRoots.length)
   const overviewStats = {
-    ...snapshot.stats,
+    ...overview.stats,
     rootCount: configuredRoots.length,
   }
 
@@ -263,18 +655,23 @@ const LocalLibrary = () => {
   }, [configuredRoots, emptyState, isLoading, isScanning, runScanFlow])
 
   const handlePlayIndex = useCallback(
-    (
-      tracks: LocalLibraryTrackRecord[],
+    async (
+      _tracks: LocalLibraryTrackRecord[],
       startIndex: number,
       sourceKey: string
     ) => {
+      const queueTracks = await queryAllTrackPages(keyword, songScope, 200)
+      if (!queueTracks.length || startIndex >= queueTracks.length) {
+        return
+      }
+
       playQueueFromIndex(
-        tracks.map(track => buildLocalLibraryPlaybackTrack(track)),
+        queueTracks.map(track => buildLocalLibraryPlaybackTrack(track)),
         startIndex,
         sourceKey
       )
     },
-    [playQueueFromIndex]
+    [keyword, playQueueFromIndex, songScope]
   )
 
   const handleOpenAlbum = useCallback((album: LocalLibraryAlbumRecord) => {
@@ -325,24 +722,20 @@ const LocalLibrary = () => {
           return
         }
 
-        const nextSnapshot = await readSnapshot()
-        if (nextSnapshot) {
-          setSnapshot(nextSnapshot)
+        await loadOverview()
+        await refreshActiveQuery()
 
-          // 本地乐库删除后同步刷新同源播放队列，避免列表和播放队列长期不一致。
-          if (
-            queueSourceKey &&
-            resolveLocalLibraryQueueSourceDescriptor(queueSourceKey) &&
-            !(mode === 'library-only' && isDeletingCurrentTrack)
-          ) {
-            syncQueueFromSource(
-              queueSourceKey,
-              buildLocalLibraryPlaybackQueue(
-                nextSnapshot.tracks,
-                queueSourceKey
-              )
-            )
-          }
+        // 本地乐库删除后同步刷新同源播放队列，避免列表和播放队列长期不一致。
+        if (
+          queueSourceKey &&
+          resolveLocalLibraryQueueSourceDescriptor(queueSourceKey) &&
+          !(mode === 'library-only' && isDeletingCurrentTrack)
+        ) {
+          const nextQueueTracks = await loadQueueTracksForSource(queueSourceKey)
+          syncQueueFromSource(
+            queueSourceKey,
+            buildLocalLibraryPlaybackQueue(nextQueueTracks, queueSourceKey)
+          )
         }
 
         // 本地删除要允许当前曲目继续播完，彻底删除才立即打断失效文件引用。
@@ -367,8 +760,10 @@ const LocalLibrary = () => {
     [
       currentTrack?.sourceUrl,
       deletingTrackPath,
+      loadOverview,
+      loadQueueTracksForSource,
       queueSourceKey,
-      readSnapshot,
+      refreshActiveQuery,
       resetPlayback,
       syncQueueFromSource,
     ]
@@ -384,20 +779,18 @@ const LocalLibrary = () => {
     [executeDeleteTrack]
   )
 
-  const handleOpenTrackDirectory = useCallback(
+  const handleRevealTrack = useCallback(
     async (track: LocalLibraryTrackRecord) => {
       const localLibraryApi = getLocalLibraryApi()
-      if (!localLibraryApi) {
-        toast.error('当前环境不支持打开本地目录')
+      if (!localLibraryApi?.revealTrack) {
+        toast.error('当前环境不支持定位本地歌曲')
         return
       }
 
-      // 目录打开统一走主进程，避免 renderer 自己处理路径差异和系统兼容分支。
-      const didOpen = await localLibraryApi.openDirectory(
-        resolveParentDirectory(track.filePath)
-      )
-      if (!didOpen) {
-        toast.error('打开所在目录失败，请稍后重试')
+      // 歌曲定位统一交给主进程，Windows 下可直接选中文件，其它平台再退化到打开父目录。
+      const didReveal = await localLibraryApi.revealTrack(track.filePath)
+      if (!didReveal) {
+        toast.error('定位歌曲文件失败，请稍后重试')
       }
     },
     []
@@ -432,32 +825,32 @@ const LocalLibrary = () => {
             hasSongScopeFilter={songScope.type !== 'all'}
             onKeywordChange={setKeyword}
             onClearSongScope={() =>
-              setSongScope({
-                type: 'all',
-                key: null,
-                value: null,
-                artistName: null,
-              })
+              setSongScope(EMPTY_LOCAL_LIBRARY_SONG_SCOPE)
             }
             onScan={() => void handleScan()}
           />
 
           <TabsContent value='songs' className='pt-3'>
             <LocalLibraryTrackList
-              tracks={filteredTracks}
+              tracks={tracksState.items}
+              totalCount={tracksState.total}
+              isLoadingMore={tracksState.isLoading && tracksState.hasLoaded}
               queueSourceScope={songScope}
               deletingTrackPath={deletingTrackPath}
-              onPlayIndex={handlePlayIndex}
-              onOpenDirectory={track => void handleOpenTrackDirectory(track)}
+              onPlayIndex={(tracks, startIndex, sourceKey) =>
+                void handlePlayIndex(tracks, startIndex, sourceKey)
+              }
+              onRevealTrack={track => void handleRevealTrack(track)}
               onDeleteTrack={(track, mode) =>
                 void handleDeleteTrack(track, mode)
               }
+              onEndReached={() => void loadTracks(true)}
             />
           </TabsContent>
 
           <TabsContent value='albums' className='pt-3'>
             <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6'>
-              {filteredAlbums.map(album => (
+              {albumsState.items.map(album => (
                 <LocalLibraryAlbumCard
                   key={`${album.id}-${album.name}`}
                   album={album}
@@ -469,7 +862,7 @@ const LocalLibrary = () => {
 
           <TabsContent value='artists' className='pt-3'>
             <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6'>
-              {filteredArtists.map(artist => (
+              {artistsState.items.map(artist => (
                 <LocalLibraryArtistCard
                   key={`${artist.id}-${artist.name}`}
                   artist={artist}

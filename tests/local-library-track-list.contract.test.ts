@@ -24,6 +24,8 @@ test('local library track list renders audio format as a dedicated column', () =
     /import\s+\{\s*Virtuoso\s*\}\s+from\s+'react-virtuoso'/
   )
   assert.match(trackListSource, /track\.audioFormat/)
+  assert.match(trackListSource, /endReached=\{\(\)\s*=>/)
+  assert.match(trackListSource, /tracks\.length < totalCount/)
   assert.match(
     trackListSource,
     /grid-cols-\[minmax\(0,2\.3fr\)_minmax\(0,1\.2fr\)_88px_88px\]/
@@ -38,7 +40,7 @@ test('local library track list keeps only icon play action', () => {
     trackListSource,
     /disabled=\{deletingTrackPath === track\.filePath\}/
   )
-  assert.match(trackListSource, /onOpenDirectory=\{onOpenDirectory\}/)
+  assert.match(trackListSource, /onRevealTrack=\{onRevealTrack\}/)
   assert.match(trackListSource, /onDelete=\{onDeleteTrack\}/)
 })
 
@@ -56,12 +58,12 @@ test('local library delete actions execute directly without a confirm dialog lay
 test('local library row actions use more trigger and open folder before delete actions', () => {
   assert.match(rowActionsSource, /aria-label=\{`更多操作 \$\{track\.title\}`\}/)
   assert.match(rowActionsSource, /<MoreHorizontal className='size-3\.5' \/>/)
-  assert.match(rowActionsSource, /打开所在目录[\s\S]*本地删除[\s\S]*彻底删除/)
+  assert.match(rowActionsSource, /打开所在位置[\s\S]*本地删除[\s\S]*彻底删除/)
   assert.match(rowActionsSource, /<FolderOpen className='size-4' \/>/)
   assert.match(rowActionsSource, /<Trash className='size-4' \/>/)
 })
 
-test('local library page opens the parent directory through preload api', () => {
-  assert.match(pageSource, /resolveParentDirectory\(track\.filePath\)/)
-  assert.match(pageSource, /localLibraryApi\.openDirectory\(/)
+test('local library page reveals the active file through preload api', () => {
+  assert.match(pageSource, /localLibraryApi\?\.revealTrack/)
+  assert.match(pageSource, /localLibraryApi\.revealTrack\(track\.filePath\)/)
 })

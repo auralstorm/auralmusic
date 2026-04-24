@@ -1,9 +1,14 @@
 import electron from 'electron'
+import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { getConfig } from '../config/store.ts'
 import {
   deleteLocalLibraryTrack,
+  queryLocalLibraryAlbumsByInput,
+  queryLocalLibraryArtistsByInput,
+  queryLocalLibraryTracksByInput,
+  readLocalLibraryOverview,
   readLocalLibrarySnapshot,
   resolveLocalLibraryOnlineLyricMatch,
   runLocalLibraryScan,
@@ -35,6 +40,7 @@ type LocalLibraryIpcRegistrationOptions = {
   shell?: {
     openPath: (targetPath: string) => Promise<string>
     openExternal?: (targetPath: string) => Promise<string>
+    showItemInFolder?: (fullPath: string) => void
   }
   browserWindowFromWebContents?: (webContents: unknown) => unknown
   platform?: NodeJS.Platform
@@ -56,9 +62,40 @@ export function createLocalLibraryIpc(
 
   return {
     register() {
+      ipcMain.handle(LOCAL_LIBRARY_IPC_CHANNELS.GET_OVERVIEW, () => {
+        return readLocalLibraryOverview()
+      })
+
       ipcMain.handle(LOCAL_LIBRARY_IPC_CHANNELS.GET_SNAPSHOT, () => {
         return readLocalLibrarySnapshot()
       })
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.QUERY_TRACKS,
+        (_event, input) => {
+          return queryLocalLibraryTracksByInput(
+            input as Parameters<typeof queryLocalLibraryTracksByInput>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.QUERY_ALBUMS,
+        (_event, input) => {
+          return queryLocalLibraryAlbumsByInput(
+            input as Parameters<typeof queryLocalLibraryAlbumsByInput>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.QUERY_ARTISTS,
+        (_event, input) => {
+          return queryLocalLibraryArtistsByInput(
+            input as Parameters<typeof queryLocalLibraryArtistsByInput>[0]
+          )
+        }
+      )
 
       ipcMain.handle(LOCAL_LIBRARY_IPC_CHANNELS.SCAN, async () => {
         return runLocalLibraryScan(
@@ -115,6 +152,39 @@ export function createLocalLibraryIpc(
           if (platform === 'win32' && shell.openExternal) {
             const externalOpenResult = await shell.openExternal(
               pathToFileURL(targetPath).toString()
+            )
+            return !externalOpenResult
+          }
+
+          return false
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.REVEAL_TRACK,
+        async (_event, filePath: string) => {
+          if (!filePath.trim()) {
+            return false
+          }
+
+          if (platform === 'win32' && shell.showItemInFolder) {
+            shell.showItemInFolder(filePath)
+            return true
+          }
+
+          const parentDirectory = path.dirname(filePath)
+          if (!parentDirectory.trim()) {
+            return false
+          }
+
+          const openResult = await shell.openPath(parentDirectory)
+          if (!openResult) {
+            return true
+          }
+
+          if (platform === 'win32' && shell.openExternal) {
+            const externalOpenResult = await shell.openExternal(
+              pathToFileURL(parentDirectory).toString()
             )
             return !externalOpenResult
           }

@@ -37,3 +37,36 @@ test('local library open-directory handler falls back to file url open on Window
   assert.equal(didOpen, true)
   assert.deepEqual(openExternalCalls, ['file:///F:/%E9%9F%B3%E4%B9%90'])
 })
+
+test('local library reveal-track handler uses showItemInFolder on Windows', async () => {
+  const handlers = new Map<string, (...args: unknown[]) => unknown>()
+  const revealedFilePaths: string[] = []
+
+  createLocalLibraryIpc({
+    ipcMain: {
+      handle: (channel, handler) => {
+        handlers.set(channel, handler)
+      },
+    },
+    dialog: {
+      showOpenDialog: async () => ({
+        canceled: true,
+        filePaths: [],
+      }),
+    },
+    shell: {
+      openPath: async () => '',
+      showItemInFolder: filePath => {
+        revealedFilePaths.push(filePath)
+      },
+    },
+    platform: 'win32',
+  }).register()
+
+  const didReveal = await handlers.get(
+    LOCAL_LIBRARY_IPC_CHANNELS.REVEAL_TRACK
+  )?.({}, 'F:\\音乐\\晴天.mp3')
+
+  assert.equal(didReveal, true)
+  assert.deepEqual(revealedFilePaths, ['F:\\音乐\\晴天.mp3'])
+})

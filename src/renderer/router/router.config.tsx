@@ -42,11 +42,6 @@ export const routeMenuConfig: RouteMenuConfig[] = [
         meta: { title: '音乐库', icon: '', authOnly: true },
       },
       {
-        path: '/local-library',
-        element: <LocalLibrary />,
-        meta: { title: '本地乐库', icon: '' },
-      },
-      {
         path: '/library/liked-songs',
         element: <LikedSongs />,
         meta: { title: '我喜欢的音乐', icon: '', hidden: true, authOnly: true },
@@ -105,6 +100,11 @@ export const routeMenuConfig: RouteMenuConfig[] = [
         path: '/albums/:id',
         element: <AlbumDetail />,
         meta: { title: '专辑详情', icon: '', hidden: true },
+      },
+      {
+        path: '/local-library',
+        element: <LocalLibrary />,
+        meta: { title: '本地乐库', icon: '' },
       },
     ],
   },

@@ -3,10 +3,17 @@ import Database from 'better-sqlite3'
 import { createLocalMediaUrl } from '../../shared/local-media.ts'
 import type {
   LocalLibraryAlbumRecord,
+  LocalLibraryAlbumQueryInput,
+  LocalLibraryAlbumQueryResult,
   LocalLibraryArtistRecord,
+  LocalLibraryArtistQueryInput,
+  LocalLibraryArtistQueryResult,
+  LocalLibraryOverviewSnapshot,
   LocalLibraryRootRecord,
   LocalLibrarySnapshot,
   LocalLibraryStats,
+  LocalLibraryTrackQueryInput,
+  LocalLibraryTrackQueryResult,
   LocalLibraryTrackRecord,
 } from '../../shared/local-library.ts'
 
@@ -84,6 +91,54 @@ const LOCAL_TRACK_TEXT_COLUMNS = [
 
 function toNullableLocalMediaUrl(coverPath: string | null) {
   return coverPath ? createLocalMediaUrl(coverPath) : ''
+}
+
+function toLocalLibraryTrackRecord(row: Record<string, unknown>) {
+  const trackRow = row as Omit<LocalLibraryTrackRecord, 'coverUrl'>
+
+  return {
+    ...trackRow,
+    coverUrl: toNullableLocalMediaUrl(trackRow.coverPath),
+  } satisfies LocalLibraryTrackRecord
+}
+
+function toLocalLibraryAlbumRecord(row: Record<string, unknown>) {
+  const typedRow = row as {
+    id: number
+    name: string
+    artistName: string
+    trackCount: number
+    coverPath: string
+  }
+
+  return {
+    id: typedRow.id,
+    name: typedRow.name,
+    artistName: typedRow.artistName,
+    trackCount: typedRow.trackCount,
+    coverUrl: toNullableLocalMediaUrl(typedRow.coverPath || null),
+  } satisfies LocalLibraryAlbumRecord
+}
+
+function toLocalLibraryArtistRecord(row: Record<string, unknown>) {
+  const typedRow = row as {
+    id: number
+    name: string
+    trackCount: number
+    coverPath: string
+  }
+
+  return {
+    id: typedRow.id,
+    name: typedRow.name,
+    trackCount: typedRow.trackCount,
+    coverUrl: toNullableLocalMediaUrl(typedRow.coverPath || null),
+  } satisfies LocalLibraryArtistRecord
+}
+
+function createKeywordPattern(keyword: string) {
+  const trimmedKeyword = keyword.trim()
+  return trimmedKeyword ? `%${trimmedKeyword}%` : null
 }
 
 export class LocalLibraryDatabase {
@@ -190,6 +245,192 @@ export class LocalLibraryDatabase {
       ...row,
       coverUrl: toNullableLocalMediaUrl(row.coverPath),
     } satisfies LocalLibraryTrackRecord
+  }
+
+  getOverviewSnapshot(): LocalLibraryOverviewSnapshot {
+    return {
+      roots: this.getRoots(),
+      stats: this.getStats(),
+    }
+  }
+
+  queryTracks(
+    input: LocalLibraryTrackQueryInput
+  ): LocalLibraryTrackQueryResult {
+    const keywordPattern = createKeywordPattern(input.keyword)
+    const whereClauses = ['1 = 1']
+    const params: Array<string | number> = []
+
+    if (keywordPattern) {
+      whereClauses.push(
+        '(title LIKE ? COLLATE NOCASE OR artist_name LIKE ? COLLATE NOCASE OR album_name LIKE ? COLLATE NOCASE)'
+      )
+      params.push(keywordPattern, keywordPattern, keywordPattern)
+    }
+
+    if (input.scopeType === 'album' && input.scopeValue) {
+      whereClauses.push('album_name = ?')
+      params.push(input.scopeValue)
+
+      if (input.scopeArtistName) {
+        whereClauses.push('artist_name = ?')
+        params.push(input.scopeArtistName)
+      }
+    }
+
+    if (input.scopeType === 'artist' && input.scopeValue) {
+      whereClauses.push('artist_name = ?')
+      params.push(input.scopeValue)
+    }
+
+    const whereClause = whereClauses.join(' AND ')
+    const totalRow = this.database
+      .prepare(
+        `
+          SELECT COUNT(*) as total FROM local_tracks
+          WHERE ${whereClause}
+        `
+      )
+      .get(...params) as { total: number }
+
+    const items = this.database
+      .prepare(
+        `
+          SELECT
+            id,
+            root_id as rootId,
+            file_path as filePath,
+            file_name as fileName,
+            title,
+            artist_name as artistName,
+            album_name as albumName,
+            duration_ms as durationMs,
+            lyric_text as lyricText,
+            translated_lyric_text as translatedLyricText,
+            cover_path as coverPath,
+            file_size as fileSize,
+            mtime_ms as mtimeMs,
+            audio_format as audioFormat,
+            track_no as trackNo,
+            disc_no as discNo
+          FROM local_tracks
+          WHERE ${whereClause}
+          ORDER BY title COLLATE NOCASE ASC, file_path COLLATE NOCASE ASC
+          LIMIT ? OFFSET ?
+        `
+      )
+      .all(...params, input.limit, input.offset)
+      .map(row => toLocalLibraryTrackRecord(row as Record<string, unknown>))
+
+    return {
+      items,
+      total: totalRow.total,
+      offset: input.offset,
+      limit: input.limit,
+    }
+  }
+
+  queryAlbums(
+    input: LocalLibraryAlbumQueryInput
+  ): LocalLibraryAlbumQueryResult {
+    const keywordPattern = createKeywordPattern(input.keyword)
+    const whereClause = keywordPattern
+      ? 'WHERE album_name LIKE ? COLLATE NOCASE OR artist_name LIKE ? COLLATE NOCASE'
+      : ''
+    const params = keywordPattern
+      ? [keywordPattern, keywordPattern]
+      : ([] as Array<string | number>)
+
+    const totalRow = this.database
+      .prepare(
+        `
+          SELECT COUNT(*) as total
+          FROM (
+            SELECT 1
+            FROM local_tracks
+            ${whereClause}
+            GROUP BY album_name, artist_name
+          ) grouped_albums
+        `
+      )
+      .get(...params) as { total: number }
+
+    const items = this.database
+      .prepare(
+        `
+          SELECT
+            MIN(id) as id,
+            album_name as name,
+            artist_name as artistName,
+            COUNT(*) as trackCount,
+            MAX(COALESCE(cover_path, '')) as coverPath
+          FROM local_tracks
+          ${whereClause}
+          GROUP BY album_name, artist_name
+          ORDER BY album_name COLLATE NOCASE ASC, artist_name COLLATE NOCASE ASC
+          LIMIT ? OFFSET ?
+        `
+      )
+      .all(...params, input.limit, input.offset)
+      .map(row => toLocalLibraryAlbumRecord(row as Record<string, unknown>))
+
+    return {
+      items,
+      total: totalRow.total,
+      offset: input.offset,
+      limit: input.limit,
+    }
+  }
+
+  queryArtists(
+    input: LocalLibraryArtistQueryInput
+  ): LocalLibraryArtistQueryResult {
+    const keywordPattern = createKeywordPattern(input.keyword)
+    const whereClause = keywordPattern
+      ? 'WHERE artist_name LIKE ? COLLATE NOCASE'
+      : ''
+    const params = keywordPattern
+      ? [keywordPattern]
+      : ([] as Array<string | number>)
+
+    const totalRow = this.database
+      .prepare(
+        `
+          SELECT COUNT(*) as total
+          FROM (
+            SELECT 1
+            FROM local_tracks
+            ${whereClause}
+            GROUP BY artist_name
+          ) grouped_artists
+        `
+      )
+      .get(...params) as { total: number }
+
+    const items = this.database
+      .prepare(
+        `
+          SELECT
+            MIN(id) as id,
+            artist_name as name,
+            COUNT(*) as trackCount,
+            MAX(COALESCE(cover_path, '')) as coverPath
+          FROM local_tracks
+          ${whereClause}
+          GROUP BY artist_name
+          ORDER BY artist_name COLLATE NOCASE ASC
+          LIMIT ? OFFSET ?
+        `
+      )
+      .all(...params, input.limit, input.offset)
+      .map(row => toLocalLibraryArtistRecord(row as Record<string, unknown>))
+
+    return {
+      items,
+      total: totalRow.total,
+      offset: input.offset,
+      limit: input.limit,
+    }
   }
 
   upsertTrack(input: LocalLibraryTrackUpsertInput) {
@@ -320,123 +561,63 @@ export class LocalLibraryDatabase {
       .run(String(timestamp))
   }
 
-  getSnapshot(): LocalLibrarySnapshot {
-    const roots = this.getRoots()
-    const tracks = this.database
+  private getStats(): LocalLibraryStats {
+    const totalRow = this.database
       .prepare(
         `
           SELECT
-            id,
-            root_id as rootId,
-            file_path as filePath,
-            file_name as fileName,
-            title,
-            artist_name as artistName,
-            album_name as albumName,
-            duration_ms as durationMs,
-            lyric_text as lyricText,
-            translated_lyric_text as translatedLyricText,
-            cover_path as coverPath,
-            file_size as fileSize,
-            mtime_ms as mtimeMs,
-            audio_format as audioFormat,
-            track_no as trackNo,
-            disc_no as discNo
-          FROM local_tracks
-          ORDER BY title COLLATE NOCASE ASC, file_path COLLATE NOCASE ASC
-        `
-      )
-      .all()
-      .map(row => {
-        const trackRow = row as Omit<LocalLibraryTrackRecord, 'coverUrl'>
-        return {
-          ...trackRow,
-          coverUrl: toNullableLocalMediaUrl(trackRow.coverPath),
-        }
-      }) as LocalLibraryTrackRecord[]
-
-    const albums = this.database
-      .prepare(
-        `
-          SELECT
-            MIN(id) as id,
-            album_name as name,
-            artist_name as artistName,
             COUNT(*) as trackCount,
-            MAX(COALESCE(cover_path, '')) as coverPath
+            COUNT(DISTINCT album_name || char(0) || artist_name) as albumCount,
+            COUNT(DISTINCT artist_name) as artistCount
           FROM local_tracks
-          GROUP BY album_name, artist_name
-          ORDER BY album_name COLLATE NOCASE ASC, artist_name COLLATE NOCASE ASC
         `
       )
-      .all()
-      .map(row => {
-        const typedRow = row as {
-          id: number
-          name: string
-          artistName: string
-          trackCount: number
-          coverPath: string
-        }
-
-        return {
-          id: typedRow.id,
-          name: typedRow.name,
-          artistName: typedRow.artistName,
-          trackCount: typedRow.trackCount,
-          coverUrl: toNullableLocalMediaUrl(typedRow.coverPath || null),
-        }
-      }) as LocalLibraryAlbumRecord[]
-
-    const artists = this.database
-      .prepare(
-        `
-          SELECT
-            MIN(id) as id,
-            artist_name as name,
-            COUNT(*) as trackCount,
-            MAX(COALESCE(cover_path, '')) as coverPath
-          FROM local_tracks
-          GROUP BY artist_name
-          ORDER BY artist_name COLLATE NOCASE ASC
-        `
-      )
-      .all()
-      .map(row => {
-        const typedRow = row as {
-          id: number
-          name: string
-          trackCount: number
-          coverPath: string
-        }
-
-        return {
-          id: typedRow.id,
-          name: typedRow.name,
-          trackCount: typedRow.trackCount,
-          coverUrl: toNullableLocalMediaUrl(typedRow.coverPath || null),
-        }
-      }) as LocalLibraryArtistRecord[]
-
+      .get() as {
+      trackCount: number
+      albumCount: number
+      artistCount: number
+    }
     const lastScannedAtRow = this.database
       .prepare("SELECT value FROM library_meta WHERE key = 'lastScannedAt'")
       .get() as { value?: string } | undefined
 
-    const stats: LocalLibraryStats = {
-      rootCount: roots.length,
-      trackCount: tracks.length,
-      albumCount: albums.length,
-      artistCount: artists.length,
+    return {
+      rootCount: this.getRoots().length,
+      trackCount: totalRow.trackCount,
+      albumCount: totalRow.albumCount,
+      artistCount: totalRow.artistCount,
       lastScannedAt:
         lastScannedAtRow?.value &&
         Number.isFinite(Number(lastScannedAtRow.value))
           ? Number(lastScannedAtRow.value)
           : null,
     }
+  }
+
+  getSnapshot(): LocalLibrarySnapshot {
+    const overview = this.getOverviewSnapshot()
+    const tracks = this.queryTracks({
+      keyword: '',
+      scopeType: 'all',
+      scopeValue: null,
+      scopeArtistName: null,
+      offset: 0,
+      limit: Number.MAX_SAFE_INTEGER,
+    }).items
+    const albums = this.queryAlbums({
+      keyword: '',
+      offset: 0,
+      limit: Number.MAX_SAFE_INTEGER,
+    }).items
+    const artists = this.queryArtists({
+      keyword: '',
+      offset: 0,
+      limit: Number.MAX_SAFE_INTEGER,
+    }).items
 
     return {
-      roots,
-      stats,
+      roots: overview.roots,
+      stats: overview.stats,
       tracks,
       albums,
       artists,

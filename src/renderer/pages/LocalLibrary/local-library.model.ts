@@ -1,19 +1,38 @@
 import type {
-  LocalLibraryAlbumRecord,
-  LocalLibraryArtistRecord,
+  LocalLibraryAlbumQueryInput,
+  LocalLibraryArtistQueryInput,
   LocalLibraryEntityType,
-  LocalLibrarySnapshot,
-  LocalLibraryTrackRecord,
+  LocalLibraryOverviewSnapshot,
+  LocalLibraryTrackQueryInput,
 } from '../../../shared/local-library.ts'
 
 export interface LocalLibrarySongScope {
   type: 'all' | 'album' | 'artist'
   key: number | null
   value: string | null
-  artistName?: string | null
+  artistName: string | null
 }
 
-export const EMPTY_LOCAL_LIBRARY_SNAPSHOT: LocalLibrarySnapshot = {
+export interface LocalLibraryPagedState<T> {
+  items: T[]
+  total: number
+  offset: number
+  limit: number
+  isLoading: boolean
+  hasLoaded: boolean
+}
+
+export const DEFAULT_LOCAL_LIBRARY_TRACK_QUERY_LIMIT = 80
+export const DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT = 120
+
+export const EMPTY_LOCAL_LIBRARY_SONG_SCOPE: LocalLibrarySongScope = {
+  type: 'all',
+  key: null,
+  value: null,
+  artistName: null,
+}
+
+export const EMPTY_LOCAL_LIBRARY_OVERVIEW: LocalLibraryOverviewSnapshot = {
   roots: [],
   stats: {
     rootCount: 0,
@@ -22,81 +41,74 @@ export const EMPTY_LOCAL_LIBRARY_SNAPSHOT: LocalLibrarySnapshot = {
     artistCount: 0,
     lastScannedAt: null,
   },
-  tracks: [],
-  albums: [],
-  artists: [],
 }
 
-function includesKeyword(value: string, keyword: string) {
-  return value.toLowerCase().includes(keyword.toLowerCase())
+export function createEmptyLocalLibraryPagedState<T>(
+  limit: number
+): LocalLibraryPagedState<T> {
+  return {
+    items: [],
+    total: 0,
+    offset: 0,
+    limit,
+    isLoading: false,
+    hasLoaded: false,
+  }
 }
 
-export function filterLocalLibraryTracks(
-  tracks: LocalLibraryTrackRecord[],
+export function buildLocalLibraryTrackQueryInput(
   keyword: string,
-  scope: LocalLibrarySongScope
-) {
-  return tracks.filter(track => {
-    const matchesScope =
-      scope.type === 'all' ||
-      (scope.type === 'album' &&
-        track.albumName === scope.value &&
-        (!scope.artistName || track.artistName === scope.artistName)) ||
-      (scope.type === 'artist' && track.artistName === scope.value)
-
-    if (!matchesScope) {
-      return false
-    }
-
-    if (!keyword.trim()) {
-      return true
-    }
-
-    return [track.title, track.artistName, track.albumName].some(value =>
-      includesKeyword(value, keyword)
-    )
-  })
+  scope: LocalLibrarySongScope,
+  offset: number,
+  limit: number
+): LocalLibraryTrackQueryInput {
+  return {
+    keyword,
+    scopeType: scope.type,
+    scopeValue: scope.value,
+    scopeArtistName: scope.artistName,
+    offset,
+    limit,
+  }
 }
 
-export function filterLocalLibraryAlbums(
-  albums: LocalLibraryAlbumRecord[],
-  keyword: string
-) {
-  if (!keyword.trim()) {
-    return albums
+export function buildLocalLibraryAlbumQueryInput(
+  keyword: string,
+  offset: number,
+  limit: number
+): LocalLibraryAlbumQueryInput {
+  return {
+    keyword,
+    offset,
+    limit,
   }
-
-  return albums.filter(album => {
-    return [album.name, album.artistName].some(value =>
-      includesKeyword(value, keyword)
-    )
-  })
 }
 
-export function filterLocalLibraryArtists(
-  artists: LocalLibraryArtistRecord[],
-  keyword: string
-) {
-  if (!keyword.trim()) {
-    return artists
+export function buildLocalLibraryArtistQueryInput(
+  keyword: string,
+  offset: number,
+  limit: number
+): LocalLibraryArtistQueryInput {
+  return {
+    keyword,
+    offset,
+    limit,
   }
-
-  return artists.filter(artist => includesKeyword(artist.name, keyword))
 }
 
 export function getLocalLibraryEmptyState(
-  snapshot: LocalLibrarySnapshot,
+  overview: LocalLibraryOverviewSnapshot,
   configuredRootCount: number
 ): 'missing-roots' | 'not-scanned' | 'empty-library' | null {
   if (configuredRootCount === 0) {
     return 'missing-roots'
   }
 
-  if (snapshot.stats.lastScannedAt === null) {
+  if (overview.stats.lastScannedAt === null) {
     return 'not-scanned'
   }
 
-  if (snapshot.stats.trackCount === 0) {
+  if (overview.stats.trackCount === 0) {
     return 'empty-library'
   }
 

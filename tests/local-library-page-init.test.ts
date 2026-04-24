@@ -7,9 +7,9 @@ const localLibraryPageSource = readFileSync(
   'utf8'
 )
 
-test('local library page skips snapshot bootstrap when no roots are configured', () => {
+test('local library page skips overview and query bootstrap when no roots are configured', () => {
   assert.match(
     localLibraryPageSource,
-    /if\s*\(\s*configuredRoots\.length\s*===\s*0\s*\)\s*\{\s*setSnapshot\(EMPTY_LOCAL_LIBRARY_SNAPSHOT\)\s*setIsLoading\(false\)\s*return\s*\}/
+    /if\s*\(\s*configuredRoots\.length\s*===\s*0\s*\)\s*\{\s*setOverview\(EMPTY_LOCAL_LIBRARY_OVERVIEW\)\s*resetQueryStates\(\)\s*setIsLoading\(false\)\s*return\s+EMPTY_LOCAL_LIBRARY_OVERVIEW\s*\}/
   )
 })

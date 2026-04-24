@@ -12,6 +12,7 @@ import test from 'node:test'
 
 import {
   createLocalLibraryScanContext,
+  createLocalLibraryDatabase,
   scanLocalLibraryRoots,
 } from '../src/main/local-library/index.ts'
 
@@ -418,4 +419,19 @@ test('local library scan skips unchanged files and only counts real updates', as
     database.close()
     rmSync(sandboxRoot, { recursive: true, force: true })
   }
+})
+
+test('local library database declares overview and paged query methods', () => {
+  assert.match(
+    dbSource,
+    /getOverviewSnapshot\(\):\s*LocalLibraryOverviewSnapshot/
+  )
+  assert.match(dbSource, /queryTracks\(input:\s*LocalLibraryTrackQueryInput\)/)
+  assert.match(dbSource, /queryAlbums\(input:\s*LocalLibraryAlbumQueryInput\)/)
+  assert.match(
+    dbSource,
+    /queryArtists\(input:\s*LocalLibraryArtistQueryInput\)/
+  )
+  assert.match(dbSource, /LIMIT \? OFFSET \?/)
+  assert.match(dbSource, /SELECT COUNT\(\*\) as total FROM local_tracks/)
 })

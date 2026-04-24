@@ -3,7 +3,13 @@ import path from 'node:path'
 import { resolveAppStoreDirectory } from '../storage/store-path.ts'
 import type { LocalLibraryScanFormat } from '../../shared/config.ts'
 import { createLocalLibraryDatabase } from './db.ts'
-import { getLocalLibrarySnapshot } from './queries.ts'
+import {
+  getLocalLibraryOverview,
+  getLocalLibrarySnapshot,
+  queryLocalLibraryAlbums,
+  queryLocalLibraryArtists,
+  queryLocalLibraryTracks,
+} from './queries.ts'
 import { matchLocalLibraryTrackOnlineLyrics } from './local-library-online-lyric.service.ts'
 import { removeLocalLibraryTrack } from './local-library-track-removal.service.ts'
 import {
@@ -74,6 +80,28 @@ export function readLocalLibrarySnapshot() {
   return getLocalLibrarySnapshot(getLocalLibraryDatabase())
 }
 
+export function readLocalLibraryOverview() {
+  return getLocalLibraryOverview(getLocalLibraryDatabase())
+}
+
+export function queryLocalLibraryTracksByInput(
+  input: Parameters<typeof queryLocalLibraryTracks>[1]
+) {
+  return queryLocalLibraryTracks(getLocalLibraryDatabase(), input)
+}
+
+export function queryLocalLibraryAlbumsByInput(
+  input: Parameters<typeof queryLocalLibraryAlbums>[1]
+) {
+  return queryLocalLibraryAlbums(getLocalLibraryDatabase(), input)
+}
+
+export function queryLocalLibraryArtistsByInput(
+  input: Parameters<typeof queryLocalLibraryArtists>[1]
+) {
+  return queryLocalLibraryArtists(getLocalLibraryDatabase(), input)
+}
+
 export function deleteLocalLibraryTrack(
   input: Parameters<typeof removeLocalLibraryTrack>[0]
 ) {
@@ -94,6 +122,10 @@ export function resolveLocalLibraryOnlineLyricMatch(
 export {
   createLocalLibraryDatabase,
   createLocalLibraryScanContext,
+  getLocalLibraryOverview,
   getLocalLibrarySnapshot,
+  queryLocalLibraryAlbums,
+  queryLocalLibraryArtists,
+  queryLocalLibraryTracks,
   scanLocalLibraryRoots,
 }

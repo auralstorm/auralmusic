@@ -1,4 +1,5 @@
 import { Virtuoso } from 'react-virtuoso'
+import { Spinner } from '@/components/ui/spinner'
 
 import AvatarCover from '@/components/AvatarCover'
 import type {
@@ -15,6 +16,8 @@ import LocalLibraryTrackRowActions from './LocalLibraryTrackRowActions'
 
 interface LocalLibraryTrackListProps {
   tracks: LocalLibraryTrackRecord[]
+  totalCount: number
+  isLoadingMore?: boolean
   queueSourceScope: LocalLibrarySongScope
   deletingTrackPath?: string | null
   onPlayIndex: (
@@ -22,11 +25,12 @@ interface LocalLibraryTrackListProps {
     startIndex: number,
     sourceKey: string
   ) => void
-  onOpenDirectory: (track: LocalLibraryTrackRecord) => void
+  onRevealTrack: (track: LocalLibraryTrackRecord) => void
   onDeleteTrack: (
     track: LocalLibraryTrackRecord,
     mode: LocalLibraryTrackDeleteMode
   ) => void
+  onEndReached: () => void
 }
 
 function resolveQueueSourceKey(
@@ -45,11 +49,14 @@ function resolveQueueSourceKey(
 
 const LocalLibraryTrackList = ({
   tracks,
+  totalCount,
+  isLoadingMore = false,
   queueSourceScope,
   deletingTrackPath = null,
   onPlayIndex,
-  onOpenDirectory,
+  onRevealTrack,
   onDeleteTrack,
+  onEndReached,
 }: LocalLibraryTrackListProps) => {
   const queueSourceKey = resolveQueueSourceKey(queueSourceScope)
 
@@ -75,6 +82,19 @@ const LocalLibraryTrackList = ({
           useWindowScroll
           data={tracks}
           increaseViewportBy={480}
+          endReached={() => {
+            if (tracks.length < totalCount) {
+              onEndReached()
+            }
+          }}
+          components={{
+            Footer: () =>
+              isLoadingMore ? (
+                <div className='flex justify-center py-5'>
+                  <Spinner className='text-primary size-5' />
+                </div>
+              ) : null,
+          }}
           // 列表跟随整页滚动，避免本地乐库再嵌一层滚动容器影响播放器页手感。
           itemContent={(index, track) => (
             <div
@@ -115,7 +135,7 @@ const LocalLibraryTrackList = ({
                 track={track}
                 disabled={deletingTrackPath === track.filePath}
                 onPlay={() => onPlayIndex(tracks, index, queueSourceKey)}
-                onOpenDirectory={onOpenDirectory}
+                onRevealTrack={onRevealTrack}
                 onDelete={onDeleteTrack}
               />
             </div>

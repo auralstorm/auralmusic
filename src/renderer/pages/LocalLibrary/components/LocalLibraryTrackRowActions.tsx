@@ -16,7 +16,7 @@ interface LocalLibraryTrackRowActionsProps {
   track: LocalLibraryTrackRecord
   disabled?: boolean
   onPlay: () => void
-  onOpenDirectory: (track: LocalLibraryTrackRecord) => void
+  onRevealTrack: (track: LocalLibraryTrackRecord) => void
   onDelete: (
     track: LocalLibraryTrackRecord,
     mode: LocalLibraryTrackDeleteMode
@@ -27,7 +27,7 @@ const LocalLibraryTrackRowActions = ({
   track,
   disabled = false,
   onPlay,
-  onOpenDirectory,
+  onRevealTrack,
   onDelete,
 }: LocalLibraryTrackRowActionsProps) => {
   return (
@@ -62,10 +62,10 @@ const LocalLibraryTrackRowActions = ({
         >
           <DropdownMenuItem
             className='rounded-xl'
-            onClick={() => onOpenDirectory(track)}
+            onClick={() => onRevealTrack(track)}
           >
             <FolderOpen className='size-4' />
-            打开所在目录
+            打开所在位置
           </DropdownMenuItem>
           <DropdownMenuItem
             className='rounded-xl'
