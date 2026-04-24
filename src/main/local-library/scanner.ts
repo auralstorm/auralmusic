@@ -186,6 +186,20 @@ function resolveFallbackTitle(filePath: string) {
   return path.basename(filePath, path.extname(filePath)).trim() || '未知歌曲'
 }
 
+function isTrackFileUnchanged(options: {
+  existingTrack: {
+    fileSize: number
+    mtimeMs: number
+  } | null
+  fileSize: number
+  mtimeMs: number
+}) {
+  return (
+    options.existingTrack?.fileSize === options.fileSize &&
+    options.existingTrack?.mtimeMs === options.mtimeMs
+  )
+}
+
 export async function scanLocalLibraryRoots(options: {
   database: LocalLibraryDatabase
   scanContext: LocalLibraryScanContext
@@ -229,6 +243,19 @@ export async function scanLocalLibraryRoots(options: {
       }
 
       const fileStats = await stat(filePath)
+      const existingTrack = options.database.getTrackByFilePath(filePath)
+      // 未变化文件直接复用现有索引，避免每次手动扫描都重复读标签和写封面缓存。
+      if (
+        isTrackFileUnchanged({
+          existingTrack,
+          fileSize: fileStats.size,
+          mtimeMs: fileStats.mtimeMs,
+        })
+      ) {
+        indexedFilePaths.push(filePath)
+        continue
+      }
+
       const metadata = await options.scanContext
         .parseAudioMetadata(filePath)
         .catch(() => null)

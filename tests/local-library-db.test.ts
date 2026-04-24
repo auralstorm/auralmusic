@@ -80,6 +80,32 @@ test('local library scan imports supported tracks and deduplicates repeated root
     upsertTrack: (record: Record<string, unknown>) => {
       trackRecords.set(String(record.filePath), record)
     },
+    getTrackByFilePath: (filePath: string) => {
+      const record = trackRecords.get(filePath)
+      if (!record) {
+        return null
+      }
+
+      return {
+        id: 0,
+        rootId: Number(record.rootId),
+        filePath: String(record.filePath),
+        fileName: String(record.fileName),
+        title: String(record.title),
+        artistName: String(record.artistName),
+        albumName: String(record.albumName),
+        durationMs: Number(record.durationMs),
+        lyricText: String(record.lyricText ?? ''),
+        translatedLyricText: String(record.translatedLyricText ?? ''),
+        coverPath: null,
+        coverUrl: '',
+        fileSize: Number(record.fileSize),
+        mtimeMs: Number(record.mtimeMs),
+        audioFormat: String(record.audioFormat),
+        trackNo: null,
+        discNo: null,
+      }
+    },
     removeTracksMissingFromRoot: (
       rootId: number,
       existingFilePaths: string[]
@@ -224,6 +250,32 @@ test('local library scan only imports configured audio formats', async () => {
     upsertTrack: (record: Record<string, unknown>) => {
       trackRecords.set(String(record.filePath), record)
     },
+    getTrackByFilePath: (filePath: string) => {
+      const record = trackRecords.get(filePath)
+      if (!record) {
+        return null
+      }
+
+      return {
+        id: 0,
+        rootId: Number(record.rootId),
+        filePath: String(record.filePath),
+        fileName: String(record.fileName),
+        title: String(record.title),
+        artistName: String(record.artistName),
+        albumName: String(record.albumName),
+        durationMs: Number(record.durationMs),
+        lyricText: String(record.lyricText ?? ''),
+        translatedLyricText: String(record.translatedLyricText ?? ''),
+        coverPath: null,
+        coverUrl: '',
+        fileSize: Number(record.fileSize),
+        mtimeMs: Number(record.mtimeMs),
+        audioFormat: String(record.audioFormat),
+        trackNo: null,
+        discNo: null,
+      }
+    },
     removeTracksMissingFromRoot: () => undefined,
     setLastScannedAt: () => undefined,
     getSnapshot: () => undefined,
@@ -257,6 +309,111 @@ test('local library scan only imports configured audio formats', async () => {
       [...trackRecords.values()].map(record => record.audioFormat),
       ['flac']
     )
+  } finally {
+    database.close()
+    rmSync(sandboxRoot, { recursive: true, force: true })
+  }
+})
+
+test('local library scan skips unchanged files and only counts real updates', async () => {
+  const sandboxRoot = mkdtempSync(
+    path.join(tmpdir(), 'auralmusic-local-library-')
+  )
+  const coverCacheDir = path.join(sandboxRoot, 'covers')
+  const musicRoot = path.join(sandboxRoot, 'music')
+  mkdirSync(coverCacheDir, { recursive: true })
+  mkdirSync(musicRoot, { recursive: true })
+
+  const trackPath = path.join(musicRoot, 'track-a.mp3')
+  writeFileSync(trackPath, Buffer.from('ID3demo-track-a'))
+
+  const roots = new Map<
+    number,
+    { id: number; path: string; createdAt: number }
+  >()
+  const trackRecords = new Map<string, Record<string, unknown>>()
+  let parseCount = 0
+  const database = {
+    replaceRoots: (nextRoots: string[]) => {
+      roots.clear()
+      nextRoots.forEach((rootPath, index) => {
+        roots.set(index + 1, {
+          id: index + 1,
+          path: rootPath,
+          createdAt: Date.now(),
+        })
+      })
+
+      return [...roots.values()]
+    },
+    getTrackByFilePath: (filePath: string) => {
+      const record = trackRecords.get(filePath)
+      if (!record) {
+        return null
+      }
+
+      return {
+        id: 0,
+        rootId: Number(record.rootId),
+        filePath: String(record.filePath),
+        fileName: String(record.fileName),
+        title: String(record.title),
+        artistName: String(record.artistName),
+        albumName: String(record.albumName),
+        durationMs: Number(record.durationMs),
+        lyricText: String(record.lyricText ?? ''),
+        translatedLyricText: String(record.translatedLyricText ?? ''),
+        coverPath: null,
+        coverUrl: '',
+        fileSize: Number(record.fileSize),
+        mtimeMs: Number(record.mtimeMs),
+        audioFormat: String(record.audioFormat),
+        trackNo: null,
+        discNo: null,
+      }
+    },
+    upsertTrack: (record: Record<string, unknown>) => {
+      trackRecords.set(String(record.filePath), record)
+    },
+    removeTracksMissingFromRoot: () => undefined,
+    setLastScannedAt: () => undefined,
+    close: () => undefined,
+  }
+
+  try {
+    const scanContext = createLocalLibraryScanContext({
+      coverCacheDir,
+      parseAudioMetadata: async filePath => {
+        parseCount += 1
+        return {
+          title: path.basename(filePath, path.extname(filePath)),
+          artistName: '',
+          albumName: '',
+          durationMs: 123000,
+          lyricText: '',
+          translatedLyricText: '',
+          trackNo: null,
+          discNo: null,
+          coverBytes: null,
+          coverExtension: null,
+        }
+      },
+    })
+
+    const firstSummary = await scanLocalLibraryRoots({
+      database: database as never,
+      scanContext,
+      roots: [musicRoot],
+    })
+    const secondSummary = await scanLocalLibraryRoots({
+      database: database as never,
+      scanContext,
+      roots: [musicRoot],
+    })
+
+    assert.equal(firstSummary.importedCount, 1)
+    assert.equal(secondSummary.importedCount, 0)
+    assert.equal(parseCount, 1)
   } finally {
     database.close()
     rmSync(sandboxRoot, { recursive: true, force: true })
