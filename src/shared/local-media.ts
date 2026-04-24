@@ -28,3 +28,11 @@ export function parseLocalMediaUrl(input: string) {
     return null
   }
 }
+
+export function isLocalMediaUrl(input: string | null | undefined) {
+  if (!input?.trim()) {
+    return false
+  }
+
+  return parseLocalMediaUrl(input) !== null
+}

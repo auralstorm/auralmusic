@@ -96,6 +96,46 @@ function createTrackPatch(
   }
 }
 
+function patchPlaybackTrack(
+  track: PlaybackTrack,
+  patch: Partial<
+    Pick<PlaybackTrack, 'coverUrl' | 'lyricText' | 'translatedLyricText'>
+  >
+) {
+  const nextPatch: Partial<PlaybackTrack> = {}
+
+  if (typeof patch.coverUrl === 'string' && patch.coverUrl.trim()) {
+    nextPatch.coverUrl = patch.coverUrl.trim()
+  }
+
+  if (typeof patch.lyricText === 'string') {
+    nextPatch.lyricText = patch.lyricText
+  }
+
+  if (typeof patch.translatedLyricText === 'string') {
+    nextPatch.translatedLyricText = patch.translatedLyricText
+  }
+
+  if (Object.keys(nextPatch).length === 0) {
+    return track
+  }
+
+  const nextTrack = {
+    ...track,
+    ...nextPatch,
+  }
+
+  if (
+    nextTrack.coverUrl === track.coverUrl &&
+    nextTrack.lyricText === track.lyricText &&
+    nextTrack.translatedLyricText === track.translatedLyricText
+  ) {
+    return track
+  }
+
+  return nextTrack
+}
+
 function isQueueExtensionOfCurrentQueue(
   currentQueue: PlaybackTrack[],
   nextQueue: PlaybackTrack[]
@@ -249,6 +289,50 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
             ? createShuffleOrder(nextSnapshot.queue.length, nextCurrentIndex)
             : [],
         shuffleCursor: 0,
+      }
+    })
+  },
+
+  patchTrackMetadata: (trackId, patch) => {
+    set(state => {
+      let changed = false
+
+      const nextQueue = state.queue.map(track => {
+        if (track.id !== trackId) {
+          return track
+        }
+
+        const nextTrack = patchPlaybackTrack(track, patch)
+        if (nextTrack !== track) {
+          changed = true
+        }
+
+        return nextTrack
+      })
+
+      let nextCurrentTrack = state.currentTrack
+      if (state.currentTrack?.id === trackId) {
+        const patchedCurrentTrack = patchPlaybackTrack(
+          state.currentTrack,
+          patch
+        )
+        if (patchedCurrentTrack !== state.currentTrack) {
+          changed = true
+          nextCurrentTrack = patchedCurrentTrack
+        }
+      }
+
+      if (!changed) {
+        return state
+      }
+
+      if (nextQueue[state.currentIndex]?.id === trackId) {
+        nextCurrentTrack = nextQueue[state.currentIndex] ?? nextCurrentTrack
+      }
+
+      return {
+        queue: nextQueue,
+        currentTrack: nextCurrentTrack,
       }
     })
   },

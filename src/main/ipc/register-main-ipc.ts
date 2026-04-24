@@ -20,6 +20,7 @@ type RegisterMainIpcDependencies = {
   registerCacheIpc: () => void
   registerConfigIpc: (options: ConfigIpcOptions) => void
   registerDownloadIpc: () => void
+  registerLocalLibraryIpc?: () => void
   registerMusicSourceIpc: () => void
   registerShortcutIpc: () => void
   registerSystemFontsIpc: () => void
@@ -39,6 +40,7 @@ export function createRegisterMainIpc(
     dependencies.registerAuthIpc()
     dependencies.registerCacheIpc()
     dependencies.registerDownloadIpc()
+    dependencies.registerLocalLibraryIpc?.()
     dependencies.registerMusicSourceIpc()
     dependencies.registerShortcutIpc()
     dependencies.registerSystemFontsIpc()

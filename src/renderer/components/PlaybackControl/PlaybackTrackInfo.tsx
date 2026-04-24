@@ -5,6 +5,7 @@ import AvatarCover from '@/components/AvatarCover'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
+import { isLocalMediaUrl } from '../../../shared/local-media.ts'
 import { DEFAULT_PLAYBACK_CONTROL_TRACK } from './model'
 import { useCurrentTrackLike } from './useCurrentTrackLike'
 
@@ -26,9 +27,13 @@ const PlaybackTrackInfo = ({ hasTrack }: PlaybackTrackInfoProps) => {
     state =>
       state.currentTrack?.coverUrl ?? DEFAULT_PLAYBACK_CONTROL_TRACK.coverUrl
   )
+  const trackSourceUrl = usePlaybackStore(
+    state => state.currentTrack?.sourceUrl ?? ''
+  )
   const openPlayerScene = usePlaybackStore(state => state.openPlayerScene)
   const { isLiked, isLikePending, handleToggleLike } =
     useCurrentTrackLike(trackId)
+  const showLikeButton = !isLocalMediaUrl(trackSourceUrl)
 
   return (
     <div className='flex min-w-0 items-center gap-3'>
@@ -55,25 +60,27 @@ const PlaybackTrackInfo = ({ hasTrack }: PlaybackTrackInfoProps) => {
           </div>
         </div>
       </button>
-      <button
-        type='button'
-        aria-label={isLiked ? '取消喜欢' : '喜欢歌曲'}
-        disabled={!hasTrack || isLikePending}
-        onClick={handleToggleLike}
-        className={cn(
-          'text-primary/72 hover:text-primary flex size-9 items-center justify-center rounded-full transition-colors',
-          'hover:bg-primary/10',
-          (!hasTrack || isLikePending) &&
-            'cursor-not-allowed opacity-45 hover:bg-transparent'
-        )}
-      >
-        <Heart
+      {showLikeButton ? (
+        <button
+          type='button'
+          aria-label={isLiked ? '取消喜欢' : '喜欢歌曲'}
+          disabled={!hasTrack || isLikePending}
+          onClick={handleToggleLike}
           className={cn(
-            'size-5 transition-colors',
-            isLiked ? 'fill-current text-red-500' : 'text-foreground/60'
+            'text-primary/72 hover:text-primary flex size-9 items-center justify-center rounded-full transition-colors',
+            'hover:bg-primary/10',
+            (!hasTrack || isLikePending) &&
+              'cursor-not-allowed opacity-45 hover:bg-transparent'
           )}
-        />
-      </button>
+        >
+          <Heart
+            className={cn(
+              'size-5 transition-colors',
+              isLiked ? 'fill-current text-red-500' : 'text-foreground/60'
+            )}
+          />
+        </button>
+      ) : null}
     </div>
   )
 }

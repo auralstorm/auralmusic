@@ -20,6 +20,8 @@ export type PlaybackTrack = {
   coverUrl: string
   duration: number
   sourceUrl?: string
+  lyricText?: string
+  translatedLyricText?: string
 }
 
 const PLAYLIST_QUEUE_SOURCE_PREFIX = 'playlist:'
@@ -189,6 +191,12 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
     sourceUrl:
       typeof track.sourceUrl === 'string' && track.sourceUrl.trim()
         ? track.sourceUrl.trim()
+        : undefined,
+    lyricText:
+      typeof track.lyricText === 'string' ? track.lyricText.trim() : undefined,
+    translatedLyricText:
+      typeof track.translatedLyricText === 'string'
+        ? track.translatedLyricText.trim()
         : undefined,
   }
 }

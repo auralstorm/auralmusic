@@ -7,6 +7,7 @@ import {
   DOWNLOAD_QUALITY_POLICIES,
   DOWNLOAD_FILE_NAME_PATTERNS,
   ENHANCED_SOURCE_MODULES,
+  LOCAL_LIBRARY_SCAN_FORMATS,
   MUSIC_SOURCE_PROVIDERS,
   RETRO_COVER_PRESETS,
   defaultConfig,
@@ -28,12 +29,16 @@ import {
   normalizeEqualizerConfigValue,
   normalizeAnimationEffect,
   normalizeImmersivePlayerControls,
+  normalizeLocalLibraryRoots,
+  normalizeLocalLibraryOnlineLyricMatchEnabled,
+  normalizeLocalLibraryScanFormats,
   normalizeRetroCoverPreset,
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
   normalizeRememberPlaybackSession,
+  normalizeShowLocalLibraryMenu,
   normalizeShowLyricTranslation,
 } from './types.ts'
 import type {
@@ -155,6 +160,16 @@ const CONFIG_STORE_SCHEMA = {
     type: 'string',
     enum: RETRO_COVER_PRESETS,
   },
+  showLocalLibraryMenu: { type: 'boolean' },
+  localLibraryRoots: {
+    type: 'array',
+    items: { type: 'string' },
+  },
+  localLibraryScanFormats: {
+    type: 'array',
+    items: { type: 'string', enum: LOCAL_LIBRARY_SCAN_FORMATS },
+  },
+  localLibraryOnlineLyricMatchEnabled: { type: 'boolean' },
   showLyricTranslation: { type: 'boolean' },
   lyricsKaraokeEnabled: { type: 'boolean' },
   musicSourceEnabled: { type: 'boolean' },
@@ -335,6 +350,63 @@ class ConfigStore {
         normalizeRetroCoverPreset(retroCoverPreset)
       if (retroCoverPreset !== normalizedRetroCoverPreset) {
         ConfigStore.instance.set('retroCoverPreset', normalizedRetroCoverPreset)
+      }
+
+      const showLocalLibraryMenu = ConfigStore.instance.get(
+        'showLocalLibraryMenu'
+      )
+      const normalizedShowLocalLibraryMenu =
+        normalizeShowLocalLibraryMenu(showLocalLibraryMenu)
+      if (showLocalLibraryMenu !== normalizedShowLocalLibraryMenu) {
+        ConfigStore.instance.set(
+          'showLocalLibraryMenu',
+          normalizedShowLocalLibraryMenu
+        )
+      }
+
+      const localLibraryRoots = ConfigStore.instance.get('localLibraryRoots')
+      const normalizedLocalLibraryRoots =
+        normalizeLocalLibraryRoots(localLibraryRoots)
+      if (
+        JSON.stringify(localLibraryRoots) !==
+        JSON.stringify(normalizedLocalLibraryRoots)
+      ) {
+        ConfigStore.instance.set(
+          'localLibraryRoots',
+          normalizedLocalLibraryRoots
+        )
+      }
+
+      const localLibraryScanFormats = ConfigStore.instance.get(
+        'localLibraryScanFormats'
+      )
+      const normalizedLocalLibraryScanFormats =
+        normalizeLocalLibraryScanFormats(localLibraryScanFormats)
+      if (
+        JSON.stringify(localLibraryScanFormats) !==
+        JSON.stringify(normalizedLocalLibraryScanFormats)
+      ) {
+        ConfigStore.instance.set(
+          'localLibraryScanFormats',
+          normalizedLocalLibraryScanFormats
+        )
+      }
+
+      const localLibraryOnlineLyricMatchEnabled = ConfigStore.instance.get(
+        'localLibraryOnlineLyricMatchEnabled'
+      )
+      const normalizedLocalLibraryOnlineLyricMatchEnabled =
+        normalizeLocalLibraryOnlineLyricMatchEnabled(
+          localLibraryOnlineLyricMatchEnabled
+        )
+      if (
+        localLibraryOnlineLyricMatchEnabled !==
+        normalizedLocalLibraryOnlineLyricMatchEnabled
+      ) {
+        ConfigStore.instance.set(
+          'localLibraryOnlineLyricMatchEnabled',
+          normalizedLocalLibraryOnlineLyricMatchEnabled
+        )
       }
 
       const playerBackgroundMode = ConfigStore.instance.get(

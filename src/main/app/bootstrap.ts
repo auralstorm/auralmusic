@@ -11,6 +11,7 @@ import { registerAuthIpc } from '../ipc/auth-ipc'
 import { registerCacheIpc } from '../ipc/cache-ipc'
 import { registerConfigIpc } from '../ipc/config-ipc'
 import { registerDownloadIpc } from '../ipc/download-ipc'
+import { registerLocalLibraryIpc } from '../ipc/local-library-ipc'
 import { createRegisterMainIpc } from '../ipc/register-main-ipc'
 import { registerMusicSourceIpc } from '../ipc/music-source-ipc'
 import { registerShortcutIpc } from '../ipc/shortcut-ipc'
@@ -133,6 +134,7 @@ export function bootstrapMainApp() {
       registerCacheIpc,
       registerConfigIpc,
       registerDownloadIpc,
+      registerLocalLibraryIpc,
       registerMusicSourceIpc,
       registerShortcutIpc,
       registerSystemFontsIpc,

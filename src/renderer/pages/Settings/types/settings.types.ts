@@ -9,6 +9,7 @@ export type SettingsTabValue =
   | 'basic'
   | 'play'
   | 'download'
+  | 'localLibrary'
   | 'system'
   | 'shortcutKeys'
   | 'about'

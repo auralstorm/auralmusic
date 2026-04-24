@@ -1,3 +1,5 @@
+import type { PlaybackTrack } from '../../../../shared/playback.ts'
+
 export type PlayerBackgroundMode = 'off' | 'static' | 'dynamic'
 
 export interface AmllBackgroundState {
@@ -85,4 +87,5 @@ export interface AmllLyricLineClickEvent {
 export interface UsePlayerLyricsParams {
   isOpen: boolean
   trackId?: number | string
+  currentTrack?: PlaybackTrack | null
 }

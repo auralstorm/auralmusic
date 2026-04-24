@@ -83,6 +83,21 @@ export const ANIMATION_EFFECT_LEVELS = ['standard', 'reduced', 'off'] as const
 
 export type AnimationEffectLevel = (typeof ANIMATION_EFFECT_LEVELS)[number]
 
+export const LOCAL_LIBRARY_SCAN_FORMAT_OPTIONS = [
+  { label: 'MP3', value: 'mp3' },
+  { label: 'FLAC', value: 'flac' },
+  { label: 'M4A', value: 'm4a' },
+  { label: 'AAC', value: 'aac' },
+  { label: 'OGG', value: 'ogg' },
+  { label: 'WAV', value: 'wav' },
+] as const
+
+export type LocalLibraryScanFormat =
+  (typeof LOCAL_LIBRARY_SCAN_FORMAT_OPTIONS)[number]['value']
+export const LOCAL_LIBRARY_SCAN_FORMATS = LOCAL_LIBRARY_SCAN_FORMAT_OPTIONS.map(
+  option => option.value
+) as readonly LocalLibraryScanFormat[]
+
 export const MIN_PLAYBACK_SPEED = 0.5
 export const MAX_PLAYBACK_SPEED = 2.0
 export const DEFAULT_DISK_CACHE_MAX_BYTES = 1024 * 1024 * 1024
@@ -99,6 +114,10 @@ export interface AppConfig {
   rememberPlaybackSession: boolean
   dynamicCoverEnabled: boolean
   retroCoverPreset: RetroCoverPreset
+  showLocalLibraryMenu: boolean
+  localLibraryRoots: string[]
+  localLibraryScanFormats: LocalLibraryScanFormat[]
+  localLibraryOnlineLyricMatchEnabled: boolean
   showLyricTranslation: boolean
   lyricsKaraokeEnabled: boolean
   musicSourceEnabled: boolean
@@ -148,6 +167,10 @@ export const defaultConfig: AppConfig = {
   rememberPlaybackSession: false,
   dynamicCoverEnabled: true,
   retroCoverPreset: 'off',
+  showLocalLibraryMenu: true,
+  localLibraryRoots: [],
+  localLibraryScanFormats: [...LOCAL_LIBRARY_SCAN_FORMATS],
+  localLibraryOnlineLyricMatchEnabled: false,
   showLyricTranslation: false,
   lyricsKaraokeEnabled: true,
   musicSourceEnabled: false,
@@ -194,6 +217,50 @@ export function normalizeRetroCoverPreset(value: unknown): RetroCoverPreset {
     RETRO_COVER_PRESETS.includes(value as RetroCoverPreset)
     ? (value as RetroCoverPreset)
     : defaultConfig.retroCoverPreset
+}
+
+export function normalizeShowLocalLibraryMenu(value: unknown) {
+  return typeof value === 'boolean' ? value : defaultConfig.showLocalLibraryMenu
+}
+
+export function normalizeLocalLibraryRoots(value: unknown) {
+  if (!Array.isArray(value)) {
+    return defaultConfig.localLibraryRoots
+  }
+
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === 'string')
+        .map(item => item.trim())
+        .filter(Boolean)
+    ),
+  ]
+}
+
+export function normalizeLocalLibraryScanFormats(value: unknown) {
+  if (!Array.isArray(value)) {
+    return defaultConfig.localLibraryScanFormats
+  }
+
+  const formats = [
+    ...new Set(
+      value.filter((item): item is LocalLibraryScanFormat => {
+        return (
+          typeof item === 'string' &&
+          LOCAL_LIBRARY_SCAN_FORMATS.includes(item as LocalLibraryScanFormat)
+        )
+      })
+    ),
+  ]
+
+  return formats.length > 0 ? formats : defaultConfig.localLibraryScanFormats
+}
+
+export function normalizeLocalLibraryOnlineLyricMatchEnabled(value: unknown) {
+  return typeof value === 'boolean'
+    ? value
+    : defaultConfig.localLibraryOnlineLyricMatchEnabled
 }
 
 export function normalizeRememberPlaybackSession(value: unknown) {

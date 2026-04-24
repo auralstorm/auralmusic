@@ -215,6 +215,12 @@ export interface PlaybackStoreState {
   playCurrentQueueIndex: (index: number) => void
   appendToQueue: (tracks: PlaybackTrack[]) => void
   syncQueueFromSource: (sourceKey: string, tracks: PlaybackTrack[]) => void
+  patchTrackMetadata: (
+    trackId: number,
+    patch: Partial<
+      Pick<PlaybackTrack, 'coverUrl' | 'lyricText' | 'translatedLyricText'>
+    >
+  ) => void
   togglePlay: () => void
   setPlaybackMode: (mode: PlaybackMode) => void
   playNext: (reason?: PlaybackAdvanceReason) => boolean

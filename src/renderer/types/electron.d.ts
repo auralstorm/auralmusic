@@ -6,6 +6,7 @@ import type { MusicSourceApi } from '@preload/api/music-source-api'
 import type { ShortcutApi } from '@preload/api/shortcut-api'
 import type { CacheApi } from '@preload/api/cache-api'
 import type { DownloadApi } from '@preload/api/download-api'
+import type { LocalLibraryApi } from '@preload/api/local-library-api'
 import type { SystemFontsApi } from '@preload/api/system-fonts-api'
 import type { TrayApi } from '@preload/api/tray-api'
 import type { UpdateApi } from '@preload/api/update-api'
@@ -18,6 +19,7 @@ declare global {
     electronCache: CacheApi
     electronMusicSource: MusicSourceApi
     electronDownload: DownloadApi
+    electronLocalLibrary: LocalLibraryApi
     electronShortcut: ShortcutApi
     electronSystemFonts: SystemFontsApi
     electronTray: TrayApi

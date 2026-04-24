@@ -1,6 +1,7 @@
 import Home from '@/pages/Home'
 import DailySongs from '@/pages/DailySongs'
 import Library from '@/pages/Library'
+import LocalLibrary from '@/pages/LocalLibrary'
 import LikedSongs from '@/pages/LikedSongs'
 import Settings from '@/pages/Settings'
 import Downloads from '@/pages/Downloads'
@@ -18,6 +19,7 @@ export {
   Home,
   DailySongs,
   Library,
+  LocalLibrary,
   LikedSongs,
   Settings,
   Downloads,

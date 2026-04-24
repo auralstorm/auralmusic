@@ -585,6 +585,128 @@ test('DownloadService completes unsupported formats and reports metadata embeddi
   await rm(root, { recursive: true, force: true })
 })
 
+test('DownloadService writes same-name lrc sidecar for non-mp3 downloads when lyrics are enabled', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(),
+    createTaskId: () => 'task-flac-with-lrc',
+    readConfig: () => ({
+      downloadEmbedLyrics: true,
+      downloadEmbedTranslatedLyrics: true,
+    }),
+    resolveSongUrl: async () => ({
+      url: 'https://cdn.example.com/song.flac',
+    }),
+    downloadFetcher: async () => {
+      return new Response(Buffer.from('lossless-audio'), {
+        status: 200,
+        headers: {
+          'content-type': 'audio/flac',
+        },
+      })
+    },
+  })
+
+  const task = await service.enqueueSongDownload({
+    songId: '4',
+    songName: 'Lossless With Lyrics',
+    artistName: 'Test Artist',
+    requestedQuality: 'lossless',
+    metadata: {
+      lyric: '[00:00.00]original line\n[00:10.00]next line',
+      translatedLyric: '[00:00.00]translated line\n[00:10.00]next translated',
+    },
+  })
+
+  const completed = await waitForTaskStatus(service, task.id, 'completed')
+  const lrcPath = completed.targetPath.replace(/\.[^.]+$/, '.lrc')
+
+  assert.ok(completed.targetPath.endsWith('.flac'))
+  await access(lrcPath)
+  assert.equal(
+    await readFile(lrcPath, 'utf8'),
+    [
+      '[00:00.00]original line',
+      '[00:00.00]translated line',
+      '[00:10.00]next line',
+      '[00:10.00]next translated',
+    ].join('\n')
+  )
+
+  await rm(root, { recursive: true, force: true })
+})
+
+test('DownloadService strips json lyric metadata headers before embedding mp3 lyrics', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(),
+    createTaskId: () => 'task-mp3-clean-lyrics',
+    resolveSongUrl: async () => ({
+      url: 'https://cdn.example.com/song.mp3',
+    }),
+    downloadFetcher: async input => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url.includes('/lyric/new')) {
+        return Response.json({
+          lrc: {
+            lyric: [
+              '{"t":0,"c":[{"tx":"作词: "},{"tx":"梁博"}]}',
+              '{"t":1000,"c":[{"tx":"作曲: "},{"tx":"梁博"}]}',
+              '[00:15.71]怎么能回头呢',
+              '[00:22.54]怎么能留恋呢',
+            ].join('\n'),
+          },
+        })
+      }
+
+      if (url.includes('/song/detail')) {
+        return Response.json({
+          songs: [],
+        })
+      }
+
+      return new Response(Buffer.from('mp3-audio'), {
+        status: 200,
+        headers: {
+          'content-type': 'audio/mpeg',
+        },
+      })
+    },
+  })
+
+  const previousBaseUrl = process.env.AURAL_MUSIC_API_BASE_URL
+  process.env.AURAL_MUSIC_API_BASE_URL = 'https://music.example.com'
+
+  try {
+    const task = await service.enqueueSongDownload({
+      songId: '5',
+      songName: 'Clean Lyrics Song',
+      artistName: 'Test Artist',
+      requestedQuality: 'standard',
+    })
+
+    const completed = await waitForTaskStatus(service, task.id, 'completed')
+    const writtenTags = (await import('node-id3')).default.read(
+      completed.targetPath
+    )
+
+    assert.equal(
+      writtenTags.unsynchronisedLyrics?.text,
+      ['[00:15.71]怎么能回头呢', '[00:22.54]怎么能留恋呢'].join('\n')
+    )
+  } finally {
+    if (previousBaseUrl === undefined) {
+      delete process.env.AURAL_MUSIC_API_BASE_URL
+    } else {
+      process.env.AURAL_MUSIC_API_BASE_URL = previousBaseUrl
+    }
+
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('DownloadService respects concurrency and can remove queued tasks before they start', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
   const firstResponseGate = createDeferred<void>()

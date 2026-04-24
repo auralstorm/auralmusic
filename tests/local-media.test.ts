@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   LOCAL_MEDIA_PROTOCOL,
   createLocalMediaUrl,
+  isLocalMediaUrl,
   parseLocalMediaUrl,
 } from '../src/shared/local-media.ts'
 import {
@@ -32,6 +33,17 @@ test('parseLocalMediaUrl restores the original file path from a protocol url', (
     null
   )
   assert.equal(parseLocalMediaUrl('auralmusic-media://local-file'), null)
+})
+
+test('isLocalMediaUrl only accepts the app-local media protocol', () => {
+  assert.equal(
+    isLocalMediaUrl(
+      'auralmusic-media://local-file?path=F%3A%5CDownloads%5CBlank+Space.mp3'
+    ),
+    true
+  )
+  assert.equal(isLocalMediaUrl('https://example.com/cover.jpg'), false)
+  assert.equal(isLocalMediaUrl(''), false)
 })
 
 test('resolveLocalMediaRangeRequest parses byte ranges for seekable local audio', () => {

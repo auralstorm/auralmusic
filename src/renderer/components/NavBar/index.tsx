@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { routeMenuConfig } from '@/router/router.config'
 import { useAuthStore } from '@/stores/auth-store'
+import { useConfigStore } from '@/stores/config-store'
 
 import Icon from '../Icon'
 import {
@@ -15,6 +16,9 @@ const NavBar = () => {
   const menuData = routeMenuConfig[0]?.children || []
   const loginStatus = useAuthStore(state => state.loginStatus)
   const isAuthenticated = loginStatus === 'authenticated'
+  const showLocalLibraryMenu = useConfigStore(
+    state => state.config.showLocalLibraryMenu
+  )
 
   return (
     <nav className='window-no-drag group flex h-full w-full items-center justify-center px-4'>
@@ -23,6 +27,7 @@ const NavBar = () => {
           {menuData.map(
             item =>
               !item.meta.hidden &&
+              (item.path !== '/local-library' || showLocalLibraryMenu) &&
               (!item.meta.authOnly || isAuthenticated) && (
                 <NavigationMenuItem key={item.meta.title}>
                   <NavigationMenuLink asChild>

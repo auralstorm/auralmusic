@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import AboutSettings from './components/AboutSettings'
 import BasicSettings from './components/BasicSettings'
 import DownloadSettings from './components/DownloadSettings'
+import LocalLibrarySettings from './components/LocalLibrarySettings'
 import PlaySettings from './components/PlaySettings'
 import ShortcutKeySettings from './components/ShortcutKeySettings'
 import SystemSettings from './components/SystemSettings'
@@ -14,6 +15,7 @@ const SETTINGS_TABS = [
   { label: '基础设置', value: 'basic' },
   { label: '播放设置', value: 'play' },
   { label: '下载设置', value: 'download' },
+  { label: '本地乐库', value: 'localLibrary' },
   { label: '系统设置', value: 'system' },
   { label: '快捷键', value: 'shortcutKeys' },
   { label: '关于', value: 'about' },
@@ -71,6 +73,9 @@ const Settings = () => {
         </TabsContent>
         <TabsContent value='download'>
           <DownloadSettings />
+        </TabsContent>
+        <TabsContent value='localLibrary'>
+          <LocalLibrarySettings />
         </TabsContent>
         <TabsContent value='system'>
           <SystemSettings />

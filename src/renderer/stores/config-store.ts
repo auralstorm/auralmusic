@@ -21,12 +21,16 @@ import {
   normalizeEnhancedSourceModules,
   normalizeEqualizerConfigValue,
   normalizeImmersivePlayerControls,
+  normalizeLocalLibraryRoots,
+  normalizeLocalLibraryOnlineLyricMatchEnabled,
+  normalizeLocalLibraryScanFormats,
   normalizeRetroCoverPreset,
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
   normalizePlayerBackgroundMode,
   normalizeRememberPlaybackSession,
+  normalizeShowLocalLibraryMenu,
   normalizeShowLyricTranslation,
 } from '../../shared/config.ts'
 import type {
@@ -114,6 +118,17 @@ function normalizeConfig(config: AppConfig): AppConfig {
       config.dynamicCoverEnabled
     ),
     retroCoverPreset: normalizeRetroCoverPreset(config.retroCoverPreset),
+    showLocalLibraryMenu: normalizeShowLocalLibraryMenu(
+      config.showLocalLibraryMenu
+    ),
+    localLibraryRoots: normalizeLocalLibraryRoots(config.localLibraryRoots),
+    localLibraryScanFormats: normalizeLocalLibraryScanFormats(
+      config.localLibraryScanFormats
+    ),
+    localLibraryOnlineLyricMatchEnabled:
+      normalizeLocalLibraryOnlineLyricMatchEnabled(
+        config.localLibraryOnlineLyricMatchEnabled
+      ),
     showLyricTranslation: normalizeShowLyricTranslation(
       config.showLyricTranslation
     ),

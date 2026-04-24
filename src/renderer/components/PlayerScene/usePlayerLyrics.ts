@@ -6,7 +6,11 @@ import type { LyricLine, UsePlayerLyricsParams } from './types'
 const EMPTY_LYRICS: LyricLine[] = []
 const NO_LYRIC_ERROR = '暂无歌词'
 
-export function usePlayerLyrics({ isOpen, trackId }: UsePlayerLyricsParams) {
+export function usePlayerLyrics({
+  isOpen,
+  trackId,
+  currentTrack,
+}: UsePlayerLyricsParams) {
   const [lyrics, setLyrics] = useState<LyricLine[]>(EMPTY_LYRICS)
   const [lyricsLoading, setLyricsLoading] = useState(false)
   const [lyricsError, setLyricsError] = useState('')
@@ -27,7 +31,7 @@ export function usePlayerLyrics({ isOpen, trackId }: UsePlayerLyricsParams) {
       setLyricsError('')
 
       try {
-        const lyricBundle = await fetchLyricTextBundle(trackId)
+        const lyricBundle = await fetchLyricTextBundle(trackId, currentTrack)
         const nextLyrics = buildLyricLines(lyricBundle)
         if (cancelled) {
           return
@@ -60,7 +64,7 @@ export function usePlayerLyrics({ isOpen, trackId }: UsePlayerLyricsParams) {
     return () => {
       cancelled = true
     }
-  }, [isOpen, trackId])
+  }, [currentTrack, isOpen, trackId])
 
   return {
     lyrics,

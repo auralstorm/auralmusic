@@ -1,5 +1,7 @@
+import { Music2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { memo, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
+import { DEFAULT_AVATAR_COVER_BACKGROUND } from './model'
 import type { AvatarCoverProps } from './types'
 
 const AvatarCover = ({
@@ -12,8 +14,15 @@ const AvatarCover = ({
   wrapperClass,
 }: AvatarCoverProps) => {
   const [isHovered, setIsHovered] = useState(Boolean(isAutoHovered))
+  const [hasLoadError, setHasLoadError] = useState(!url.trim())
   const roundedStyle =
     rounded === 'full' ? 'rounded-full' : `rounded-[${rounded}]`
+  const shouldRenderFallback = hasLoadError || !url.trim()
+
+  useEffect(() => {
+    // 封面地址变化后要重置错误态，否则上一次失败会把后续有效图片也一直卡在兜底图案。
+    setHasLoadError(!url.trim())
+  }, [url])
 
   return (
     <div
@@ -22,14 +31,31 @@ const AvatarCover = ({
       onMouseLeave={() => !isAutoHovered && setIsHovered(false)}
       onClick={onClickCover}
     >
-      <img
-        src={url}
-        className={cn(
-          roundedStyle,
-          'aspect-square h-full w-full object-cover transition-all duration-300',
-          className
-        )}
-      />
+      {shouldRenderFallback ? (
+        <div
+          className={cn(
+            roundedStyle,
+            'flex aspect-square h-full w-full items-center justify-center overflow-hidden transition-all duration-300',
+            className
+          )}
+          aria-hidden='true'
+          style={{
+            background: DEFAULT_AVATAR_COVER_BACKGROUND,
+          }}
+        >
+          <Music2 className='size-[42%] text-white/82' />
+        </div>
+      ) : (
+        <img
+          src={url}
+          onError={() => setHasLoadError(true)}
+          className={cn(
+            roundedStyle,
+            'aspect-square h-full w-full object-cover transition-all duration-300',
+            className
+          )}
+        />
+      )}
 
       <div
         className={cn(
@@ -38,7 +64,11 @@ const AvatarCover = ({
           isHovered && 'opacity-100',
           shadowClassName
         )}
-        style={{ background: `url(${url})` }}
+        style={{
+          background: shouldRenderFallback
+            ? DEFAULT_AVATAR_COVER_BACKGROUND
+            : `url(${url})`,
+        }}
       ></div>
     </div>
   )

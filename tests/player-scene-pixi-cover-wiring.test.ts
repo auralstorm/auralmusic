@@ -50,3 +50,13 @@ test('pixi cover uses auto water ripple motion instead of pointer bulge distorti
     /rippleFilter\.uniforms\.strength = shouldRunTicker \?/
   )
 })
+
+test('pixi cover loads local protocol artwork through native image loading', () => {
+  assert.match(
+    pixiCoverSource,
+    /import \{ isLocalMediaUrl \} from '\.\.\/\.\.\/\.\.\/shared\/local-media\.ts'/
+  )
+  assert.match(pixiCoverSource, /function loadLocalMediaTexture/)
+  assert.match(pixiCoverSource, /new Image\(\)/)
+  assert.match(pixiCoverSource, /if \(isLocalMediaUrl\(src\)\)/)
+})

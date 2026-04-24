@@ -8,6 +8,7 @@ import { Filter, Texture } from '@pixi/core'
 import '@pixi/events'
 import { Sprite } from '@pixi/sprite'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isLocalMediaUrl } from '../../../shared/local-media.ts'
 import { resolvePlayerSceneCoverFitMode } from './player-scene-artwork.model'
 import { resolveRetroPresetPipeline } from './player-scene-retro.model'
 import type { PlayerScenePixiCoverProps } from './types'
@@ -220,6 +221,27 @@ function replaceOverlayTexture(
   ) {
     oldTexture.destroy(true)
   }
+}
+
+function loadLocalMediaTexture(src: string) {
+  return new Promise<Texture>((resolve, reject) => {
+    const image = new Image()
+
+    image.decoding = 'async'
+    image.onload = () => resolve(Texture.from(image))
+    image.onerror = () =>
+      reject(new Error(`Failed to load local cover: ${src}`))
+    image.src = src
+  })
+}
+
+async function loadPlayerSceneTexture(src: string) {
+  // 本地协议改走原生 Image，与列表封面的成功路径保持一致，规避 Assets 对自定义协议兼容不稳定。
+  if (isLocalMediaUrl(src)) {
+    return loadLocalMediaTexture(src)
+  }
+
+  return Assets.load(src)
 }
 
 /**
@@ -543,7 +565,7 @@ export default function PlayerScenePixiCover({
 
     const loadCoverTexture = async () => {
       try {
-        const texture = await Assets.load(src)
+        const texture = await loadPlayerSceneTexture(src)
         if (loadRequestIdRef.current !== requestId) {
           return
         }

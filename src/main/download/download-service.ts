@@ -118,6 +118,25 @@ function hasExplicitFileExtension(fileName: string) {
   return /^\.[a-z0-9]{1,8}$/i.test(path.extname(fileName))
 }
 
+function sanitizeEmbeddedLyricText(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => {
+      if (!line) {
+        return false
+      }
+
+      // 网易歌词接口会把作词/作曲等 JSON 头混进 lrc 文本，直接写入本地会让播放器误判为无效歌词。
+      if (line.startsWith('{') && line.endsWith('}')) {
+        return false
+      }
+
+      return true
+    })
+    .join('\n')
+}
+
 function isLowerQuality(
   candidate: AudioQualityLevel,
   requested: AudioQualityLevel
@@ -144,6 +163,77 @@ function inferExtensionFromUrl(sourceUrl: string) {
 function inferExtensionFromContentType(contentType: string | null) {
   const normalizedType = contentType?.split(';')[0]?.trim().toLowerCase() ?? ''
   return CONTENT_TYPE_EXTENSION_MAP[normalizedType] || ''
+}
+
+function collectNonEmptyLines(text: string) {
+  return text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+}
+
+function readLrcTimestampKey(line: string) {
+  const matchedTimestamp = line.match(/^(?:\[\d{1,2}:\d{2}(?:\.\d{1,3})?\])+/)
+  return matchedTimestamp?.[0] ?? ''
+}
+
+function buildSidecarLrcText(metadata: DownloadTaskMetadata) {
+  const originalLines = collectNonEmptyLines(
+    sanitizeEmbeddedLyricText(metadata.lyric ?? '')
+  )
+  const translatedLines = collectNonEmptyLines(
+    sanitizeEmbeddedLyricText(metadata.translatedLyric ?? '')
+  )
+
+  if (originalLines.length === 0 && translatedLines.length === 0) {
+    return ''
+  }
+
+  if (translatedLines.length === 0) {
+    return originalLines.join('\n')
+  }
+
+  const translatedLineMap = new Map<string, string[]>()
+  for (const line of translatedLines) {
+    const timestampKey = readLrcTimestampKey(line)
+    const bucket = translatedLineMap.get(timestampKey) ?? []
+    bucket.push(line)
+    translatedLineMap.set(timestampKey, bucket)
+  }
+
+  const mergedLines: string[] = []
+  for (const originalLine of originalLines) {
+    mergedLines.push(originalLine)
+    const timestampKey = readLrcTimestampKey(originalLine)
+    const translationBucket = translatedLineMap.get(timestampKey)
+    const translatedLine = translationBucket?.shift()
+    if (translatedLine) {
+      mergedLines.push(translatedLine)
+    }
+  }
+
+  for (const remainingTranslatedLines of translatedLineMap.values()) {
+    mergedLines.push(...remainingTranslatedLines)
+  }
+
+  return mergedLines.join('\n')
+}
+
+async function writeSidecarLrcFile(
+  targetPath: string,
+  metadata: DownloadTaskMetadata
+) {
+  const lrcText = buildSidecarLrcText(metadata)
+  if (!lrcText) {
+    return false
+  }
+
+  const lrcPath = path.join(
+    path.dirname(targetPath),
+    `${path.basename(targetPath, path.extname(targetPath))}.lrc`
+  )
+  await writeFile(lrcPath, lrcText, 'utf8')
+  return true
 }
 
 function buildFileName(
@@ -308,8 +398,8 @@ function readLyricMetadata(payload: unknown): DownloadTaskMetadata {
   const data = root?.data || root
 
   return {
-    lyric: data?.lrc?.lyric || '',
-    translatedLyric: data?.tlyric?.lyric || '',
+    lyric: sanitizeEmbeddedLyricText(data?.lrc?.lyric || ''),
+    translatedLyric: sanitizeEmbeddedLyricText(data?.tlyric?.lyric || ''),
   }
 }
 
@@ -815,6 +905,8 @@ export class DownloadService {
     }
 
     if (path.extname(targetPath).toLowerCase() !== '.mp3') {
+      // 无损格式不走 ID3 写入链时，落同名 .lrc 才能让本地乐库后续扫描到歌词。
+      await writeSidecarLrcFile(targetPath, nextMetadata)
       return {
         note: null,
         warningMessage:

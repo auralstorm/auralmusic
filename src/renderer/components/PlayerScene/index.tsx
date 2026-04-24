@@ -57,6 +57,7 @@ const PlayerScene = () => {
   const { lyrics, lyricsLoading, lyricsError } = usePlayerLyrics({
     isOpen,
     trackId: currentTrack?.id,
+    currentTrack,
   })
   const { chromeVisible, handleChromePointerActivity } =
     usePlayerSceneChromeVisibility({
