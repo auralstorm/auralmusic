@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0](https://github.com/auralstorm/auralmusic/compare/v1.1.0...v1.2.0) (2026-04-24)
+
+### Features
+
+- add local library management ([fbfdd22](https://github.com/auralstorm/auralmusic/commit/fbfdd22c68af64bc0a0ea6af1a480bf56ca41d81))
+- auto match local covers while playing ([e78b9af](https://github.com/auralstorm/auralmusic/commit/e78b9af0d4b0fa48e8a422764988590d05de57b4))
+
+### Bug Fixes
+
+- harden local lyric online matching ([1271e92](https://github.com/auralstorm/auralmusic/commit/1271e9245facc76766d589e8b0964c30c751bf33))
+
+### Performance Improvements
+
+- skip unchanged local library files during scan ([17cdbcc](https://github.com/auralstorm/auralmusic/commit/17cdbcc3d6dfa65c5302b68d3315901b1616e76d))
+
 ## [1.1.0](https://github.com/auralstorm/auralmusic/compare/v1.0.1...v1.1.0) (2026-04-23)
 
 ### Features
