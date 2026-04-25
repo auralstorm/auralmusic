@@ -83,6 +83,7 @@ const LocalLibraryAlbumDetail = () => {
   const requestIdRef = useRef(0)
   const albumRef = useRef(album)
   const tracksStateRef = useRef(tracksState)
+  const loadedAlbumKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     albumRef.current = album
@@ -181,6 +182,7 @@ const LocalLibraryAlbumDetail = () => {
         toast.error('加载本地专辑失败，请稍后重试')
       } finally {
         if (requestId === requestIdRef.current) {
+          loadedAlbumKeyRef.current = `${decodedAlbumName}::${decodedArtistName}`
           setIsInitialLoading(false)
         }
       }
@@ -189,14 +191,19 @@ const LocalLibraryAlbumDetail = () => {
   )
 
   useEffect(() => {
+    const albumKey = `${decodedAlbumName}::${decodedArtistName}`
+    const isSwitchingAlbum = loadedAlbumKeyRef.current !== albumKey
+
     setTracksState(
       createEmptyLocalLibraryPagedState(
         DEFAULT_LOCAL_LIBRARY_PLAYLIST_TRACK_QUERY_LIMIT
       )
     )
-    setIsInitialLoading(true)
+    if (isSwitchingAlbum) {
+      setIsInitialLoading(true)
+    }
     void loadAlbumDetail(false)
-  }, [loadAlbumDetail])
+  }, [decodedAlbumName, decodedArtistName, loadAlbumDetail])
 
   const refreshAlbumDetail = useCallback(async () => {
     setTracksState(
@@ -435,7 +442,7 @@ const LocalLibraryAlbumDetail = () => {
             value={keyword}
             onChange={event => setKeyword(event.target.value)}
             placeholder='搜索专辑内歌曲'
-            className='h-11 max-w-sm rounded-full border-[#dfdbf6] bg-white/72 px-5 text-sm shadow-none dark:border-white/12 dark:bg-white/6'
+            className='h-8 max-w-sm rounded-full border-[#dfdbf6] bg-white/72 px-5 text-sm shadow-none dark:border-white/12 dark:bg-white/6'
           />
         </div>
 

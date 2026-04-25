@@ -74,7 +74,7 @@ const LocalLibraryPlaylistDetail = () => {
     )
   )
   const [keyword, setKeyword] = useState('')
-  const debouncedKeyword = useDebouncedValue(keyword, 250)
+  const debouncedKeyword = useDebouncedValue(keyword, 500)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [deletingTrackPath, setDeletingTrackPath] = useState<string | null>(
     null
@@ -85,6 +85,7 @@ const LocalLibraryPlaylistDetail = () => {
   const [playlistDialogPending, setPlaylistDialogPending] = useState(false)
   const requestIdRef = useRef(0)
   const tracksStateRef = useRef(tracksState)
+  const loadedPlaylistKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     tracksStateRef.current = tracksState
@@ -162,6 +163,7 @@ const LocalLibraryPlaylistDetail = () => {
         toast.error('加载本地歌单失败，请稍后重试')
       } finally {
         if (requestId === requestIdRef.current) {
+          loadedPlaylistKeyRef.current = String(numericPlaylistId)
           setIsInitialLoading(false)
         }
       }
@@ -170,14 +172,19 @@ const LocalLibraryPlaylistDetail = () => {
   )
 
   useEffect(() => {
+    const playlistKey = String(numericPlaylistId)
+    const isSwitchingPlaylist = loadedPlaylistKeyRef.current !== playlistKey
+
     setTracksState(
       createEmptyLocalLibraryPagedState(
         DEFAULT_LOCAL_LIBRARY_PLAYLIST_TRACK_QUERY_LIMIT
       )
     )
-    setIsInitialLoading(true)
+    if (isSwitchingPlaylist) {
+      setIsInitialLoading(true)
+    }
     void loadPlaylistDetail(false)
-  }, [loadPlaylistDetail])
+  }, [loadPlaylistDetail, numericPlaylistId])
 
   const refreshPlaylistDetail = useCallback(async () => {
     setTracksState(
@@ -511,10 +518,10 @@ const LocalLibraryPlaylistDetail = () => {
                   type='button'
                   variant='outline'
                   size='icon'
-                  className='rounded-full'
+                  className='h-13 w-25 rounded-full'
                   aria-label='更多歌单操作'
                 >
-                  <MoreHorizontal className='size-4' />
+                  <MoreHorizontal className='size-5' />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -549,7 +556,7 @@ const LocalLibraryPlaylistDetail = () => {
               value={keyword}
               onChange={event => setKeyword(event.target.value)}
               placeholder='搜索歌单内歌曲'
-              className='h-11 rounded-full border-[#e7e2fb] bg-white/88 px-5 shadow-none dark:border-white/8 dark:bg-white/6'
+              className='h-8 rounded-full border-[#e7e2fb] bg-white/88 px-5 shadow-none dark:border-white/8 dark:bg-white/6'
             />
           </div>
         </div>

@@ -72,6 +72,7 @@ const LocalLibraryArtistDetail = () => {
   const requestIdRef = useRef(0)
   const artistRef = useRef(artist)
   const tracksStateRef = useRef(tracksState)
+  const loadedArtistKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     artistRef.current = artist
@@ -168,6 +169,7 @@ const LocalLibraryArtistDetail = () => {
         toast.error('加载本地歌手失败，请稍后重试')
       } finally {
         if (requestId === requestIdRef.current) {
+          loadedArtistKeyRef.current = decodedArtistName
           setIsInitialLoading(false)
         }
       }
@@ -176,14 +178,18 @@ const LocalLibraryArtistDetail = () => {
   )
 
   useEffect(() => {
+    const isSwitchingArtist = loadedArtistKeyRef.current !== decodedArtistName
+
     setTracksState(
       createEmptyLocalLibraryPagedState(
         DEFAULT_LOCAL_LIBRARY_PLAYLIST_TRACK_QUERY_LIMIT
       )
     )
-    setIsInitialLoading(true)
+    if (isSwitchingArtist) {
+      setIsInitialLoading(true)
+    }
     void loadArtistDetail(false)
-  }, [loadArtistDetail])
+  }, [decodedArtistName, loadArtistDetail])
 
   const refreshArtistDetail = useCallback(async () => {
     setTracksState(
@@ -422,7 +428,7 @@ const LocalLibraryArtistDetail = () => {
             value={keyword}
             onChange={event => setKeyword(event.target.value)}
             placeholder='搜索歌手内歌曲'
-            className='h-11 max-w-sm rounded-full border-[#dfdbf6] bg-white/72 px-5 text-sm shadow-none dark:border-white/12 dark:bg-white/6'
+            className='h-8 max-w-sm rounded-full border-[#dfdbf6] bg-white/72 px-5 text-sm shadow-none dark:border-white/12 dark:bg-white/6'
           />
         </div>
 

@@ -1,4 +1,4 @@
-import { RefreshCw, Search, X } from 'lucide-react'
+import { Plus, RefreshCw, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ interface LocalLibraryToolbarProps {
   onKeywordChange: (value: string) => void
   onClearSongScope: () => void
   onScan: () => void
+  onCreatePlaylist?: () => void
 }
 
 const LocalLibraryToolbar = ({
@@ -25,6 +26,7 @@ const LocalLibraryToolbar = ({
   onKeywordChange,
   onClearSongScope,
   onScan,
+  onCreatePlaylist,
 }: LocalLibraryToolbarProps) => {
   return (
     <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
@@ -80,21 +82,34 @@ const LocalLibraryToolbar = ({
           />
         </div>
 
-        <Button
-          type='button'
-          variant='secondary'
-          className='h-8 w-30 rounded-full bg-[#1f2128] px-5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(31,33,40,0.18)] hover:bg-[#15171d] dark:border dark:border-white/8 dark:bg-white/10 dark:text-white dark:hover:bg-white/14'
-          disabled={isScanning}
-          aria-label={isScanning ? '扫描中' : '刷新本地乐库'}
-          onClick={onScan}
-        >
-          {isScanning ? (
-            <Spinner className='size-4 text-white' />
-          ) : (
-            <RefreshCw className='size-4' />
-          )}
-          {isScanning ? '扫描中' : '扫描音乐'}
-        </Button>
+        <div className='flex items-center gap-2'>
+          <Button
+            type='button'
+            variant='secondary'
+            size='icon'
+            className='h-9 w-9 cursor-pointer rounded-full bg-[#1f2128] text-sm font-semibold text-white shadow-none hover:bg-[#15171d] dark:border dark:border-white/8 dark:bg-white/10 dark:text-white dark:hover:bg-white/14'
+            disabled={isScanning}
+            aria-label={isScanning ? '扫描中' : '刷新本地乐库'}
+            onClick={onScan}
+          >
+            {isScanning ? (
+              <Spinner className='size-4 text-white' />
+            ) : (
+              <RefreshCw className='size-4' />
+            )}
+          </Button>
+
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon'
+            className='bg-foreground/5 h-9 w-9 cursor-pointer rounded-full text-[#2f3342] shadow-none hover:bg-[#f3f0ff] hover:text-[#1f2128] dark:text-white dark:hover:bg-white/10'
+            aria-label='新建歌单'
+            onClick={onCreatePlaylist}
+          >
+            <Plus className='size-4' />
+          </Button>
+        </div>
       </div>
     </div>
   )

@@ -62,6 +62,14 @@ test('album detail page uses local detail layout and scoped track querying', () 
   assert.match(albumPageSource, /LocalLibraryTrackList/)
   assert.match(albumPageSource, /const albumRef = useRef\(album\)/)
   assert.match(albumPageSource, /albumRef\.current = album/)
+  assert.match(
+    albumPageSource,
+    /loadedAlbumKeyRef = useRef<string \| null>\(null\)/
+  )
+  assert.match(
+    albumPageSource,
+    /if \(isSwitchingAlbum\) {\s*setIsInitialLoading\(true\)/s
+  )
   assert.doesNotMatch(
     albumPageSource,
     /\[album,\s*decodedAlbumName,\s*decodedArtistName,\s*isValidAlbumDetail,\s*keyword\]/
@@ -85,6 +93,14 @@ test('artist detail page uses local detail layout and scoped track querying', ()
   assert.match(artistPageSource, /LocalLibraryTrackList/)
   assert.match(artistPageSource, /const artistRef = useRef\(artist\)/)
   assert.match(artistPageSource, /artistRef\.current = artist/)
+  assert.match(
+    artistPageSource,
+    /loadedArtistKeyRef = useRef<string \| null>\(null\)/
+  )
+  assert.match(
+    artistPageSource,
+    /if \(isSwitchingArtist\) {\s*setIsInitialLoading\(true\)/s
+  )
   assert.doesNotMatch(
     artistPageSource,
     /\[artist,\s*decodedArtistName,\s*isValidArtistDetail,\s*keyword\]/

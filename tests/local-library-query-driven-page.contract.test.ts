@@ -37,9 +37,41 @@ test('local library page refreshes overview and the active query after scan or d
 })
 
 test('local library songs query uses a ref-backed state snapshot to avoid self-trigger loops', () => {
+  assert.match(pageSource, /useDebouncedValue/)
+  assert.match(
+    pageSource,
+    /const debouncedKeyword = useDebouncedValue\(keyword/
+  )
+  assert.match(
+    pageSource,
+    /buildLocalLibraryTrackQueryInput\(\s*debouncedKeyword,/s
+  )
+  assert.match(pageSource, /queryAllAlbumPages\(\s*debouncedKeyword,/s)
+  assert.match(pageSource, /queryAllArtistPages\(\s*debouncedKeyword,/s)
+  assert.match(pageSource, /queryAllPlaylistPages\(\s*debouncedKeyword,/s)
+  assert.match(
+    pageSource,
+    /tabContentMinHeightClass = 'min-h-\[520px\] md:min-h-\[560px\]'/
+  )
   assert.match(pageSource, /const tracksStateRef = useRef\(tracksState\)/)
   assert.match(pageSource, /tracksStateRef\.current = tracksState/)
   assert.match(pageSource, /const currentTracksState = tracksStateRef\.current/)
+  assert.doesNotMatch(
+    pageSource,
+    /setTracksState\(previousState => \(\{\s*\.\.\.previousState,\s*isLoading:\s*true,\s*\.\.\.\(append[\s\S]*items:\s*\[\],\s*total:\s*0,\s*offset:\s*0,/s
+  )
+  assert.doesNotMatch(
+    pageSource,
+    /setAlbumsState\(previousState => \(\{\s*\.\.\.previousState,\s*items:\s*\[\],\s*total:\s*0,\s*offset:\s*0,\s*isLoading:\s*true/s
+  )
+  assert.doesNotMatch(
+    pageSource,
+    /setArtistsState\(previousState => \(\{\s*\.\.\.previousState,\s*items:\s*\[\],\s*total:\s*0,\s*offset:\s*0,\s*isLoading:\s*true/s
+  )
+  assert.doesNotMatch(
+    pageSource,
+    /setPlaylistsState\(previousState => \(\{\s*\.\.\.previousState,\s*items:\s*\[\],\s*total:\s*0,\s*offset:\s*0,\s*isLoading:\s*true/s
+  )
   assert.doesNotMatch(
     pageSource,
     /\[keyword,\s*songScope,\s*tracksState\.items\.length,\s*tracksState\.isLoading,\s*tracksState\.limit,\s*tracksState\.total\]/
@@ -48,6 +80,7 @@ test('local library songs query uses a ref-backed state snapshot to avoid self-t
 
 test('local library page keeps playlist cards but no longer owns playlist detail route state', () => {
   assert.match(pageSource, /LocalLibraryPlaylistCard/)
+  assert.match(pageSource, /onCreatePlaylist=\{openCreatePlaylistDialog\}/)
   assert.match(
     pageSource,
     /navigate\(`\/local-library\/playlists\/\$\{playlist\.id\}`\)/
@@ -56,4 +89,5 @@ test('local library page keeps playlist cards but no longer owns playlist detail
   assert.doesNotMatch(pageSource, /playlistDetail/)
   assert.doesNotMatch(pageSource, /handleBackToPlaylistList/)
   assert.doesNotMatch(pageSource, /localLibraryApi\.getPlaylistDetail\(/)
+  assert.doesNotMatch(pageSource, />\s*新建歌单\s*</)
 })

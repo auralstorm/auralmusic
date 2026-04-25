@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { usePlaybackStore } from '@/stores/playback-store'
 import { useConfigStore } from '@/stores/config-store'
@@ -133,6 +133,7 @@ const LocalLibrary = () => {
   )
   const [activeTab, setActiveTab] = useState<LocalLibraryEntityType>('songs')
   const [keyword, setKeyword] = useState('')
+  const debouncedKeyword = useDebouncedValue(keyword, 250)
   // 扫描中持续展示已入库数量，避免首次导入时只有 loading 没有进度感知。
   const [importedTrackCount, setImportedTrackCount] = useState(0)
   const [songScope, setSongScope] = useState<LocalLibrarySongScope>(
@@ -164,6 +165,7 @@ const LocalLibrary = () => {
   const playlistQueryRequestIdRef = useRef(0)
   const playlistPickerQueryRequestIdRef = useRef(0)
   const tracksStateRef = useRef(tracksState)
+  const tabContentMinHeightClass = 'min-h-[520px] md:min-h-[560px]'
 
   useEffect(() => {
     tracksStateRef.current = tracksState
@@ -275,20 +277,12 @@ const LocalLibrary = () => {
       setTracksState(previousState => ({
         ...previousState,
         isLoading: true,
-        ...(append
-          ? {}
-          : {
-              items: [],
-              total: 0,
-              offset: 0,
-              hasLoaded: previousState.hasLoaded,
-            }),
       }))
 
       try {
         const result = await localLibraryApi.queryTracks(
           buildLocalLibraryTrackQueryInput(
-            keyword,
+            debouncedKeyword,
             songScope,
             offset,
             currentTracksState.limit
@@ -327,7 +321,7 @@ const LocalLibrary = () => {
         return null
       }
     },
-    [keyword, songScope]
+    [debouncedKeyword, songScope]
   )
 
   const loadAlbums = useCallback(async () => {
@@ -335,15 +329,12 @@ const LocalLibrary = () => {
 
     setAlbumsState(previousState => ({
       ...previousState,
-      items: [],
-      total: 0,
-      offset: 0,
       isLoading: true,
     }))
 
     try {
       const items = await queryAllAlbumPages(
-        keyword,
+        debouncedKeyword,
         DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
       )
 
@@ -371,22 +362,19 @@ const LocalLibrary = () => {
         }))
       }
     }
-  }, [keyword])
+  }, [debouncedKeyword])
 
   const loadArtists = useCallback(async () => {
     const requestId = ++artistQueryRequestIdRef.current
 
     setArtistsState(previousState => ({
       ...previousState,
-      items: [],
-      total: 0,
-      offset: 0,
       isLoading: true,
     }))
 
     try {
       const items = await queryAllArtistPages(
-        keyword,
+        debouncedKeyword,
         DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
       )
 
@@ -414,22 +402,19 @@ const LocalLibrary = () => {
         }))
       }
     }
-  }, [keyword])
+  }, [debouncedKeyword])
 
   const loadPlaylists = useCallback(async () => {
     const requestId = ++playlistQueryRequestIdRef.current
 
     setPlaylistsState(previousState => ({
       ...previousState,
-      items: [],
-      total: 0,
-      offset: 0,
       isLoading: true,
     }))
 
     try {
       const items = await queryAllPlaylistPages(
-        keyword,
+        debouncedKeyword,
         null,
         DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
       )
@@ -458,7 +443,7 @@ const LocalLibrary = () => {
         }))
       }
     }
-  }, [keyword])
+  }, [debouncedKeyword])
 
   const loadPlaylistPickerPlaylists = useCallback(
     async (trackFilePath: string) => {
@@ -474,7 +459,7 @@ const LocalLibrary = () => {
 
       try {
         const items = await queryAllPlaylistPages(
-          keyword,
+          debouncedKeyword,
           trackFilePath,
           DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
         )
@@ -504,7 +489,7 @@ const LocalLibrary = () => {
         }
       }
     },
-    [keyword]
+    [debouncedKeyword]
   )
 
   const loadQueueTracksForSource = useCallback(async (sourceKey: string) => {
@@ -615,7 +600,7 @@ const LocalLibrary = () => {
     activeTab,
     configuredRoots.length,
     isLoading,
-    keyword,
+    debouncedKeyword,
     loadAlbums,
     loadArtists,
     loadPlaylists,
@@ -1164,9 +1149,13 @@ const LocalLibrary = () => {
               setSongScope(EMPTY_LOCAL_LIBRARY_SONG_SCOPE)
             }
             onScan={() => void handleScan()}
+            onCreatePlaylist={openCreatePlaylistDialog}
           />
 
-          <TabsContent value='songs' className='pt-3'>
+          <TabsContent
+            value='songs'
+            className={`pt-3 ${tabContentMinHeightClass}`}
+          >
             <LocalLibraryTrackList
               tracks={tracksState.items}
               totalCount={tracksState.total}
@@ -1187,7 +1176,10 @@ const LocalLibrary = () => {
             />
           </TabsContent>
 
-          <TabsContent value='albums' className='pt-3'>
+          <TabsContent
+            value='albums'
+            className={`pt-3 ${tabContentMinHeightClass}`}
+          >
             <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6'>
               {albumsState.items.map(album => (
                 <LocalLibraryAlbumCard
@@ -1199,7 +1191,10 @@ const LocalLibrary = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value='artists' className='pt-3'>
+          <TabsContent
+            value='artists'
+            className={`pt-3 ${tabContentMinHeightClass}`}
+          >
             <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6'>
               {artistsState.items.map(artist => (
                 <LocalLibraryArtistCard
@@ -1211,17 +1206,10 @@ const LocalLibrary = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value='playlists' className='space-y-5 pt-3'>
-            <div className='flex justify-end'>
-              <Button
-                type='button'
-                className='rounded-full'
-                onClick={openCreatePlaylistDialog}
-              >
-                新建歌单
-              </Button>
-            </div>
-
+          <TabsContent
+            value='playlists'
+            className={`space-y-5 pt-3 ${tabContentMinHeightClass}`}
+          >
             {playlistsState.items.length === 0 ? (
               <div className='text-muted-foreground rounded-[28px] border border-dashed border-[#e6e1ff] bg-white/60 px-6 py-14 text-center text-sm dark:border-white/10 dark:bg-white/3'>
                 还没有本地歌单，先创建一个歌单再把本地歌曲加进去。

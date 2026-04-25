@@ -46,6 +46,14 @@ test('playlist detail route points to standalone local playlist detail page', ()
   )
   assert.match(
     pageSource,
+    /loadedPlaylistKeyRef = useRef<string \| null>\(null\)/
+  )
+  assert.match(
+    pageSource,
+    /if \(isSwitchingPlaylist\) {\s*setIsInitialLoading\(true\)/s
+  )
+  assert.match(
+    pageSource,
     /playlistId:\s*numericPlaylistId,\s*keyword:\s*debouncedKeyword/s
   )
 })
