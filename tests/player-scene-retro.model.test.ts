@@ -14,6 +14,7 @@ test('resolveRetroPresetPipeline returns stable pipeline for all presets', () =>
     'vinylClassic',
     'crt',
     'polaroid',
+    'pixelArcade',
   ] as const
 
   presets.forEach(preset => {
@@ -47,4 +48,14 @@ test('vinyl classic preset deepens worn edges without aggressive light leaks', (
   assert.ok(pipeline.overlay.wearAlpha > 0)
   assert.equal(pipeline.overlay.lightLeakAlpha, 0)
   assert.ok(pipeline.noiseIntensity >= 0.1)
+})
+
+test('pixel arcade preset exposes strong pixel CRT metadata', () => {
+  const pipeline = resolveRetroPresetPipeline('pixelArcade')
+
+  assert.equal(pipeline.pixel.enabled, true)
+  assert.ok(pipeline.pixel.blockSize >= 6)
+  assert.ok(pipeline.pixel.paletteSteps <= 18)
+  assert.ok(pipeline.overlay.scanlineAlpha > 0.13)
+  assert.ok(pipeline.flickerAmplitude > 0.035)
 })

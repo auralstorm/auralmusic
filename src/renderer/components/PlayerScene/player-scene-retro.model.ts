@@ -18,6 +18,12 @@ export interface RetroOverlayProfile {
   scanlineGap: number
 }
 
+export interface RetroPixelProfile {
+  enabled: boolean
+  blockSize: number
+  paletteSteps: number
+}
+
 export interface RetroPresetPipeline {
   color: RetroColorProfile
   blurStrength: number
@@ -25,6 +31,7 @@ export interface RetroPresetPipeline {
   noiseAnimateSpeed: number
   overlay: RetroOverlayProfile
   flickerAmplitude: number
+  pixel: RetroPixelProfile
 }
 
 const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
@@ -50,6 +57,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     ccd: {
       color: {
@@ -72,6 +84,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     kodak90s: {
       color: {
@@ -94,6 +111,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     y2k: {
       color: {
@@ -116,6 +138,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     hkCinema: {
       color: {
@@ -138,6 +165,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     desaturatedFilm: {
       color: {
@@ -160,6 +192,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     vinylClassic: {
       color: {
@@ -182,6 +219,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     crt: {
       color: {
@@ -205,6 +247,11 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
       },
       // 频闪强度故意保持温和，避免长时间播放导致视觉疲劳。
       flickerAmplitude: 0.035,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
     },
     polaroid: {
       color: {
@@ -227,6 +274,38 @@ const RETRO_PRESET_PIPELINE_MAP: Record<RetroCoverPreset, RetroPresetPipeline> =
         scanlineGap: 4,
       },
       flickerAmplitude: 0,
+      pixel: {
+        enabled: false,
+        blockSize: 1,
+        paletteSteps: 0,
+      },
+    },
+    pixelArcade: {
+      color: {
+        tone: 'none',
+        saturationDelta: -0.22,
+        contrastDelta: -0.08,
+        brightness: 0.97,
+        hue: -7,
+      },
+      blurStrength: 0.15,
+      noiseIntensity: 0.02,
+      noiseAnimateSpeed: 0.0004,
+      overlay: {
+        vignetteAlpha: 0.3,
+        vignettePower: 2.05,
+        wearAlpha: 0,
+        wearRoughness: 0,
+        lightLeakAlpha: 0,
+        scanlineAlpha: 0.22,
+        scanlineGap: 2,
+      },
+      flickerAmplitude: 0.05,
+      pixel: {
+        enabled: true,
+        blockSize: 7,
+        paletteSteps: 18,
+      },
     },
   }
 
@@ -237,6 +316,7 @@ function cloneRetroPresetPipeline(
     ...pipeline,
     color: { ...pipeline.color },
     overlay: { ...pipeline.overlay },
+    pixel: { ...pipeline.pixel },
   }
 }
 
