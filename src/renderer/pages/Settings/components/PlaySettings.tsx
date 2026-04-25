@@ -454,6 +454,7 @@ const PlaySettings = () => {
             <SelectValue placeholder='选择复古封面质感' />
           </SelectTrigger>
           <SelectContent align='end'>
+            {/* 选项文案统一由共享枚举驱动，新增像素街机 CRT 时不用再维护第二份列表。 */}
             {RETRO_COVER_PRESET_OPTIONS.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}

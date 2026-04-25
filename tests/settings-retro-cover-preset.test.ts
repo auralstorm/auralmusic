@@ -13,6 +13,7 @@ const playSettingsSource = readFileSync(
 test('play settings expose retro cover preset selector with full option set', () => {
   assert.match(playSettingsSource, /复古封面质感/)
   assert.match(playSettingsSource, /RETRO_COVER_PRESET_OPTIONS/)
+  assert.match(playSettingsSource, /像素街机 CRT/)
   assert.match(
     playSettingsSource,
     /import\s*\{[\s\S]*RETRO_COVER_PRESET_OPTIONS[\s\S]*\}\s*from '\.\.\/\.\.\/\.\.\/\.\.\/shared\/config\.ts'/

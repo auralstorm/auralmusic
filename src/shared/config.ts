@@ -72,6 +72,7 @@ export const RETRO_COVER_PRESET_OPTIONS = [
   { label: '经典黑胶封面', value: 'vinylClassic' },
   { label: 'CRT 老式显像管', value: 'crt' },
   { label: '拍立得复古', value: 'polaroid' },
+  { label: '像素街机 CRT', value: 'pixelArcade' },
 ] as const
 export type RetroCoverPreset =
   (typeof RETRO_COVER_PRESET_OPTIONS)[number]['value']
