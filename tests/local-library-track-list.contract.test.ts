@@ -41,6 +41,8 @@ test('local library track list keeps only icon play action', () => {
     /disabled=\{deletingTrackPath === track\.filePath\}/
   )
   assert.match(trackListSource, /onRevealTrack=\{onRevealTrack\}/)
+  assert.match(trackListSource, /onAddToPlaylist=\{onAddToPlaylist\}/)
+  assert.match(trackListSource, /onRemoveFromPlaylist=\{onRemoveFromPlaylist\}/)
   assert.match(trackListSource, /onDelete=\{onDeleteTrack\}/)
 })
 
@@ -58,8 +60,13 @@ test('local library delete actions execute directly without a confirm dialog lay
 test('local library row actions use more trigger and open folder before delete actions', () => {
   assert.match(rowActionsSource, /aria-label=\{`更多操作 \$\{track\.title\}`\}/)
   assert.match(rowActionsSource, /<MoreHorizontal className='size-3\.5' \/>/)
-  assert.match(rowActionsSource, /打开所在位置[\s\S]*本地删除[\s\S]*彻底删除/)
+  assert.match(
+    rowActionsSource,
+    /打开所在位置[\s\S]*添加到歌单[\s\S]*移出歌单[\s\S]*本地删除[\s\S]*彻底删除/
+  )
   assert.match(rowActionsSource, /<FolderOpen className='size-4' \/>/)
+  assert.match(rowActionsSource, /<ListPlus className='size-4' \/>/)
+  assert.match(rowActionsSource, /<ListMinus className='size-4' \/>/)
   assert.match(rowActionsSource, /<Trash className='size-4' \/>/)
 })
 

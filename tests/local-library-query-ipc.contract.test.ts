@@ -37,6 +37,14 @@ test('local library query ipc is wired across shared, preload, and main layers',
     'local-library:query-artists'
   )
   assert.equal(
+    LOCAL_LIBRARY_IPC_CHANNELS.QUERY_PLAYLISTS,
+    'local-library:query-playlists'
+  )
+  assert.equal(
+    LOCAL_LIBRARY_IPC_CHANNELS.GET_PLAYLIST_DETAIL,
+    'local-library:get-playlist-detail'
+  )
+  assert.equal(
     LOCAL_LIBRARY_IPC_CHANNELS.REVEAL_TRACK,
     'local-library:reveal-track'
   )
@@ -45,16 +53,31 @@ test('local library query ipc is wired across shared, preload, and main layers',
   assert.match(preloadSource, /queryTracks:\s*async\s+input\s*=>/)
   assert.match(preloadSource, /queryAlbums:\s*async\s+input\s*=>/)
   assert.match(preloadSource, /queryArtists:\s*async\s+input\s*=>/)
+  assert.match(preloadSource, /queryPlaylists:\s*async\s+input\s*=>/)
+  assert.match(preloadSource, /getPlaylistDetail:\s*async\s+input\s*=>/)
+  assert.match(preloadSource, /createPlaylist:\s*async\s+input\s*=>/)
+  assert.match(preloadSource, /addTrackToPlaylist:\s*async\s+input\s*=>/)
   assert.match(preloadSource, /revealTrack:\s*async\s+filePath\s*=>/)
 
   assert.match(mainIndexSource, /readLocalLibraryOverview\(\)/)
   assert.match(mainIndexSource, /queryLocalLibraryTracksByInput\(/)
   assert.match(mainIndexSource, /queryLocalLibraryAlbumsByInput\(/)
   assert.match(mainIndexSource, /queryLocalLibraryArtistsByInput\(/)
+  assert.match(mainIndexSource, /queryLocalLibraryPlaylistsByInput\(/)
+  assert.match(mainIndexSource, /queryLocalLibraryPlaylistDetailByInput\(/)
+  assert.match(mainIndexSource, /createLocalLibraryPlaylist\(/)
+  assert.match(mainIndexSource, /addLocalLibraryTrackToPlaylist\(/)
 
   assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.GET_OVERVIEW/)
   assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.QUERY_TRACKS/)
   assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.QUERY_ALBUMS/)
   assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.QUERY_ARTISTS/)
+  assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.QUERY_PLAYLISTS/)
+  assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.GET_PLAYLIST_DETAIL/)
+  assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.CREATE_PLAYLIST/)
+  assert.match(
+    mainIpcSource,
+    /LOCAL_LIBRARY_IPC_CHANNELS\.ADD_TRACK_TO_PLAYLIST/
+  )
   assert.match(mainIpcSource, /LOCAL_LIBRARY_IPC_CHANNELS\.REVEAL_TRACK/)
 })

@@ -19,6 +19,7 @@ interface LocalLibraryTrackListProps {
   totalCount: number
   isLoadingMore?: boolean
   queueSourceScope: LocalLibrarySongScope
+  queueSourceKeyOverride?: string
   deletingTrackPath?: string | null
   onPlayIndex: (
     tracks: LocalLibraryTrackRecord[],
@@ -26,6 +27,8 @@ interface LocalLibraryTrackListProps {
     sourceKey: string
   ) => void
   onRevealTrack: (track: LocalLibraryTrackRecord) => void
+  onAddToPlaylist?: (track: LocalLibraryTrackRecord) => void
+  onRemoveFromPlaylist?: (track: LocalLibraryTrackRecord) => void
   onDeleteTrack: (
     track: LocalLibraryTrackRecord,
     mode: LocalLibraryTrackDeleteMode
@@ -52,13 +55,17 @@ const LocalLibraryTrackList = ({
   totalCount,
   isLoadingMore = false,
   queueSourceScope,
+  queueSourceKeyOverride,
   deletingTrackPath = null,
   onPlayIndex,
   onRevealTrack,
+  onAddToPlaylist,
+  onRemoveFromPlaylist,
   onDeleteTrack,
   onEndReached,
 }: LocalLibraryTrackListProps) => {
-  const queueSourceKey = resolveQueueSourceKey(queueSourceScope)
+  const queueSourceKey =
+    queueSourceKeyOverride || resolveQueueSourceKey(queueSourceScope)
 
   if (tracks.length === 0) {
     return (
@@ -136,6 +143,8 @@ const LocalLibraryTrackList = ({
                 disabled={deletingTrackPath === track.filePath}
                 onPlay={() => onPlayIndex(tracks, index, queueSourceKey)}
                 onRevealTrack={onRevealTrack}
+                onAddToPlaylist={onAddToPlaylist}
+                onRemoveFromPlaylist={onRemoveFromPlaylist}
                 onDelete={onDeleteTrack}
               />
             </div>

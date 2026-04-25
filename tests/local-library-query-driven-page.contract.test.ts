@@ -7,11 +7,21 @@ const pageSource = readFileSync(
   'utf8'
 )
 
+const querySource = readFileSync(
+  new URL(
+    '../src/renderer/pages/LocalLibrary/local-library-queries.ts',
+    import.meta.url
+  ),
+  'utf8'
+)
+
 test('local library page reads overview and entity queries instead of snapshot filtering', () => {
   assert.match(pageSource, /localLibraryApi\.getOverview\(\)/)
-  assert.match(pageSource, /localLibraryApi\.queryTracks\(/)
-  assert.match(pageSource, /localLibraryApi\.queryAlbums\(/)
-  assert.match(pageSource, /localLibraryApi\.queryArtists\(/)
+  assert.match(querySource, /localLibraryApi\.queryTracks\(/)
+  assert.match(querySource, /localLibraryApi\.queryAlbums\(/)
+  assert.match(querySource, /localLibraryApi\.queryArtists\(/)
+  assert.match(querySource, /localLibraryApi\.queryPlaylists\(/)
+  assert.match(querySource, /localLibraryApi\.getPlaylistDetail\(/)
 
   assert.doesNotMatch(pageSource, /filterLocalLibraryTracks/)
   assert.doesNotMatch(pageSource, /filterLocalLibraryAlbums/)
@@ -34,4 +44,16 @@ test('local library songs query uses a ref-backed state snapshot to avoid self-t
     pageSource,
     /\[keyword,\s*songScope,\s*tracksState\.items\.length,\s*tracksState\.isLoading,\s*tracksState\.limit,\s*tracksState\.total\]/
   )
+})
+
+test('local library page keeps playlist cards but no longer owns playlist detail route state', () => {
+  assert.match(pageSource, /LocalLibraryPlaylistCard/)
+  assert.match(
+    pageSource,
+    /navigate\(`\/local-library\/playlists\/\$\{playlist\.id\}`\)/
+  )
+  assert.doesNotMatch(pageSource, /useParams<\{ playlistId\?: string \}>/)
+  assert.doesNotMatch(pageSource, /playlistDetail/)
+  assert.doesNotMatch(pageSource, /handleBackToPlaylistList/)
+  assert.doesNotMatch(pageSource, /localLibraryApi\.getPlaylistDetail\(/)
 })

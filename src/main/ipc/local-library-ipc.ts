@@ -4,15 +4,22 @@ import { pathToFileURL } from 'node:url'
 
 import { getConfig } from '../config/store.ts'
 import {
+  addLocalLibraryTrackToPlaylist,
+  createLocalLibraryPlaylist,
+  deleteLocalLibraryPlaylist,
   deleteLocalLibraryTrack,
+  queryLocalLibraryPlaylistDetailByInput,
+  queryLocalLibraryPlaylistsByInput,
   queryLocalLibraryAlbumsByInput,
   queryLocalLibraryArtistsByInput,
   queryLocalLibraryTracksByInput,
   readLocalLibraryOverview,
   readLocalLibrarySnapshot,
   resolveLocalLibraryOnlineLyricMatch,
+  removeLocalLibraryTrackFromPlaylist,
   runLocalLibraryScan,
   syncLocalLibraryRoots,
+  updateLocalLibraryPlaylist,
 } from '../local-library/index.ts'
 import { LOCAL_LIBRARY_IPC_CHANNELS } from '../../shared/ipc/index.ts'
 import type { LocalLibraryOnlineLyricMatchInput } from '../../shared/local-library.ts'
@@ -93,6 +100,71 @@ export function createLocalLibraryIpc(
         (_event, input) => {
           return queryLocalLibraryArtistsByInput(
             input as Parameters<typeof queryLocalLibraryArtistsByInput>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.QUERY_PLAYLISTS,
+        (_event, input) => {
+          return queryLocalLibraryPlaylistsByInput(
+            input as Parameters<typeof queryLocalLibraryPlaylistsByInput>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.GET_PLAYLIST_DETAIL,
+        (_event, input) => {
+          return queryLocalLibraryPlaylistDetailByInput(
+            input as Parameters<
+              typeof queryLocalLibraryPlaylistDetailByInput
+            >[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.CREATE_PLAYLIST,
+        (_event, input) => {
+          return createLocalLibraryPlaylist(
+            input as Parameters<typeof createLocalLibraryPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.UPDATE_PLAYLIST,
+        (_event, input) => {
+          return updateLocalLibraryPlaylist(
+            input as Parameters<typeof updateLocalLibraryPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.DELETE_PLAYLIST,
+        (_event, input) => {
+          return deleteLocalLibraryPlaylist(
+            input as Parameters<typeof deleteLocalLibraryPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.ADD_TRACK_TO_PLAYLIST,
+        (_event, input) => {
+          return addLocalLibraryTrackToPlaylist(
+            input as Parameters<typeof addLocalLibraryTrackToPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.REMOVE_TRACK_FROM_PLAYLIST,
+        (_event, input) => {
+          return removeLocalLibraryTrackFromPlaylist(
+            input as Parameters<typeof removeLocalLibraryTrackFromPlaylist>[0]
           )
         }
       )

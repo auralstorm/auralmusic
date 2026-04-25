@@ -48,6 +48,12 @@ const LocalLibraryToolbar = ({
           >
             歌手
           </TabsTrigger>
+          <TabsTrigger
+            value='playlists'
+            className='h-6 min-w-16 rounded-full px-4 text-[0.95rem] font-semibold data-active:bg-white data-active:text-[#5d62ff] data-active:shadow-[0_12px_28px_rgba(93,98,255,0.14)] dark:text-white/46 dark:data-active:bg-white/10 dark:data-active:text-white dark:data-active:shadow-[0_12px_28px_rgba(0,0,0,0.22)]'
+          >
+            歌单
+          </TabsTrigger>
         </TabsList>
 
         {hasSongScopeFilter ? (

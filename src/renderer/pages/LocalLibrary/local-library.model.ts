@@ -3,6 +3,8 @@ import type {
   LocalLibraryArtistQueryInput,
   LocalLibraryEntityType,
   LocalLibraryOverviewSnapshot,
+  LocalLibraryPlaylistDetailQueryInput,
+  LocalLibraryPlaylistQueryInput,
   LocalLibraryTrackQueryInput,
 } from '../../../shared/local-library.ts'
 
@@ -24,6 +26,7 @@ export interface LocalLibraryPagedState<T> {
 
 export const DEFAULT_LOCAL_LIBRARY_TRACK_QUERY_LIMIT = 80
 export const DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT = 120
+export const DEFAULT_LOCAL_LIBRARY_PLAYLIST_TRACK_QUERY_LIMIT = 120
 
 export const EMPTY_LOCAL_LIBRARY_SONG_SCOPE: LocalLibrarySongScope = {
   type: 'all',
@@ -96,6 +99,34 @@ export function buildLocalLibraryArtistQueryInput(
   }
 }
 
+export function buildLocalLibraryPlaylistQueryInput(
+  keyword: string,
+  trackFilePath: string | null,
+  offset: number,
+  limit: number
+): LocalLibraryPlaylistQueryInput {
+  return {
+    keyword,
+    trackFilePath,
+    offset,
+    limit,
+  }
+}
+
+export function buildLocalLibraryPlaylistDetailQueryInput(
+  playlistId: number,
+  keyword: string,
+  offset: number,
+  limit: number
+): LocalLibraryPlaylistDetailQueryInput {
+  return {
+    playlistId,
+    keyword,
+    offset,
+    limit,
+  }
+}
+
 export function getLocalLibraryEmptyState(
   overview: LocalLibraryOverviewSnapshot,
   configuredRootCount: number
@@ -124,6 +155,10 @@ export function getLocalLibrarySearchPlaceholder(
 
   if (entityType === 'artists') {
     return '搜索歌手'
+  }
+
+  if (entityType === 'playlists') {
+    return '搜索歌单'
   }
 
   return '搜索歌曲、歌手或专辑'

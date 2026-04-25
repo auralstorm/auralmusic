@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useScrollToTopOnRouteEnter } from '@/hooks/useScrollToTopOnRouteEnter'
 import { usePlaybackStore } from '@/stores/playback-store'
@@ -12,18 +14,28 @@ import type {
   LocalLibraryArtistRecord,
   LocalLibraryEntityType,
   LocalLibraryOverviewSnapshot,
+  LocalLibraryPlaylistRecord,
   LocalLibraryTrackDeleteMode,
   LocalLibraryTrackRecord,
 } from '../../../shared/local-library.ts'
 import LocalLibraryAlbumCard from './components/LocalLibraryAlbumCard'
+import LocalLibraryAddToPlaylistDrawer from './components/LocalLibraryAddToPlaylistDrawer'
 import LocalLibraryArtistCard from './components/LocalLibraryArtistCard'
 import LocalLibraryEmptyState from './components/LocalLibraryEmptyState'
 import LocalLibraryOverview from './components/LocalLibraryOverview'
+import LocalLibraryPlaylistCard from './components/LocalLibraryPlaylistCard'
+import LocalLibraryPlaylistDialog from './components/LocalLibraryPlaylistDialog'
 import LocalLibraryTrackList from './components/LocalLibraryTrackList'
 import LocalLibraryToolbar from './components/LocalLibraryToolbar'
 import {
-  buildLocalLibraryAlbumQueryInput,
-  buildLocalLibraryArtistQueryInput,
+  getLocalLibraryApi,
+  queryAllAlbumPages,
+  queryAllArtistPages,
+  queryAllPlaylistDetailPages,
+  queryAllPlaylistPages,
+  queryAllTrackPages,
+} from './local-library-queries'
+import {
   buildLocalLibraryTrackQueryInput,
   createEmptyLocalLibraryPagedState,
   DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT,
@@ -39,10 +51,6 @@ import {
   buildLocalLibraryPlaybackTrack,
   resolveLocalLibraryQueueSourceDescriptor,
 } from './local-library-playback.model'
-
-function getLocalLibraryApi() {
-  return window.electronLocalLibrary ?? null
-}
 
 function mergeTrackItems(
   currentItems: LocalLibraryTrackRecord[],
@@ -63,87 +71,9 @@ function mergeTrackItems(
   return mergedItems
 }
 
-async function queryAllTrackPages(
-  keyword: string,
-  scope: LocalLibrarySongScope,
-  limit = 200
-) {
-  const localLibraryApi = getLocalLibraryApi()
-  if (!localLibraryApi) {
-    return []
-  }
-
-  const tracks: LocalLibraryTrackRecord[] = []
-  let offset = 0
-
-  while (true) {
-    const result = await localLibraryApi.queryTracks(
-      buildLocalLibraryTrackQueryInput(keyword, scope, offset, limit)
-    )
-
-    tracks.push(...result.items)
-    offset += result.items.length
-
-    if (result.items.length === 0 || offset >= result.total) {
-      break
-    }
-  }
-
-  return tracks
-}
-
-async function queryAllAlbumPages(keyword: string, limit = 120) {
-  const localLibraryApi = getLocalLibraryApi()
-  if (!localLibraryApi) {
-    return [] as LocalLibraryAlbumRecord[]
-  }
-
-  const albums: LocalLibraryAlbumRecord[] = []
-  let offset = 0
-
-  while (true) {
-    const result = await localLibraryApi.queryAlbums(
-      buildLocalLibraryAlbumQueryInput(keyword, offset, limit)
-    )
-
-    albums.push(...result.items)
-    offset += result.items.length
-
-    if (result.items.length === 0 || offset >= result.total) {
-      break
-    }
-  }
-
-  return albums
-}
-
-async function queryAllArtistPages(keyword: string, limit = 120) {
-  const localLibraryApi = getLocalLibraryApi()
-  if (!localLibraryApi) {
-    return [] as LocalLibraryArtistRecord[]
-  }
-
-  const artists: LocalLibraryArtistRecord[] = []
-  let offset = 0
-
-  while (true) {
-    const result = await localLibraryApi.queryArtists(
-      buildLocalLibraryArtistQueryInput(keyword, offset, limit)
-    )
-
-    artists.push(...result.items)
-    offset += result.items.length
-
-    if (result.items.length === 0 || offset >= result.total) {
-      break
-    }
-  }
-
-  return artists
-}
-
 const LocalLibrary = () => {
   useScrollToTopOnRouteEnter()
+  const navigate = useNavigate()
 
   const playQueueFromIndex = usePlaybackStore(state => state.playQueueFromIndex)
   const currentTrack = usePlaybackStore(state => state.currentTrack)
@@ -154,6 +84,9 @@ const LocalLibrary = () => {
   )
   const configuredRoots = useConfigStore(
     state => state.config.localLibraryRoots
+  )
+  const showLocalLibraryMenu = useConfigStore(
+    state => state.config.showLocalLibraryMenu
   )
   const setConfig = useConfigStore(state => state.setConfig)
 
@@ -179,6 +112,20 @@ const LocalLibrary = () => {
       DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
     )
   )
+  const [playlistsState, setPlaylistsState] = useState<
+    LocalLibraryPagedState<LocalLibraryPlaylistRecord>
+  >(() =>
+    createEmptyLocalLibraryPagedState(
+      DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+    )
+  )
+  const [playlistPickerState, setPlaylistPickerState] = useState<
+    LocalLibraryPagedState<LocalLibraryPlaylistRecord>
+  >(() =>
+    createEmptyLocalLibraryPagedState(
+      DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+    )
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
   const [deletingTrackPath, setDeletingTrackPath] = useState<string | null>(
@@ -191,6 +138,22 @@ const LocalLibrary = () => {
   const [songScope, setSongScope] = useState<LocalLibrarySongScope>(
     EMPTY_LOCAL_LIBRARY_SONG_SCOPE
   )
+  const [playlistDialogMode, setPlaylistDialogMode] = useState<
+    'create' | 'rename' | null
+  >(null)
+  const [playlistDialogName, setPlaylistDialogName] = useState('')
+  const [playlistDialogError, setPlaylistDialogError] = useState('')
+  const [playlistDialogPending, setPlaylistDialogPending] = useState(false)
+  const [editingPlaylist, setEditingPlaylist] =
+    useState<LocalLibraryPlaylistRecord | null>(null)
+  const [playlistDrawerTrack, setPlaylistDrawerTrack] =
+    useState<LocalLibraryTrackRecord | null>(null)
+  const [playlistDrawerCreateTitle, setPlaylistDrawerCreateTitle] = useState('')
+  const [playlistDrawerPendingId, setPlaylistDrawerPendingId] = useState<
+    number | null
+  >(null)
+  const [playlistDrawerCreateSubmitting, setPlaylistDrawerCreateSubmitting] =
+    useState(false)
 
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoScanRootKeyRef = useRef<string | null>(null)
@@ -198,11 +161,20 @@ const LocalLibrary = () => {
   const trackQueryRequestIdRef = useRef(0)
   const albumQueryRequestIdRef = useRef(0)
   const artistQueryRequestIdRef = useRef(0)
+  const playlistQueryRequestIdRef = useRef(0)
+  const playlistPickerQueryRequestIdRef = useRef(0)
   const tracksStateRef = useRef(tracksState)
 
   useEffect(() => {
     tracksStateRef.current = tracksState
   }, [tracksState])
+
+  useEffect(() => {
+    // 入口隐藏只影响导航可见性，不该打断本地播放；当前页则回到安全路由避免形成孤页。
+    if (!showLocalLibraryMenu) {
+      navigate('/', { replace: true })
+    }
+  }, [navigate, showLocalLibraryMenu])
 
   const resetQueryStates = useCallback(() => {
     setTracksState(
@@ -214,6 +186,16 @@ const LocalLibrary = () => {
       )
     )
     setArtistsState(
+      createEmptyLocalLibraryPagedState(
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+    )
+    setPlaylistsState(
+      createEmptyLocalLibraryPagedState(
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+    )
+    setPlaylistPickerState(
       createEmptyLocalLibraryPagedState(
         DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
       )
@@ -434,9 +416,105 @@ const LocalLibrary = () => {
     }
   }, [keyword])
 
+  const loadPlaylists = useCallback(async () => {
+    const requestId = ++playlistQueryRequestIdRef.current
+
+    setPlaylistsState(previousState => ({
+      ...previousState,
+      items: [],
+      total: 0,
+      offset: 0,
+      isLoading: true,
+    }))
+
+    try {
+      const items = await queryAllPlaylistPages(
+        keyword,
+        null,
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+
+      if (playlistQueryRequestIdRef.current !== requestId) {
+        return
+      }
+
+      setPlaylistsState({
+        items,
+        total: items.length,
+        offset: items.length,
+        limit: DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT,
+        isLoading: false,
+        hasLoaded: true,
+      })
+    } catch (error) {
+      console.error('failed to query local library playlists', error)
+      toast.error('本地歌单加载失败，请稍后重试')
+
+      if (playlistQueryRequestIdRef.current === requestId) {
+        setPlaylistsState(previousState => ({
+          ...previousState,
+          isLoading: false,
+          hasLoaded: true,
+        }))
+      }
+    }
+  }, [keyword])
+
+  const loadPlaylistPickerPlaylists = useCallback(
+    async (trackFilePath: string) => {
+      const requestId = ++playlistPickerQueryRequestIdRef.current
+
+      setPlaylistPickerState(previousState => ({
+        ...previousState,
+        items: [],
+        total: 0,
+        offset: 0,
+        isLoading: true,
+      }))
+
+      try {
+        const items = await queryAllPlaylistPages(
+          keyword,
+          trackFilePath,
+          DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+        )
+
+        if (playlistPickerQueryRequestIdRef.current !== requestId) {
+          return
+        }
+
+        setPlaylistPickerState({
+          items,
+          total: items.length,
+          offset: items.length,
+          limit: DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT,
+          isLoading: false,
+          hasLoaded: true,
+        })
+      } catch (error) {
+        console.error('failed to query local playlist picker options', error)
+        toast.error('歌单选项加载失败，请稍后重试')
+
+        if (playlistPickerQueryRequestIdRef.current === requestId) {
+          setPlaylistPickerState(previousState => ({
+            ...previousState,
+            isLoading: false,
+            hasLoaded: true,
+          }))
+        }
+      }
+    },
+    [keyword]
+  )
+
   const loadQueueTracksForSource = useCallback(async (sourceKey: string) => {
     const descriptor = resolveLocalLibraryQueueSourceDescriptor(sourceKey)
+    const localLibraryApi = getLocalLibraryApi()
     if (!descriptor) {
+      return []
+    }
+
+    if (!localLibraryApi) {
       return []
     }
 
@@ -466,6 +544,10 @@ const LocalLibrary = () => {
       )
     }
 
+    if (descriptor.type === 'playlist') {
+      return queryAllPlaylistDetailPages(descriptor.playlistId, '', 200)
+    }
+
     return queryAllTrackPages('', EMPTY_LOCAL_LIBRARY_SONG_SCOPE, 200)
   }, [])
 
@@ -480,8 +562,13 @@ const LocalLibrary = () => {
       return
     }
 
+    if (activeTab === 'playlists') {
+      await loadPlaylists()
+      return
+    }
+
     await loadTracks(false)
-  }, [activeTab, loadAlbums, loadArtists, loadTracks])
+  }, [activeTab, loadAlbums, loadArtists, loadPlaylists, loadTracks])
 
   useEffect(() => {
     void loadOverview()
@@ -518,6 +605,11 @@ const LocalLibrary = () => {
       return
     }
 
+    if (activeTab === 'playlists') {
+      void loadPlaylists()
+      return
+    }
+
     void loadTracks(false)
   }, [
     activeTab,
@@ -526,6 +618,7 @@ const LocalLibrary = () => {
     keyword,
     loadAlbums,
     loadArtists,
+    loadPlaylists,
     loadTracks,
     overview,
     songScope,
@@ -633,6 +726,11 @@ const LocalLibrary = () => {
     ...overview.stats,
     rootCount: configuredRoots.length,
   }
+  const playlistDuplicateIds = new Set(
+    playlistPickerState.items
+      .filter(playlist => playlist.containsTrack)
+      .map(playlist => playlist.id)
+  )
 
   useEffect(() => {
     const autoScanRootKey = configuredRoots.join('|')
@@ -674,27 +772,263 @@ const LocalLibrary = () => {
     [keyword, playQueueFromIndex, songScope]
   )
 
-  const handleOpenAlbum = useCallback((album: LocalLibraryAlbumRecord) => {
-    // 专辑卡片继续复用当前页筛选流，避免为了视觉升级分叉本地乐库交互语义。
-    setSongScope({
-      type: 'album',
-      key: album.id,
-      value: album.name,
-      artistName: album.artistName,
-    })
-    setActiveTab('songs')
+  const handleOpenAlbum = useCallback(
+    (album: LocalLibraryAlbumRecord) => {
+      navigate(
+        `/local-library/albums/${encodeURIComponent(album.name)}/${encodeURIComponent(album.artistName)}`
+      )
+    },
+    [navigate]
+  )
+
+  const handleOpenArtist = useCallback(
+    (artist: LocalLibraryArtistRecord) => {
+      navigate(`/local-library/artists/${encodeURIComponent(artist.name)}`)
+    },
+    [navigate]
+  )
+
+  const handleOpenPlaylist = useCallback(
+    async (playlist: LocalLibraryPlaylistRecord) => {
+      navigate(`/local-library/playlists/${playlist.id}`)
+    },
+    [navigate]
+  )
+
+  const openCreatePlaylistDialog = useCallback(() => {
+    setEditingPlaylist(null)
+    setPlaylistDialogError('')
+    setPlaylistDialogName('')
+    setPlaylistDialogMode('create')
   }, [])
 
-  const handleOpenArtist = useCallback((artist: LocalLibraryArtistRecord) => {
-    // 歌手卡片沿用同一套筛选入口，保证专辑/歌手两个聚合视图的交互成本一致。
-    setSongScope({
-      type: 'artist',
-      key: artist.id,
-      value: artist.name,
-      artistName: null,
-    })
-    setActiveTab('songs')
+  const openRenamePlaylistDialog = useCallback(
+    (playlist: LocalLibraryPlaylistRecord) => {
+      setEditingPlaylist(playlist)
+      setPlaylistDialogError('')
+      setPlaylistDialogName(playlist.name)
+      setPlaylistDialogMode('rename')
+    },
+    []
+  )
+
+  const closePlaylistDialog = useCallback((open: boolean) => {
+    if (open) {
+      return
+    }
+
+    setPlaylistDialogMode(null)
+    setEditingPlaylist(null)
+    setPlaylistDialogName('')
+    setPlaylistDialogError('')
+    setPlaylistDialogPending(false)
   }, [])
+
+  const handleCreateOrRenamePlaylist = useCallback(async () => {
+    const localLibraryApi = getLocalLibraryApi()
+    if (!localLibraryApi || !playlistDialogMode || playlistDialogPending) {
+      return
+    }
+
+    setPlaylistDialogPending(true)
+    setPlaylistDialogError('')
+
+    try {
+      if (playlistDialogMode === 'create') {
+        const result = await localLibraryApi.createPlaylist({
+          name: playlistDialogName,
+        })
+
+        if (result.status === 'duplicate') {
+          setPlaylistDialogError('已存在同名本地歌单')
+          return
+        }
+
+        toast.success('本地歌单已创建')
+      } else if (editingPlaylist) {
+        const result = await localLibraryApi.updatePlaylist({
+          playlistId: editingPlaylist.id,
+          name: playlistDialogName,
+        })
+
+        if (result.status === 'duplicate') {
+          setPlaylistDialogError('已存在同名本地歌单')
+          return
+        }
+
+        if (result.status === 'updated') {
+          toast.success('歌单名称已更新')
+        }
+      }
+
+      closePlaylistDialog(false)
+      await refreshActiveQuery()
+    } catch (error) {
+      console.error('failed to mutate local playlist', error)
+      toast.error('歌单操作失败，请稍后重试')
+    } finally {
+      setPlaylistDialogPending(false)
+    }
+  }, [
+    closePlaylistDialog,
+    editingPlaylist,
+    playlistDialogMode,
+    playlistDialogName,
+    playlistDialogPending,
+    refreshActiveQuery,
+  ])
+
+  const handleDeletePlaylist = useCallback(
+    async (playlist: LocalLibraryPlaylistRecord) => {
+      const localLibraryApi = getLocalLibraryApi()
+      if (!localLibraryApi) {
+        return
+      }
+
+      try {
+        const result = await localLibraryApi.deletePlaylist({
+          playlistId: playlist.id,
+        })
+
+        if (!result.deleted) {
+          toast.error('歌单不存在或已被删除')
+          return
+        }
+
+        if (queueSourceKey === `local-library:playlist:${playlist.id}`) {
+          syncQueueFromSource(queueSourceKey, [])
+        }
+
+        await loadPlaylists()
+        toast.success('本地歌单已删除')
+      } catch (error) {
+        console.error('failed to delete local playlist', error)
+        toast.error('删除歌单失败，请稍后重试')
+      }
+    },
+    [loadPlaylists, queueSourceKey, syncQueueFromSource]
+  )
+
+  const closePlaylistDrawer = useCallback((open: boolean) => {
+    if (open) {
+      return
+    }
+
+    setPlaylistDrawerTrack(null)
+    setPlaylistDrawerCreateTitle('')
+    setPlaylistDrawerPendingId(null)
+    setPlaylistPickerState(
+      createEmptyLocalLibraryPagedState(
+        DEFAULT_LOCAL_LIBRARY_COLLECTION_QUERY_LIMIT
+      )
+    )
+  }, [])
+
+  const handleOpenAddToPlaylistDrawer = useCallback(
+    async (track: LocalLibraryTrackRecord) => {
+      setPlaylistDrawerTrack(track)
+      setPlaylistDrawerCreateTitle('')
+      setPlaylistDrawerPendingId(null)
+      await loadPlaylistPickerPlaylists(track.filePath)
+    },
+    [loadPlaylistPickerPlaylists]
+  )
+
+  const handleAddTrackToPlaylist = useCallback(
+    async (playlist: LocalLibraryPlaylistRecord) => {
+      const localLibraryApi = getLocalLibraryApi()
+      if (!localLibraryApi || !playlistDrawerTrack) {
+        return
+      }
+
+      setPlaylistDrawerPendingId(playlist.id)
+
+      try {
+        const result = await localLibraryApi.addTrackToPlaylist({
+          playlistId: playlist.id,
+          filePath: playlistDrawerTrack.filePath,
+        })
+
+        if (result.status === 'duplicate') {
+          toast.error('歌曲已在歌单中')
+          return
+        }
+
+        if (result.status !== 'ok') {
+          toast.error('添加到歌单失败，请稍后重试')
+          return
+        }
+
+        if (queueSourceKey === `local-library:playlist:${playlist.id}`) {
+          const nextQueueTracks = await loadQueueTracksForSource(queueSourceKey)
+          syncQueueFromSource(
+            queueSourceKey,
+            buildLocalLibraryPlaybackQueue(nextQueueTracks, queueSourceKey)
+          )
+        }
+
+        toast.success(`已添加到 ${playlist.name}`)
+        closePlaylistDrawer(false)
+        if (activeTab === 'playlists') {
+          await loadPlaylists()
+        }
+      } catch (error) {
+        console.error('failed to add track to playlist', error)
+        toast.error('添加到歌单失败，请稍后重试')
+      } finally {
+        setPlaylistDrawerPendingId(null)
+      }
+    },
+    [
+      activeTab,
+      closePlaylistDrawer,
+      loadPlaylists,
+      loadQueueTracksForSource,
+      playlistDrawerTrack,
+      queueSourceKey,
+      syncQueueFromSource,
+    ]
+  )
+
+  const handleCreatePlaylistAndAdd = useCallback(async () => {
+    const localLibraryApi = getLocalLibraryApi()
+    if (
+      !localLibraryApi ||
+      !playlistDrawerTrack ||
+      !playlistDrawerCreateTitle.trim() ||
+      playlistDrawerCreateSubmitting
+    ) {
+      return
+    }
+
+    setPlaylistDrawerCreateSubmitting(true)
+
+    try {
+      const createResult = await localLibraryApi.createPlaylist({
+        name: playlistDrawerCreateTitle,
+      })
+
+      if (createResult.status === 'duplicate' || !createResult.playlist) {
+        toast.error('已存在同名本地歌单')
+        return
+      }
+
+      await handleAddTrackToPlaylist(createResult.playlist)
+      setPlaylistDrawerCreateTitle('')
+      await loadPlaylistPickerPlaylists(playlistDrawerTrack.filePath)
+    } catch (error) {
+      console.error('failed to create local playlist and add track', error)
+      toast.error('创建歌单失败，请稍后重试')
+    } finally {
+      setPlaylistDrawerCreateSubmitting(false)
+    }
+  }, [
+    handleAddTrackToPlaylist,
+    loadPlaylistPickerPlaylists,
+    playlistDrawerCreateSubmitting,
+    playlistDrawerCreateTitle,
+    playlistDrawerTrack,
+  ])
 
   const executeDeleteTrack = useCallback(
     async (
@@ -724,6 +1058,7 @@ const LocalLibrary = () => {
 
         await loadOverview()
         await refreshActiveQuery()
+        await loadPlaylists()
 
         // 本地乐库删除后同步刷新同源播放队列，避免列表和播放队列长期不一致。
         if (
@@ -766,6 +1101,7 @@ const LocalLibrary = () => {
       refreshActiveQuery,
       resetPlayback,
       syncQueueFromSource,
+      loadPlaylists,
     ]
   )
 
@@ -841,6 +1177,9 @@ const LocalLibrary = () => {
                 void handlePlayIndex(tracks, startIndex, sourceKey)
               }
               onRevealTrack={track => void handleRevealTrack(track)}
+              onAddToPlaylist={track =>
+                void handleOpenAddToPlaylistDrawer(track)
+              }
               onDeleteTrack={(track, mode) =>
                 void handleDeleteTrack(track, mode)
               }
@@ -849,7 +1188,7 @@ const LocalLibrary = () => {
           </TabsContent>
 
           <TabsContent value='albums' className='pt-3'>
-            <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6'>
+            <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6'>
               {albumsState.items.map(album => (
                 <LocalLibraryAlbumCard
                   key={`${album.id}-${album.name}`}
@@ -861,7 +1200,7 @@ const LocalLibrary = () => {
           </TabsContent>
 
           <TabsContent value='artists' className='pt-3'>
-            <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6'>
+            <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6'>
               {artistsState.items.map(artist => (
                 <LocalLibraryArtistCard
                   key={`${artist.id}-${artist.name}`}
@@ -871,8 +1210,69 @@ const LocalLibrary = () => {
               ))}
             </div>
           </TabsContent>
+
+          <TabsContent value='playlists' className='space-y-5 pt-3'>
+            <div className='flex justify-end'>
+              <Button
+                type='button'
+                className='rounded-full'
+                onClick={openCreatePlaylistDialog}
+              >
+                新建歌单
+              </Button>
+            </div>
+
+            {playlistsState.items.length === 0 ? (
+              <div className='text-muted-foreground rounded-[28px] border border-dashed border-[#e6e1ff] bg-white/60 px-6 py-14 text-center text-sm dark:border-white/10 dark:bg-white/3'>
+                还没有本地歌单，先创建一个歌单再把本地歌曲加进去。
+              </div>
+            ) : (
+              <div className='grid gap-x-6 gap-y-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-6'>
+                {playlistsState.items.map(playlist => (
+                  <LocalLibraryPlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    onOpen={playlist => void handleOpenPlaylist(playlist)}
+                    onRename={openRenamePlaylistDialog}
+                    onDelete={playlist => void handleDeletePlaylist(playlist)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       )}
+
+      <LocalLibraryPlaylistDialog
+        open={playlistDialogMode !== null}
+        title={playlistDialogMode === 'rename' ? '重命名歌单' : '创建歌单'}
+        description={
+          playlistDialogMode === 'rename'
+            ? '只修改歌单名称，歌单内歌曲不会受影响。'
+            : '创建本地歌单后，可在歌曲行的更多菜单里继续添加本地歌曲。'
+        }
+        value={playlistDialogName}
+        submitLabel={playlistDialogMode === 'rename' ? '保存名称' : '创建歌单'}
+        pending={playlistDialogPending}
+        duplicateError={playlistDialogError}
+        onValueChange={setPlaylistDialogName}
+        onOpenChange={closePlaylistDialog}
+        onSubmit={() => void handleCreateOrRenamePlaylist()}
+      />
+
+      <LocalLibraryAddToPlaylistDrawer
+        open={Boolean(playlistDrawerTrack)}
+        track={playlistDrawerTrack}
+        playlists={playlistPickerState.items}
+        pendingPlaylistId={playlistDrawerPendingId}
+        createTitle={playlistDrawerCreateTitle}
+        createSubmitting={playlistDrawerCreateSubmitting}
+        duplicatePlaylistIds={playlistDuplicateIds}
+        onOpenChange={closePlaylistDrawer}
+        onCreateTitleChange={setPlaylistDrawerCreateTitle}
+        onCreateAndAdd={() => void handleCreatePlaylistAndAdd()}
+        onAdd={playlist => void handleAddTrackToPlaylist(playlist)}
+      />
     </section>
   )
 }

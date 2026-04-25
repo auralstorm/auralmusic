@@ -24,6 +24,8 @@ const dbSource = readFileSync(
 test('local library database schema declares the required tables and indexes', () => {
   assert.match(dbSource, /CREATE TABLE IF NOT EXISTS library_roots/)
   assert.match(dbSource, /CREATE TABLE IF NOT EXISTS local_tracks/)
+  assert.match(dbSource, /CREATE TABLE IF NOT EXISTS local_playlists/)
+  assert.match(dbSource, /CREATE TABLE IF NOT EXISTS local_playlist_tracks/)
   assert.match(dbSource, /CREATE TABLE IF NOT EXISTS library_meta/)
   assert.match(dbSource, /lyric_text TEXT NOT NULL DEFAULT ''/)
   assert.match(dbSource, /translated_lyric_text TEXT NOT NULL DEFAULT ''/)
@@ -35,6 +37,7 @@ test('local library database schema declares the required tables and indexes', (
   assert.match(dbSource, /idx_local_tracks_title/)
   assert.match(dbSource, /idx_local_tracks_artist_name/)
   assert.match(dbSource, /idx_local_tracks_album_name/)
+  assert.match(dbSource, /idx_local_playlist_tracks_playlist_id/)
 })
 
 test('local library scan imports supported tracks and deduplicates repeated roots', async () => {
@@ -426,12 +429,143 @@ test('local library database declares overview and paged query methods', () => {
     dbSource,
     /getOverviewSnapshot\(\):\s*LocalLibraryOverviewSnapshot/
   )
-  assert.match(dbSource, /queryTracks\(input:\s*LocalLibraryTrackQueryInput\)/)
-  assert.match(dbSource, /queryAlbums\(input:\s*LocalLibraryAlbumQueryInput\)/)
   assert.match(
     dbSource,
-    /queryArtists\(input:\s*LocalLibraryArtistQueryInput\)/
+    /queryTracks\(\s*input:\s*LocalLibraryTrackQueryInput\s*\)/
+  )
+  assert.match(
+    dbSource,
+    /queryAlbums\(\s*input:\s*LocalLibraryAlbumQueryInput\s*\)/
+  )
+  assert.match(
+    dbSource,
+    /queryArtists\(\s*input:\s*LocalLibraryArtistQueryInput\s*\)/
+  )
+  assert.match(
+    dbSource,
+    /queryPlaylists\(\s*input:\s*LocalLibraryPlaylistQueryInput\s*\)/
+  )
+  assert.match(
+    dbSource,
+    /queryPlaylistDetail\(\s*input:\s*LocalLibraryPlaylistDetailQueryInput\s*\)/
   )
   assert.match(dbSource, /LIMIT \? OFFSET \?/)
   assert.match(dbSource, /SELECT COUNT\(\*\) as total FROM local_tracks/)
+})
+
+test('local library playlists support create, rename, duplicate guard, track membership, and cascade cleanup', t => {
+  const sandboxRoot = mkdtempSync(
+    path.join(tmpdir(), 'auralmusic-local-library-db-')
+  )
+  const dbPath = path.join(sandboxRoot, 'local-library.db')
+  let database: ReturnType<typeof createLocalLibraryDatabase> | null = null
+
+  try {
+    try {
+      database = createLocalLibraryDatabase({ dbPath })
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        /NODE_MODULE_VERSION|ERR_DLOPEN_FAILED/.test(error.message)
+      ) {
+        t.skip(
+          'better-sqlite3 native binding is built for Electron ABI; skip Node-only runtime test'
+        )
+        return
+      }
+
+      throw error
+    }
+
+    const [root] = database.replaceRoots(['F:/music'])
+    assert.ok(root)
+
+    database.upsertTrack({
+      rootId: root.id,
+      filePath: 'F:/music/song-a.mp3',
+      fileName: 'song-a.mp3',
+      title: 'Song A',
+      artistName: 'Artist A',
+      albumName: 'Album A',
+      durationMs: 200000,
+      lyricText: '',
+      translatedLyricText: '',
+      coverPath: 'F:/music/song-a-cover.jpg',
+      fileSize: 1,
+      mtimeMs: 1,
+      audioFormat: 'mp3',
+      trackNo: 1,
+      discNo: 1,
+    })
+
+    const createResult = database.createPlaylist({ name: '深夜循环' })
+    assert.equal(createResult.status, 'created')
+    assert.equal(createResult.playlist?.name, '深夜循环')
+
+    const duplicateCreateResult = database.createPlaylist({ name: '深夜循环' })
+    assert.equal(duplicateCreateResult.status, 'duplicate')
+
+    const playlist = createResult.playlist
+    assert.ok(playlist)
+
+    const addResult = database.addTrackToPlaylist({
+      playlistId: playlist.id,
+      filePath: 'F:/music/song-a.mp3',
+    })
+    assert.equal(addResult.status, 'ok')
+
+    const duplicateAddResult = database.addTrackToPlaylist({
+      playlistId: playlist.id,
+      filePath: 'F:/music/song-a.mp3',
+    })
+    assert.equal(duplicateAddResult.status, 'duplicate')
+
+    const playlistDetail = database.queryPlaylistDetail({
+      playlistId: playlist.id,
+      keyword: '',
+      offset: 0,
+      limit: 20,
+    })
+    assert.equal(playlistDetail.playlist?.trackCount, 1)
+    assert.equal(
+      playlistDetail.playlist?.coverUrl.includes('auralmusic-media://'),
+      true
+    )
+    assert.equal(playlistDetail.items[0]?.title, 'Song A')
+
+    const renameResult = database.updatePlaylist({
+      playlistId: playlist.id,
+      name: '凌晨循环',
+    })
+    assert.equal(renameResult.status, 'updated')
+    assert.equal(renameResult.playlist?.name, '凌晨循环')
+
+    const queriedPlaylists = database.queryPlaylists({
+      keyword: '',
+      trackFilePath: 'F:/music/song-a.mp3',
+      offset: 0,
+      limit: 20,
+    })
+    assert.equal(queriedPlaylists.items[0]?.containsTrack, true)
+
+    const removedFromLibrary = database.removeTrackByFilePath(
+      'F:/music/song-a.mp3'
+    )
+    assert.equal(removedFromLibrary, true)
+
+    const cascadedDetail = database.queryPlaylistDetail({
+      playlistId: playlist.id,
+      keyword: '',
+      offset: 0,
+      limit: 20,
+    })
+    assert.equal(cascadedDetail.playlist?.trackCount, 0)
+    assert.equal(cascadedDetail.items.length, 0)
+
+    const deleteResult = database.deletePlaylist({ playlistId: playlist.id })
+    assert.equal(deleteResult.deleted, true)
+  } finally {
+    database?.close()
+    rmSync(sandboxRoot, { recursive: true, force: true })
+  }
 })

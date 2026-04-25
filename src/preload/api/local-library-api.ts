@@ -5,6 +5,18 @@ import type {
   LocalLibraryAlbumQueryResult,
   LocalLibraryArtistQueryInput,
   LocalLibraryArtistQueryResult,
+  LocalLibraryPlaylistCreateInput,
+  LocalLibraryPlaylistCreateResult,
+  LocalLibraryPlaylistDeleteInput,
+  LocalLibraryPlaylistDeleteResult,
+  LocalLibraryPlaylistDetailQueryInput,
+  LocalLibraryPlaylistDetailQueryResult,
+  LocalLibraryPlaylistQueryInput,
+  LocalLibraryPlaylistQueryResult,
+  LocalLibraryPlaylistTrackMutationInput,
+  LocalLibraryPlaylistTrackMutationResult,
+  LocalLibraryPlaylistUpdateInput,
+  LocalLibraryPlaylistUpdateResult,
   LocalLibraryOnlineLyricMatchInput,
   LocalLibraryOnlineLyricMatchResult,
   LocalLibraryOverviewSnapshot,
@@ -29,6 +41,27 @@ export type LocalLibraryApi = {
   queryArtists: (
     input: LocalLibraryArtistQueryInput
   ) => Promise<LocalLibraryArtistQueryResult>
+  queryPlaylists: (
+    input: LocalLibraryPlaylistQueryInput
+  ) => Promise<LocalLibraryPlaylistQueryResult>
+  getPlaylistDetail: (
+    input: LocalLibraryPlaylistDetailQueryInput
+  ) => Promise<LocalLibraryPlaylistDetailQueryResult>
+  createPlaylist: (
+    input: LocalLibraryPlaylistCreateInput
+  ) => Promise<LocalLibraryPlaylistCreateResult>
+  updatePlaylist: (
+    input: LocalLibraryPlaylistUpdateInput
+  ) => Promise<LocalLibraryPlaylistUpdateResult>
+  deletePlaylist: (
+    input: LocalLibraryPlaylistDeleteInput
+  ) => Promise<LocalLibraryPlaylistDeleteResult>
+  addTrackToPlaylist: (
+    input: LocalLibraryPlaylistTrackMutationInput
+  ) => Promise<LocalLibraryPlaylistTrackMutationResult>
+  removeTrackFromPlaylist: (
+    input: LocalLibraryPlaylistTrackMutationInput
+  ) => Promise<LocalLibraryPlaylistTrackMutationResult>
   scan: () => Promise<LocalLibraryScanSummary>
   syncRoots: (roots: string[]) => Promise<LocalLibraryRootRecord[]>
   selectDirectories: () => Promise<string[]>
@@ -85,6 +118,48 @@ export function createLocalLibraryApi(
         LOCAL_LIBRARY_IPC_CHANNELS.QUERY_ARTISTS,
         input
       ) as Promise<LocalLibraryArtistQueryResult>
+    },
+    queryPlaylists: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.QUERY_PLAYLISTS,
+        input
+      ) as Promise<LocalLibraryPlaylistQueryResult>
+    },
+    getPlaylistDetail: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.GET_PLAYLIST_DETAIL,
+        input
+      ) as Promise<LocalLibraryPlaylistDetailQueryResult>
+    },
+    createPlaylist: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.CREATE_PLAYLIST,
+        input
+      ) as Promise<LocalLibraryPlaylistCreateResult>
+    },
+    updatePlaylist: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.UPDATE_PLAYLIST,
+        input
+      ) as Promise<LocalLibraryPlaylistUpdateResult>
+    },
+    deletePlaylist: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.DELETE_PLAYLIST,
+        input
+      ) as Promise<LocalLibraryPlaylistDeleteResult>
+    },
+    addTrackToPlaylist: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.ADD_TRACK_TO_PLAYLIST,
+        input
+      ) as Promise<LocalLibraryPlaylistTrackMutationResult>
+    },
+    removeTrackFromPlaylist: async input => {
+      return renderer.invoke(
+        LOCAL_LIBRARY_IPC_CHANNELS.REMOVE_TRACK_FROM_PLAYLIST,
+        input
+      ) as Promise<LocalLibraryPlaylistTrackMutationResult>
     },
     scan: async () => {
       return renderer.invoke(

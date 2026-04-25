@@ -14,6 +14,9 @@ import ArtistDetail from '@/pages/Artists/Detail'
 import ArtistSongs from '@/pages/Artists/Songs'
 import Albums from '@/pages/Albums'
 import AlbumDetail from '@/pages/Albums/Detail'
+import LocalLibraryPlaylistDetail from '@/pages/LocalLibraryPlaylistDetail'
+import LocalLibraryAlbumDetail from '@/pages/LocalLibraryAlbumDetail'
+import LocalLibraryArtistDetail from '@/pages/LocalLibraryArtistDetail'
 
 export {
   Home,
@@ -32,4 +35,7 @@ export {
   ArtistSongs,
   Albums,
   AlbumDetail,
+  LocalLibraryAlbumDetail,
+  LocalLibraryArtistDetail,
+  LocalLibraryPlaylistDetail,
 }

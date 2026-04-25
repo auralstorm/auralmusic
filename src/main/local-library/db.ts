@@ -9,6 +9,19 @@ import type {
   LocalLibraryArtistQueryInput,
   LocalLibraryArtistQueryResult,
   LocalLibraryOverviewSnapshot,
+  LocalLibraryPlaylistCreateInput,
+  LocalLibraryPlaylistCreateResult,
+  LocalLibraryPlaylistDeleteInput,
+  LocalLibraryPlaylistDeleteResult,
+  LocalLibraryPlaylistDetailQueryInput,
+  LocalLibraryPlaylistDetailQueryResult,
+  LocalLibraryPlaylistQueryInput,
+  LocalLibraryPlaylistQueryResult,
+  LocalLibraryPlaylistRecord,
+  LocalLibraryPlaylistTrackMutationInput,
+  LocalLibraryPlaylistTrackMutationResult,
+  LocalLibraryPlaylistUpdateInput,
+  LocalLibraryPlaylistUpdateResult,
   LocalLibraryRootRecord,
   LocalLibrarySnapshot,
   LocalLibraryStats,
@@ -73,6 +86,24 @@ const SCHEMA_STATEMENTS = [
     )
   `,
   `
+    CREATE TABLE IF NOT EXISTS local_playlists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS local_playlist_tracks (
+      playlist_id INTEGER NOT NULL,
+      track_file_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (playlist_id, track_file_path),
+      FOREIGN KEY(playlist_id) REFERENCES local_playlists(id) ON DELETE CASCADE,
+      FOREIGN KEY(track_file_path) REFERENCES local_tracks(file_path) ON DELETE CASCADE
+    )
+  `,
+  `
     CREATE TABLE IF NOT EXISTS library_meta (
       key TEXT PRIMARY KEY,
       value TEXT
@@ -82,6 +113,8 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_local_tracks_title ON local_tracks(title)`,
   `CREATE INDEX IF NOT EXISTS idx_local_tracks_artist_name ON local_tracks(artist_name)`,
   `CREATE INDEX IF NOT EXISTS idx_local_tracks_album_name ON local_tracks(album_name)`,
+  `CREATE INDEX IF NOT EXISTS idx_local_playlist_tracks_playlist_id ON local_playlist_tracks(playlist_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_local_playlist_tracks_track_file_path ON local_playlist_tracks(track_file_path)`,
 ]
 
 const LOCAL_TRACK_TEXT_COLUMNS = [
@@ -136,9 +169,35 @@ function toLocalLibraryArtistRecord(row: Record<string, unknown>) {
   } satisfies LocalLibraryArtistRecord
 }
 
+function toLocalLibraryPlaylistRecord(row: Record<string, unknown>) {
+  const typedRow = row as {
+    id: number
+    name: string
+    trackCount: number
+    coverPath: string
+    createdAt: number
+    updatedAt: number
+    containsTrack?: number
+  }
+
+  return {
+    id: typedRow.id,
+    name: typedRow.name,
+    trackCount: typedRow.trackCount,
+    coverUrl: toNullableLocalMediaUrl(typedRow.coverPath || null),
+    createdAt: typedRow.createdAt,
+    updatedAt: typedRow.updatedAt,
+    containsTrack: Boolean(typedRow.containsTrack),
+  } satisfies LocalLibraryPlaylistRecord
+}
+
 function createKeywordPattern(keyword: string) {
   const trimmedKeyword = keyword.trim()
   return trimmedKeyword ? `%${trimmedKeyword}%` : null
+}
+
+function normalizePlaylistName(name: string) {
+  return name.trim()
 }
 
 export class LocalLibraryDatabase {
@@ -433,6 +492,181 @@ export class LocalLibraryDatabase {
     }
   }
 
+  queryPlaylists(
+    input: LocalLibraryPlaylistQueryInput
+  ): LocalLibraryPlaylistQueryResult {
+    const keywordPattern = createKeywordPattern(input.keyword)
+    const whereClause = keywordPattern
+      ? 'WHERE lp.name LIKE ? COLLATE NOCASE'
+      : ''
+    const params = keywordPattern
+      ? [keywordPattern]
+      : ([] as Array<string | number>)
+    const containsTrackParams = input.trackFilePath
+      ? [input.trackFilePath]
+      : ([] as Array<string | number>)
+
+    const totalRow = this.database
+      .prepare(
+        `
+          SELECT COUNT(*) as total
+          FROM local_playlists lp
+          ${whereClause}
+        `
+      )
+      .get(...params) as { total: number }
+
+    const items = this.database
+      .prepare(
+        `
+          SELECT
+            lp.id as id,
+            lp.name as name,
+            COUNT(lpt.track_file_path) as trackCount,
+            lp.created_at as createdAt,
+            lp.updated_at as updatedAt,
+            CASE
+              WHEN ? != '' AND EXISTS (
+                SELECT 1
+                FROM local_playlist_tracks target_lpt
+                WHERE target_lpt.playlist_id = lp.id
+                  AND target_lpt.track_file_path = ?
+              ) THEN 1
+              ELSE 0
+            END as containsTrack,
+            COALESCE((
+              SELECT lt.cover_path
+              FROM local_playlist_tracks first_lpt
+              JOIN local_tracks lt ON lt.file_path = first_lpt.track_file_path
+              WHERE first_lpt.playlist_id = lp.id
+              ORDER BY first_lpt.created_at ASC
+              LIMIT 1
+            ), '') as coverPath
+          FROM local_playlists lp
+          LEFT JOIN local_playlist_tracks lpt ON lpt.playlist_id = lp.id
+          ${whereClause}
+          GROUP BY lp.id
+          ORDER BY lp.updated_at DESC, lp.id DESC
+          LIMIT ? OFFSET ?
+        `
+      )
+      .all(
+        input.trackFilePath ?? '',
+        ...(input.trackFilePath ? containsTrackParams : ['']),
+        ...params,
+        input.limit,
+        input.offset
+      )
+      .map(row => toLocalLibraryPlaylistRecord(row as Record<string, unknown>))
+
+    return {
+      items,
+      total: totalRow.total,
+      offset: input.offset,
+      limit: input.limit,
+    }
+  }
+
+  queryPlaylistDetail(
+    input: LocalLibraryPlaylistDetailQueryInput
+  ): LocalLibraryPlaylistDetailQueryResult {
+    const playlistRow = this.database
+      .prepare(
+        `
+          SELECT
+            lp.id as id,
+            lp.name as name,
+            COUNT(lpt.track_file_path) as trackCount,
+            lp.created_at as createdAt,
+            lp.updated_at as updatedAt,
+            COALESCE((
+              SELECT lt.cover_path
+              FROM local_playlist_tracks first_lpt
+              JOIN local_tracks lt ON lt.file_path = first_lpt.track_file_path
+              WHERE first_lpt.playlist_id = lp.id
+              ORDER BY first_lpt.created_at ASC
+              LIMIT 1
+            ), '') as coverPath
+          FROM local_playlists lp
+          LEFT JOIN local_playlist_tracks lpt ON lpt.playlist_id = lp.id
+          WHERE lp.id = ?
+          GROUP BY lp.id
+        `
+      )
+      .get(input.playlistId) as Record<string, unknown> | undefined
+
+    if (!playlistRow) {
+      return {
+        playlist: null,
+        items: [],
+        total: 0,
+        offset: input.offset,
+        limit: input.limit,
+      }
+    }
+
+    const keywordPattern = createKeywordPattern(input.keyword)
+    const whereClauses = ['lpt.playlist_id = ?']
+    const params: Array<string | number> = [input.playlistId]
+
+    if (keywordPattern) {
+      whereClauses.push(
+        '(lt.title LIKE ? COLLATE NOCASE OR lt.artist_name LIKE ? COLLATE NOCASE OR lt.album_name LIKE ? COLLATE NOCASE)'
+      )
+      params.push(keywordPattern, keywordPattern, keywordPattern)
+    }
+
+    const whereClause = whereClauses.join(' AND ')
+    const totalRow = this.database
+      .prepare(
+        `
+          SELECT COUNT(*) as total
+          FROM local_playlist_tracks lpt
+          JOIN local_tracks lt ON lt.file_path = lpt.track_file_path
+          WHERE ${whereClause}
+        `
+      )
+      .get(...params) as { total: number }
+
+    const items = this.database
+      .prepare(
+        `
+          SELECT
+            lt.id as id,
+            lt.root_id as rootId,
+            lt.file_path as filePath,
+            lt.file_name as fileName,
+            lt.title as title,
+            lt.artist_name as artistName,
+            lt.album_name as albumName,
+            lt.duration_ms as durationMs,
+            lt.lyric_text as lyricText,
+            lt.translated_lyric_text as translatedLyricText,
+            lt.cover_path as coverPath,
+            lt.file_size as fileSize,
+            lt.mtime_ms as mtimeMs,
+            lt.audio_format as audioFormat,
+            lt.track_no as trackNo,
+            lt.disc_no as discNo
+          FROM local_playlist_tracks lpt
+          JOIN local_tracks lt ON lt.file_path = lpt.track_file_path
+          WHERE ${whereClause}
+          ORDER BY lpt.created_at ASC
+          LIMIT ? OFFSET ?
+        `
+      )
+      .all(...params, input.limit, input.offset)
+      .map(row => toLocalLibraryTrackRecord(row as Record<string, unknown>))
+
+    return {
+      playlist: toLocalLibraryPlaylistRecord(playlistRow),
+      items,
+      total: totalRow.total,
+      offset: input.offset,
+      limit: input.limit,
+    }
+  }
+
   upsertTrack(input: LocalLibraryTrackUpsertInput) {
     const now = Date.now()
 
@@ -533,6 +767,211 @@ export class LocalLibraryDatabase {
     return result.changes > 0
   }
 
+  createPlaylist(
+    input: LocalLibraryPlaylistCreateInput
+  ): LocalLibraryPlaylistCreateResult {
+    const name = normalizePlaylistName(input.name)
+    if (!name) {
+      return { status: 'duplicate', playlist: null }
+    }
+
+    const existing = this.database
+      .prepare(
+        `
+          SELECT
+            lp.id as id,
+            lp.name as name,
+            COUNT(lpt.track_file_path) as trackCount,
+            lp.created_at as createdAt,
+            lp.updated_at as updatedAt,
+            '' as coverPath
+          FROM local_playlists lp
+          LEFT JOIN local_playlist_tracks lpt ON lpt.playlist_id = lp.id
+          WHERE lp.name = ?
+          GROUP BY lp.id
+        `
+      )
+      .get(name) as Record<string, unknown> | undefined
+
+    if (existing) {
+      return {
+        status: 'duplicate',
+        playlist: toLocalLibraryPlaylistRecord(existing),
+      }
+    }
+
+    const now = Date.now()
+    const result = this.database
+      .prepare(
+        `
+          INSERT INTO local_playlists (name, created_at, updated_at)
+          VALUES (?, ?, ?)
+        `
+      )
+      .run(name, now, now)
+
+    return {
+      status: 'created',
+      playlist: this.getPlaylistById(Number(result.lastInsertRowid)),
+    }
+  }
+
+  updatePlaylist(
+    input: LocalLibraryPlaylistUpdateInput
+  ): LocalLibraryPlaylistUpdateResult {
+    const name = normalizePlaylistName(input.name)
+    if (!name) {
+      return { status: 'duplicate', playlist: null }
+    }
+
+    const current = this.getPlaylistById(input.playlistId)
+    if (!current) {
+      return { status: 'not-found', playlist: null }
+    }
+
+    const duplicateRow = this.database
+      .prepare(
+        `
+          SELECT id
+          FROM local_playlists
+          WHERE name = ? AND id != ?
+        `
+      )
+      .get(name, input.playlistId) as { id: number } | undefined
+
+    if (duplicateRow) {
+      return { status: 'duplicate', playlist: current }
+    }
+
+    this.database
+      .prepare(
+        `
+          UPDATE local_playlists
+          SET name = ?, updated_at = ?
+          WHERE id = ?
+        `
+      )
+      .run(name, Date.now(), input.playlistId)
+
+    return {
+      status: 'updated',
+      playlist: this.getPlaylistById(input.playlistId),
+    }
+  }
+
+  deletePlaylist(
+    input: LocalLibraryPlaylistDeleteInput
+  ): LocalLibraryPlaylistDeleteResult {
+    const result = this.database
+      .prepare('DELETE FROM local_playlists WHERE id = ?')
+      .run(input.playlistId)
+
+    return {
+      deleted: result.changes > 0,
+    }
+  }
+
+  addTrackToPlaylist(
+    input: LocalLibraryPlaylistTrackMutationInput
+  ): LocalLibraryPlaylistTrackMutationResult {
+    const playlistExists = this.database
+      .prepare('SELECT id FROM local_playlists WHERE id = ?')
+      .get(input.playlistId) as { id: number } | undefined
+    const trackExists = this.database
+      .prepare('SELECT file_path FROM local_tracks WHERE file_path = ?')
+      .get(input.filePath) as { file_path: string } | undefined
+
+    if (!playlistExists || !trackExists) {
+      return { status: 'not-found' }
+    }
+
+    const duplicate = this.database
+      .prepare(
+        `
+          SELECT playlist_id
+          FROM local_playlist_tracks
+          WHERE playlist_id = ? AND track_file_path = ?
+        `
+      )
+      .get(input.playlistId, input.filePath) as
+      | { playlist_id: number }
+      | undefined
+
+    if (duplicate) {
+      return { status: 'duplicate' }
+    }
+
+    const now = Date.now()
+    const mutate = this.database.transaction(() => {
+      this.database
+        .prepare(
+          `
+            INSERT INTO local_playlist_tracks (playlist_id, track_file_path, created_at)
+            VALUES (?, ?, ?)
+          `
+        )
+        .run(input.playlistId, input.filePath, now)
+      this.database
+        .prepare('UPDATE local_playlists SET updated_at = ? WHERE id = ?')
+        .run(now, input.playlistId)
+    })
+
+    mutate()
+    return { status: 'ok' }
+  }
+
+  removeTrackFromPlaylist(
+    input: LocalLibraryPlaylistTrackMutationInput
+  ): LocalLibraryPlaylistTrackMutationResult {
+    const result = this.database
+      .prepare(
+        `
+          DELETE FROM local_playlist_tracks
+          WHERE playlist_id = ? AND track_file_path = ?
+        `
+      )
+      .run(input.playlistId, input.filePath)
+
+    if (result.changes === 0) {
+      return { status: 'not-found' }
+    }
+
+    this.database
+      .prepare('UPDATE local_playlists SET updated_at = ? WHERE id = ?')
+      .run(Date.now(), input.playlistId)
+
+    return { status: 'ok' }
+  }
+
+  private getPlaylistById(playlistId: number) {
+    const row = this.database
+      .prepare(
+        `
+          SELECT
+            lp.id as id,
+            lp.name as name,
+            COUNT(lpt.track_file_path) as trackCount,
+            lp.created_at as createdAt,
+            lp.updated_at as updatedAt,
+            COALESCE((
+              SELECT lt.cover_path
+              FROM local_playlist_tracks first_lpt
+              JOIN local_tracks lt ON lt.file_path = first_lpt.track_file_path
+              WHERE first_lpt.playlist_id = lp.id
+              ORDER BY first_lpt.created_at ASC
+              LIMIT 1
+            ), '') as coverPath
+          FROM local_playlists lp
+          LEFT JOIN local_playlist_tracks lpt ON lpt.playlist_id = lp.id
+          WHERE lp.id = ?
+          GROUP BY lp.id
+        `
+      )
+      .get(playlistId) as Record<string, unknown> | undefined
+
+    return row ? toLocalLibraryPlaylistRecord(row) : null
+  }
+
   removeTracksMissingFromRoot(rootId: number, existingFilePaths: string[]) {
     if (existingFilePaths.length === 0) {
       this.database
@@ -614,6 +1053,11 @@ export class LocalLibraryDatabase {
       offset: 0,
       limit: Number.MAX_SAFE_INTEGER,
     }).items
+    const playlists = this.queryPlaylists({
+      keyword: '',
+      offset: 0,
+      limit: Number.MAX_SAFE_INTEGER,
+    }).items
 
     return {
       roots: overview.roots,
@@ -621,6 +1065,7 @@ export class LocalLibraryDatabase {
       tracks,
       albums,
       artists,
+      playlists,
     }
   }
 }

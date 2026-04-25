@@ -165,6 +165,44 @@ test('syncQueueFromSource does not publish redundant updates for an already sync
   assert.equal(updateCount, 0)
 })
 
+test('syncQueueFromSource can shrink the active queue while preserving the current track', () => {
+  usePlaybackStore.getState().resetPlayback()
+  usePlaybackStore
+    .getState()
+    .playQueueFromIndex(tracks, 1, 'artist-songs:6452:hot')
+
+  usePlaybackStore
+    .getState()
+    .syncQueueFromSource('artist-songs:6452:hot', [tracks[1], tracks[2]])
+
+  const state = usePlaybackStore.getState()
+  assert.deepEqual(
+    state.queue.map(track => track.id),
+    [2, 3]
+  )
+  assert.equal(state.currentIndex, 0)
+  assert.equal(state.currentTrack?.id, 2)
+})
+
+test('syncQueueFromSource pins the current track when it has been removed from the source queue', () => {
+  usePlaybackStore.getState().resetPlayback()
+  usePlaybackStore
+    .getState()
+    .playQueueFromIndex(tracks, 1, 'artist-songs:6452:hot')
+
+  usePlaybackStore
+    .getState()
+    .syncQueueFromSource('artist-songs:6452:hot', [tracks[0], tracks[2]])
+
+  const state = usePlaybackStore.getState()
+  assert.deepEqual(
+    state.queue.map(track => track.id),
+    [1, 2, 3]
+  )
+  assert.equal(state.currentIndex, 1)
+  assert.equal(state.currentTrack?.id, 2)
+})
+
 test('playCurrentQueueIndex switches tracks without rebuilding the queue reference', () => {
   usePlaybackStore.getState().resetPlayback()
   usePlaybackStore

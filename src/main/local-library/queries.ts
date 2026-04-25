@@ -4,6 +4,10 @@ import type {
   LocalLibraryArtistQueryInput,
   LocalLibraryArtistQueryResult,
   LocalLibraryOverviewSnapshot,
+  LocalLibraryPlaylistDetailQueryInput,
+  LocalLibraryPlaylistDetailQueryResult,
+  LocalLibraryPlaylistQueryInput,
+  LocalLibraryPlaylistQueryResult,
   LocalLibrarySnapshot,
   LocalLibraryTrackQueryInput,
   LocalLibraryTrackQueryResult,
@@ -41,4 +45,18 @@ export function queryLocalLibraryArtists(
   input: LocalLibraryArtistQueryInput
 ): LocalLibraryArtistQueryResult {
   return database.queryArtists(input)
+}
+
+export function queryLocalLibraryPlaylists(
+  database: LocalLibraryDatabase,
+  input: LocalLibraryPlaylistQueryInput
+): LocalLibraryPlaylistQueryResult {
+  return database.queryPlaylists(input)
+}
+
+export function queryLocalLibraryPlaylistDetail(
+  database: LocalLibraryDatabase,
+  input: LocalLibraryPlaylistDetailQueryInput
+): LocalLibraryPlaylistDetailQueryResult {
+  return database.queryPlaylistDetail(input)
 }

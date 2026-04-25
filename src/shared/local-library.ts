@@ -2,6 +2,7 @@ export const LOCAL_LIBRARY_ENTITY_TYPES = [
   'songs',
   'albums',
   'artists',
+  'playlists',
 ] as const
 
 export type LocalLibraryEntityType = (typeof LOCAL_LIBRARY_ENTITY_TYPES)[number]
@@ -39,6 +40,81 @@ export interface LocalLibraryArtistRecord {
   name: string
   trackCount: number
   coverUrl: string
+}
+
+export interface LocalLibraryPlaylistRecord {
+  id: number
+  name: string
+  trackCount: number
+  coverUrl: string
+  createdAt: number
+  updatedAt: number
+  containsTrack?: boolean
+}
+
+export interface LocalLibraryPlaylistQueryInput {
+  keyword: string
+  trackFilePath?: string | null
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryPlaylistQueryResult {
+  items: LocalLibraryPlaylistRecord[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryPlaylistDetailQueryInput {
+  playlistId: number
+  keyword: string
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryPlaylistDetailQueryResult {
+  playlist: LocalLibraryPlaylistRecord | null
+  items: LocalLibraryTrackRecord[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export interface LocalLibraryPlaylistCreateInput {
+  name: string
+}
+
+export interface LocalLibraryPlaylistCreateResult {
+  status: 'created' | 'duplicate'
+  playlist: LocalLibraryPlaylistRecord | null
+}
+
+export interface LocalLibraryPlaylistUpdateInput {
+  playlistId: number
+  name: string
+}
+
+export interface LocalLibraryPlaylistUpdateResult {
+  status: 'updated' | 'duplicate' | 'not-found'
+  playlist: LocalLibraryPlaylistRecord | null
+}
+
+export interface LocalLibraryPlaylistDeleteInput {
+  playlistId: number
+}
+
+export interface LocalLibraryPlaylistDeleteResult {
+  deleted: boolean
+}
+
+export interface LocalLibraryPlaylistTrackMutationInput {
+  playlistId: number
+  filePath: string
+}
+
+export interface LocalLibraryPlaylistTrackMutationResult {
+  status: 'ok' | 'duplicate' | 'not-found'
 }
 
 export interface LocalLibraryRootRecord {
@@ -92,6 +168,7 @@ export interface LocalLibrarySnapshot {
   tracks: LocalLibraryTrackRecord[]
   albums: LocalLibraryAlbumRecord[]
   artists: LocalLibraryArtistRecord[]
+  playlists: LocalLibraryPlaylistRecord[]
 }
 
 export interface LocalLibraryTrackQueryInput {

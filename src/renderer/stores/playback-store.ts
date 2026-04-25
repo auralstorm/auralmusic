@@ -136,17 +136,6 @@ function patchPlaybackTrack(
   return nextTrack
 }
 
-function isQueueExtensionOfCurrentQueue(
-  currentQueue: PlaybackTrack[],
-  nextQueue: PlaybackTrack[]
-) {
-  if (nextQueue.length < currentQueue.length) {
-    return false
-  }
-
-  return currentQueue.every((track, index) => nextQueue[index]?.id === track.id)
-}
-
 function isSamePlaybackQueue(
   currentQueue: PlaybackTrack[],
   nextQueue: PlaybackTrack[]
@@ -257,11 +246,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     }
 
     set(state => {
-      if (
-        state.queueSourceKey !== sourceKey ||
-        !state.currentTrack ||
-        !isQueueExtensionOfCurrentQueue(state.queue, nextSnapshot.queue)
-      ) {
+      if (state.queueSourceKey !== sourceKey || !state.currentTrack) {
         return state
       }
 
@@ -269,24 +254,54 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
         track => track.id === state.currentTrack?.id
       )
 
-      if (nextCurrentIndex < 0) {
-        return state
+      if (nextCurrentIndex >= 0) {
+        const reconciledQueue = nextSnapshot.queue.map((track, index) =>
+          index === nextCurrentIndex ? state.currentTrack! : track
+        )
+
+        if (
+          isSamePlaybackQueue(state.queue, reconciledQueue) &&
+          nextCurrentIndex === state.currentIndex
+        ) {
+          return state
+        }
+
+        return {
+          queue: reconciledQueue,
+          currentIndex: nextCurrentIndex,
+          currentTrack: state.currentTrack,
+          shuffleOrder:
+            state.playbackMode === 'shuffle'
+              ? createShuffleOrder(reconciledQueue.length, nextCurrentIndex)
+              : [],
+          shuffleCursor: 0,
+        }
       }
 
+      const queueWithoutCurrentTrack = nextSnapshot.queue.filter(
+        track => track.id !== state.currentTrack?.id
+      )
+      const pinnedCurrentIndex = Math.min(
+        Math.max(state.currentIndex, 0),
+        queueWithoutCurrentTrack.length
+      )
+      const reconciledQueue = [...queueWithoutCurrentTrack]
+      reconciledQueue.splice(pinnedCurrentIndex, 0, state.currentTrack)
+
       if (
-        isSamePlaybackQueue(state.queue, nextSnapshot.queue) &&
-        nextCurrentIndex === state.currentIndex
+        isSamePlaybackQueue(state.queue, reconciledQueue) &&
+        pinnedCurrentIndex === state.currentIndex
       ) {
         return state
       }
 
       return {
-        queue: nextSnapshot.queue,
-        currentIndex: nextCurrentIndex,
+        queue: reconciledQueue,
+        currentIndex: pinnedCurrentIndex,
         currentTrack: state.currentTrack,
         shuffleOrder:
           state.playbackMode === 'shuffle'
-            ? createShuffleOrder(nextSnapshot.queue.length, nextCurrentIndex)
+            ? createShuffleOrder(reconciledQueue.length, pinnedCurrentIndex)
             : [],
         shuffleCursor: 0,
       }

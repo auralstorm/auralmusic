@@ -38,6 +38,29 @@ test('createLocalLibraryApi proxies overview and paged queries through ipc', asy
     offset: 0,
     limit: 24,
   })
+  await api.queryPlaylists({
+    keyword: '',
+    trackFilePath: null,
+    offset: 0,
+    limit: 24,
+  })
+  await api.getPlaylistDetail({
+    playlistId: 7,
+    keyword: '',
+    offset: 0,
+    limit: 80,
+  })
+  await api.createPlaylist({ name: '夜间散步' })
+  await api.updatePlaylist({ playlistId: 7, name: '深夜循环' })
+  await api.deletePlaylist({ playlistId: 7 })
+  await api.addTrackToPlaylist({
+    playlistId: 7,
+    filePath: 'F:/音乐/晴天.mp3',
+  })
+  await api.removeTrackFromPlaylist({
+    playlistId: 7,
+    filePath: 'F:/音乐/晴天.mp3',
+  })
 
   assert.deepEqual(invocations, [
     {
@@ -74,6 +97,71 @@ test('createLocalLibraryApi proxies overview and paged queries through ipc', asy
           keyword: '',
           offset: 0,
           limit: 24,
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.QUERY_PLAYLISTS,
+      args: [
+        {
+          keyword: '',
+          trackFilePath: null,
+          offset: 0,
+          limit: 24,
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.GET_PLAYLIST_DETAIL,
+      args: [
+        {
+          playlistId: 7,
+          keyword: '',
+          offset: 0,
+          limit: 80,
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.CREATE_PLAYLIST,
+      args: [
+        {
+          name: '夜间散步',
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.UPDATE_PLAYLIST,
+      args: [
+        {
+          playlistId: 7,
+          name: '深夜循环',
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.DELETE_PLAYLIST,
+      args: [
+        {
+          playlistId: 7,
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.ADD_TRACK_TO_PLAYLIST,
+      args: [
+        {
+          playlistId: 7,
+          filePath: 'F:/音乐/晴天.mp3',
+        },
+      ],
+    },
+    {
+      channel: LOCAL_LIBRARY_IPC_CHANNELS.REMOVE_TRACK_FROM_PLAYLIST,
+      args: [
+        {
+          playlistId: 7,
+          filePath: 'F:/音乐/晴天.mp3',
         },
       ],
     },

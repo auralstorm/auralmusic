@@ -4,6 +4,8 @@ import { resolveAppStoreDirectory } from '../storage/store-path.ts'
 import type { LocalLibraryScanFormat } from '../../shared/config.ts'
 import { createLocalLibraryDatabase } from './db.ts'
 import {
+  queryLocalLibraryPlaylistDetail,
+  queryLocalLibraryPlaylists,
   getLocalLibraryOverview,
   getLocalLibrarySnapshot,
   queryLocalLibraryAlbums,
@@ -102,6 +104,58 @@ export function queryLocalLibraryArtistsByInput(
   return queryLocalLibraryArtists(getLocalLibraryDatabase(), input)
 }
 
+export function queryLocalLibraryPlaylistsByInput(
+  input: Parameters<typeof queryLocalLibraryPlaylists>[1]
+) {
+  return queryLocalLibraryPlaylists(getLocalLibraryDatabase(), input)
+}
+
+export function queryLocalLibraryPlaylistDetailByInput(
+  input: Parameters<typeof queryLocalLibraryPlaylistDetail>[1]
+) {
+  return queryLocalLibraryPlaylistDetail(getLocalLibraryDatabase(), input)
+}
+
+export function createLocalLibraryPlaylist(
+  input: Parameters<
+    ReturnType<typeof getLocalLibraryDatabase>['createPlaylist']
+  >[0]
+) {
+  return getLocalLibraryDatabase().createPlaylist(input)
+}
+
+export function updateLocalLibraryPlaylist(
+  input: Parameters<
+    ReturnType<typeof getLocalLibraryDatabase>['updatePlaylist']
+  >[0]
+) {
+  return getLocalLibraryDatabase().updatePlaylist(input)
+}
+
+export function deleteLocalLibraryPlaylist(
+  input: Parameters<
+    ReturnType<typeof getLocalLibraryDatabase>['deletePlaylist']
+  >[0]
+) {
+  return getLocalLibraryDatabase().deletePlaylist(input)
+}
+
+export function addLocalLibraryTrackToPlaylist(
+  input: Parameters<
+    ReturnType<typeof getLocalLibraryDatabase>['addTrackToPlaylist']
+  >[0]
+) {
+  return getLocalLibraryDatabase().addTrackToPlaylist(input)
+}
+
+export function removeLocalLibraryTrackFromPlaylist(
+  input: Parameters<
+    ReturnType<typeof getLocalLibraryDatabase>['removeTrackFromPlaylist']
+  >[0]
+) {
+  return getLocalLibraryDatabase().removeTrackFromPlaylist(input)
+}
+
 export function deleteLocalLibraryTrack(
   input: Parameters<typeof removeLocalLibraryTrack>[0]
 ) {
@@ -126,6 +180,8 @@ export {
   getLocalLibrarySnapshot,
   queryLocalLibraryAlbums,
   queryLocalLibraryArtists,
+  queryLocalLibraryPlaylistDetail,
+  queryLocalLibraryPlaylists,
   queryLocalLibraryTracks,
   scanLocalLibraryRoots,
 }
