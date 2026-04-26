@@ -32,10 +32,56 @@ test('toLxMusicInfo maps playback tracks into lx music info', () => {
     name: 'Example Song',
     singer: 'Artist A / Artist B',
     album: 'Example Album',
+    albumId: undefined,
     source: 'wy',
     interval: '01:01',
     img: 'https://image.test/cover.jpg',
   })
+})
+
+test('toLxMusicInfo prefers the locked platform when present', () => {
+  assert.deepEqual(
+    toLxMusicInfo({
+      ...track,
+      lockedPlatform: 'tx',
+    }),
+    {
+      songmid: 1001,
+      hash: '1001',
+      strMediaMid: '1001',
+      copyrightId: '1001',
+      name: 'Example Song',
+      singer: 'Artist A / Artist B',
+      album: 'Example Album',
+      albumId: undefined,
+      source: 'tx',
+      interval: '01:01',
+      img: 'https://image.test/cover.jpg',
+    }
+  )
+})
+
+test('toLxMusicInfo prefers a locked lx source id over the legacy locked platform', () => {
+  assert.deepEqual(
+    toLxMusicInfo({
+      ...track,
+      lockedPlatform: 'tx',
+      lockedLxSourceId: 'qsvip',
+    }),
+    {
+      songmid: 1001,
+      hash: '1001',
+      strMediaMid: '1001',
+      copyrightId: '1001',
+      name: 'Example Song',
+      singer: 'Artist A / Artist B',
+      album: 'Example Album',
+      albumId: undefined,
+      source: 'qsvip',
+      interval: '01:01',
+      img: 'https://image.test/cover.jpg',
+    }
+  )
 })
 
 test('selectBestLxSource prefers music info source before generic fallbacks', () => {

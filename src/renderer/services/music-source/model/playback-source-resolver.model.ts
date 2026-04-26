@@ -6,7 +6,10 @@ import {
   buildResolverPolicy,
   isAuthenticatedForMusicResolution,
 } from '../../../../shared/music-source/index.ts'
-import type { SongUrlV1Result } from '../../../../shared/playback.ts'
+import type {
+  PlaybackTrack,
+  SongUrlV1Result,
+} from '../../../../shared/playback.ts'
 import { createBuiltinUnblockPlaybackProvider } from '../providers/builtin-unblock-playback-provider.ts'
 import { createCustomApiPlaybackProvider } from '../providers/custom-api-playback-provider.ts'
 import { createLxPlaybackProvider } from '../providers/lx-playback-provider.ts'
@@ -30,7 +33,7 @@ function createMissingPlaybackRuntimeStateError(): Error {
 function toResolveContext(
   authState: PlaybackResolverAuthState,
   config: PlaybackResolverConfig,
-  trackFee: number
+  track: PlaybackTrack
 ): ResolveContext {
   return {
     scene: 'playback',
@@ -40,7 +43,10 @@ function toResolveContext(
       cookie: authState.session?.cookie ?? null,
     }),
     isVip: authState.session?.isVip === true,
-    trackFee,
+    trackFee: typeof track.fee === 'number' ? track.fee : 0,
+    lockedPlatform: track.lockedPlatform,
+    lockedLxSourceId: track.lockedLxSourceId,
+    preferredQuality: track.preferredQuality,
     config: {
       musicSourceEnabled: config.musicSourceEnabled,
       musicSourceProviders: config.musicSourceProviders,
@@ -135,11 +141,7 @@ export function createPlaybackSourceResolver(
         : (() => {
             throw createMissingPlaybackRuntimeStateError()
           })())
-    const context = toResolveContext(
-      authState,
-      config,
-      typeof options.track.fee === 'number' ? options.track.fee : 0
-    )
+    const context = toResolveContext(authState, config, options.track)
     const policy = buildResolverPolicy(context)
     const trackId = options.track.id
 

@@ -119,6 +119,19 @@ test('buildResolverPolicy bypasses official for authenticated non-vip tracks wit
   ])
 })
 
+test('buildResolverPolicy bypasses official for non-wy locked search results even when authenticated', () => {
+  const policy = buildResolverPolicy(
+    createContext({
+      isAuthenticated: true,
+      isVip: true,
+      lockedPlatform: 'tx',
+      trackFee: 0,
+    })
+  )
+
+  assert.deepEqual(policy.resolverOrder, ['lxMusic', 'customApi'])
+})
+
 test('buildResolverPolicy keeps official first for authenticated non-vip free tracks', () => {
   const policy = buildResolverPolicy(
     createContext({

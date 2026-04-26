@@ -27,6 +27,10 @@ export function buildResolverPolicy(context: ResolveContext): ResolverPolicy {
   const builtinPlatforms = normalizeBuiltinPlatforms(
     context.config.musicSourceProviders
   )
+  const isLockedToNonWyPlatform =
+    typeof context.lockedPlatform === 'string' &&
+    context.lockedPlatform.trim().length > 0 &&
+    context.lockedPlatform !== 'wy'
   const enhancedSourceModules = context.config.enhancedSourceModules
   const hasExplicitEnhancedModules = Array.isArray(enhancedSourceModules)
   const hasEnabledEnhancedModules =
@@ -37,21 +41,27 @@ export function buildResolverPolicy(context: ResolveContext): ResolverPolicy {
     context.config.customMusicApiEnabled &&
     context.config.customMusicApiUrl.trim().length > 0
   const shouldBypassOfficial =
-    context.isAuthenticated && !context.isVip && context.trackFee !== 0
+    isLockedToNonWyPlatform ||
+    (context.isAuthenticated && !context.isVip && context.trackFee !== 0)
   const resolverOrder: MusicResolverId[] = context.config.musicSourceEnabled
     ? compactResolvers(
-        context.isAuthenticated && !shouldBypassOfficial
+        isLockedToNonWyPlatform
           ? [
-              'official',
-              builtinUnblockEnabled ? 'builtinUnblock' : null,
               context.config.luoxueSourceEnabled ? 'lxMusic' : null,
               customApiEnabled ? 'customApi' : null,
             ]
-          : [
-              builtinUnblockEnabled ? 'builtinUnblock' : null,
-              context.config.luoxueSourceEnabled ? 'lxMusic' : null,
-              customApiEnabled ? 'customApi' : null,
-            ]
+          : context.isAuthenticated && !shouldBypassOfficial
+            ? [
+                'official',
+                builtinUnblockEnabled ? 'builtinUnblock' : null,
+                context.config.luoxueSourceEnabled ? 'lxMusic' : null,
+                customApiEnabled ? 'customApi' : null,
+              ]
+            : [
+                builtinUnblockEnabled ? 'builtinUnblock' : null,
+                context.config.luoxueSourceEnabled ? 'lxMusic' : null,
+                customApiEnabled ? 'customApi' : null,
+              ]
       )
     : ['official']
 

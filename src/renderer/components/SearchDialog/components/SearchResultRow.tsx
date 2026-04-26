@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 
 import type { SearchResultRowProps } from '../types'
 
@@ -10,29 +9,24 @@ const SearchResultRow = ({ item, onSelect }: SearchResultRowProps) => {
       disabled={item.disabled}
       title={item.name}
       className={cn(
-        'hover:bg-accent/60 grid w-full grid-cols-[64px_minmax(0,1fr)_80px] items-center gap-3 rounded-2xl px-3 py-1 text-left transition-colors 2xl:grid-cols-[84px_minmax(0,1fr)_200px]',
+        'hover:bg-accent/60 grid w-full grid-cols-[minmax(0,1fr)_120px_64px] items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors 2xl:grid-cols-[minmax(0,1fr)_180px_72px]',
         item.disabled && 'cursor-not-allowed opacity-50'
       )}
       onClick={() => onSelect(item)}
     >
-      <div className='bg-muted flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl'>
-        {item.coverUrl ? (
-          <img
-            src={resizeImageUrl(
-              item.coverUrl,
-              imageSizes.listCover.width,
-              imageSizes.listCover.height
-            )}
-            alt={item.name}
-            className='h-full w-full object-cover'
-          />
-        ) : (
-          <span className='text-muted-foreground text-xs'>No Cover</span>
-        )}
-      </div>
-      <p className='truncate text-sm font-medium'>{item.name}</p>
+      <p className='truncate text-sm font-medium'>
+        {item.name}
+        {item.qualityLabel ? (
+          <span className='ml-1 align-middle text-[10px] font-semibold tracking-[-0.02em] text-emerald-500'>
+            {item.qualityLabel}
+          </span>
+        ) : null}
+      </p>
       <p className='text-muted-foreground truncate text-sm'>
         {item.artistName}
+      </p>
+      <p className='text-muted-foreground text-right text-xs tabular-nums'>
+        {item.durationLabel}
       </p>
     </button>
   )

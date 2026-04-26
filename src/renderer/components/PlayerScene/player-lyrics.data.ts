@@ -1,10 +1,14 @@
 import type { LyricTextBundle } from './types'
 
-export function createLyricCacheKey(trackId: number | string) {
-  return `lyrics:new:${trackId}`
+export function createLyricCacheKey(trackId: number | string, sourceId = 'wy') {
+  return `lyrics:${sourceId}:${trackId}`
 }
 
 export function readLyricField(payload: unknown) {
+  if (typeof payload === 'string') {
+    return payload
+  }
+
   if (!payload || typeof payload !== 'object') {
     return ''
   }
@@ -14,12 +18,16 @@ export function readLyricField(payload: unknown) {
 }
 
 export function readLyricTextBundle(payload: unknown): LyricTextBundle {
+  if (typeof payload === 'string') {
+    return { lrc: payload, tlyric: '', yrc: '' }
+  }
+
   if (!payload || typeof payload !== 'object') {
     return { lrc: '', tlyric: '', yrc: '' }
   }
 
   const record = payload as Record<string, unknown>
-  const lrc = readLyricField(record.lrc)
+  const lrc = readLyricField(record.lrc) || readLyricField(record.lyric)
   const tlyric = readLyricField(record.tlyric)
   const yrc = readLyricField(record.yrc)
   const nestedData = record.data

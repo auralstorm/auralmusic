@@ -20,6 +20,7 @@ import PlayerSceneChromeButton from './PlayerSceneChromeButton'
 import PlayerSceneControls from './PlayerSceneControls'
 import PlayerSceneProgress from './PlayerSceneProgress'
 import { resolveAmllBackgroundState } from './player-background-amll.model'
+import { ensureCurrentTrackCover } from './player-cover.service'
 import { usePlayerSceneChromeVisibility } from './usePlayerSceneChromeVisibility'
 import { usePlayerLyrics } from './usePlayerLyrics'
 
@@ -90,6 +91,10 @@ const PlayerScene = () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [closePlayerScene, isExpanded, isOpen])
+
+  useEffect(() => {
+    void ensureCurrentTrackCover(currentTrack)
+  }, [currentTrack])
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {

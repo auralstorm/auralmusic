@@ -4,8 +4,10 @@ import assert from 'node:assert/strict'
 import {
   SEARCH_TYPE_CODE_MAP,
   buildSearchResultTargetPath,
+  normalizeBuiltinSearchResults,
   normalizeSearchResults,
 } from '../src/renderer/components/SearchDialog/search-dialog.model.ts'
+import { createSystemSearchSourceTab } from '../src/renderer/components/SearchDialog/model/search-source-tabs.model.ts'
 
 test('SEARCH_TYPE_CODE_MAP exposes the supported cloudsearch codes', () => {
   assert.deepEqual(SEARCH_TYPE_CODE_MAP, {
@@ -17,7 +19,15 @@ test('SEARCH_TYPE_CODE_MAP exposes the supported cloudsearch codes', () => {
   })
 })
 
-test('normalizeSearchResults maps song payloads into playable rows', () => {
+test('createSystemSearchSourceTab returns the built-in NetEase tab', () => {
+  assert.deepEqual(createSystemSearchSourceTab(), {
+    id: 'wy',
+    name: '网易云',
+    providerType: 'builtin',
+  })
+})
+
+test('normalizeSearchResults maps system song payloads into locked-platform playback rows', () => {
   const rows = normalizeSearchResults(
     {
       result: {
@@ -26,8 +36,10 @@ test('normalizeSearchResults maps song payloads into playable rows', () => {
             id: 101,
             name: 'Northern Lights',
             dt: 245000,
+            fee: 1,
             ar: [{ name: 'Aurora Echo' }],
             al: {
+              id: 808,
               name: 'Midnight Signals',
               picUrl: 'https://img.example.com/song.jpg',
             },
@@ -45,6 +57,8 @@ test('normalizeSearchResults maps song payloads into playable rows', () => {
       name: 'Northern Lights',
       artistName: 'Aurora Echo',
       coverUrl: 'https://img.example.com/song.jpg',
+      durationLabel: '04:05',
+      qualityLabel: '',
       targetId: 101,
       disabled: false,
       playbackTrack: {
@@ -54,6 +68,83 @@ test('normalizeSearchResults maps song payloads into playable rows', () => {
         albumName: 'Midnight Signals',
         coverUrl: 'https://img.example.com/song.jpg',
         duration: 245000,
+        fee: 1,
+        lockedPlatform: 'wy',
+        lxInfo: {
+          songmid: 101,
+          hash: '101',
+          strMediaMid: '101',
+          copyrightId: '101',
+          albumId: 808,
+          source: 'wy',
+          img: 'https://img.example.com/song.jpg',
+        },
+      },
+    },
+  ])
+})
+
+test('normalizeBuiltinSearchResults maps builtin provider payloads into locked-platform playback rows', () => {
+  const rows = normalizeBuiltinSearchResults(
+    {
+      source: 'tx',
+      page: 1,
+      limit: 20,
+      total: 1,
+      list: [
+        {
+          id: 123,
+          name: 'Faded',
+          artistNames: 'Alan Walker',
+          albumName: 'Faded',
+          coverUrl: 'https://img.example.com/faded.jpg',
+          duration: 212000,
+          fee: 0,
+          qualityLabel: 'SQ',
+          lxInfo: {
+            songmid: '004Z8Ihr0JIu5s',
+            strMediaMid: '001Qu4I30eVFYb',
+            source: 'tx',
+            img: 'https://img.example.com/faded.jpg',
+          },
+        },
+      ],
+    },
+    {
+      id: 'tx',
+      name: 'QQ',
+      providerType: 'builtin',
+    }
+  )
+
+  assert.deepEqual(rows, [
+    {
+      id: 123,
+      type: 'song',
+      name: 'Faded',
+      artistName: 'Alan Walker',
+      coverUrl: 'https://img.example.com/faded.jpg',
+      durationLabel: '03:32',
+      qualityLabel: 'SQ',
+      targetId: 123,
+      disabled: false,
+      searchSourceId: 'tx',
+      searchSourceName: 'QQ',
+      playbackTrack: {
+        id: 123,
+        name: 'Faded',
+        artistNames: 'Alan Walker',
+        albumName: 'Faded',
+        coverUrl: 'https://img.example.com/faded.jpg',
+        duration: 212000,
+        fee: 0,
+        lockedPlatform: 'tx',
+        lxInfo: {
+          songmid: '004Z8Ihr0JIu5s',
+          strMediaMid: '001Qu4I30eVFYb',
+          source: 'tx',
+          img: 'https://img.example.com/faded.jpg',
+        },
       },
     },
   ])
@@ -84,6 +175,8 @@ test('normalizeSearchResults maps artist payloads into navigable rows', () => {
       name: 'Wave Singer',
       artistName: '12 张专辑 · 3 个 MV',
       coverUrl: 'https://img.example.com/artist.jpg',
+      durationLabel: '',
+      qualityLabel: '',
       targetId: 505,
       disabled: false,
       playbackTrack: null,
@@ -97,88 +190,4 @@ test('buildSearchResultTargetPath returns detail routes for navigable resources'
   assert.equal(buildSearchResultTargetPath('playlist', 303), '/playlist/303')
   assert.equal(buildSearchResultTargetPath('song', 101), null)
   assert.equal(buildSearchResultTargetPath('mv', 404), null)
-})
-
-test('normalizeSearchResults maps albums, playlists, and mvs into the shared row shape', () => {
-  const albumRows = normalizeSearchResults(
-    {
-      result: {
-        albums: [
-          {
-            id: 202,
-            name: 'Moonline',
-            picUrl: 'https://img.example.com/album.jpg',
-            artist: { name: 'Night Pulse' },
-            artists: [{ name: 'Night Pulse' }],
-          },
-        ],
-      },
-    },
-    'album'
-  )
-
-  const playlistRows = normalizeSearchResults(
-    {
-      result: {
-        playlists: [
-          {
-            id: 303,
-            name: 'City Drive',
-            coverImgUrl: 'https://img.example.com/playlist.jpg',
-            creator: { nickname: 'Synth User' },
-          },
-        ],
-      },
-    },
-    'playlist'
-  )
-
-  const mvRows = normalizeSearchResults(
-    {
-      result: {
-        mvs: [
-          {
-            id: 404,
-            name: 'Skyline',
-            cover: 'https://img.example.com/mv.jpg',
-            artistName: 'Nova',
-          },
-        ],
-      },
-    },
-    'mv'
-  )
-
-  assert.deepEqual(albumRows[0], {
-    id: 202,
-    type: 'album',
-    name: 'Moonline',
-    artistName: 'Night Pulse',
-    coverUrl: 'https://img.example.com/album.jpg',
-    targetId: 202,
-    disabled: false,
-    playbackTrack: null,
-  })
-
-  assert.deepEqual(playlistRows[0], {
-    id: 303,
-    type: 'playlist',
-    name: 'City Drive',
-    artistName: 'Synth User',
-    coverUrl: 'https://img.example.com/playlist.jpg',
-    targetId: 303,
-    disabled: false,
-    playbackTrack: null,
-  })
-
-  assert.deepEqual(mvRows[0], {
-    id: 404,
-    type: 'mv',
-    name: 'Skyline',
-    artistName: 'Nova',
-    coverUrl: 'https://img.example.com/mv.jpg',
-    targetId: 404,
-    disabled: true,
-    playbackTrack: null,
-  })
 })

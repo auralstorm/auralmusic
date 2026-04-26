@@ -1,4 +1,5 @@
 import type { AppConfig } from '../config.ts'
+import type { LxQuality, LxSourceKey } from '../lx-music-source.ts'
 
 export type ResolveScene = 'playback' | 'download'
 
@@ -15,6 +16,9 @@ export type ResolveContext = {
   isAuthenticated: boolean
   isVip: boolean
   trackFee: number
+  lockedPlatform?: LxSourceKey
+  lockedLxSourceId?: string
+  preferredQuality?: LxQuality
   config: Pick<
     AppConfig,
     | 'musicSourceEnabled'

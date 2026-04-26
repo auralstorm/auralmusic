@@ -12,11 +12,18 @@ export type LxQuality = '128k' | '320k' | 'flac' | 'flac24bit'
 export const LX_SOURCE_KEYS = ['kw', 'kg', 'tx', 'wy', 'mg'] as const
 
 export type LxSourceKey = (typeof LX_SOURCE_KEYS)[number]
+export type LxSourceId = string
+export type LxSourceAction =
+  | 'musicUrl'
+  | 'lyric'
+  | 'pic'
+  | 'search'
+  | 'musicSearch'
 
 export type LxSourceConfig = {
   name: string
   type: 'music'
-  actions: Array<'musicUrl' | 'lyric' | 'pic'>
+  actions: LxSourceAction[]
   qualitys: LxQuality[]
 }
 
@@ -29,21 +36,53 @@ export type LxMusicInfo = {
   singer: string
   album: string
   albumId?: string | number
-  source: LxSourceKey
+  source: LxSourceId
   interval: string
   img?: string
 }
 
-export type LxScriptRequestAction = 'musicUrl' | 'lyric' | 'pic'
-
-export type LxScriptRequestPayload = {
-  source: LxSourceKey
-  action: LxScriptRequestAction
-  info: {
-    type?: LxQuality
-    musicInfo: LxMusicInfo
-  }
+export type LxSearchInfo = {
+  keyword: string
+  page?: number
+  limit?: number
 }
+
+export type LxSearchResultItem = {
+  name: string
+  singer: string
+  album?: string
+  source: LxSourceId
+  songmid: string | number
+  hash?: string
+  interval?: string | number
+  img?: string
+  albumId?: string | number
+}
+
+export type LxSearchResult = {
+  list: LxSearchResultItem[]
+  total?: number
+  limit?: number
+  page?: number
+  source?: LxSourceId
+}
+
+export type LxScriptRequestAction = 'musicUrl' | 'lyric' | 'pic' | 'search'
+
+export type LxScriptRequestPayload =
+  | {
+      source: LxSourceId
+      action: 'musicUrl' | 'lyric' | 'pic'
+      info: {
+        type?: LxQuality
+        musicInfo: LxMusicInfo
+      }
+    }
+  | {
+      source: LxSourceId
+      action: 'search'
+      info: LxSearchInfo
+    }
 
 export type LxScriptRequestResult =
   | string
@@ -56,7 +95,7 @@ export type LxScriptRequestResult =
 
 export type LxInitedData = {
   openDevTools?: boolean
-  sources: Partial<Record<LxSourceKey, LxSourceConfig>>
+  sources: Record<string, LxSourceConfig>
 }
 
 export type LxMusicSourceScriptDraft = LxScriptInfo & {

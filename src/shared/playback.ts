@@ -1,3 +1,6 @@
+import { LX_SOURCE_KEYS } from './lx-music-source.ts'
+import type { LxMusicInfo, LxQuality, LxSourceKey } from './lx-music-source.ts'
+
 export type PlaybackStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
 
 export const PLAYBACK_MODE_SEQUENCE = [
@@ -23,12 +26,28 @@ export type PlaybackTrack = {
   sourceUrl?: string
   lyricText?: string
   translatedLyricText?: string
+  lockedPlatform?: LxSourceKey
+  lockedLxSourceId?: string
+  preferredQuality?: LxQuality
+  lxInfo?: Partial<
+    Pick<
+      LxMusicInfo,
+      | 'songmid'
+      | 'hash'
+      | 'strMediaMid'
+      | 'copyrightId'
+      | 'albumId'
+      | 'source'
+      | 'img'
+    >
+  >
 }
 
 const PLAYLIST_QUEUE_SOURCE_PREFIX = 'playlist:'
 const LIKED_SONGS_QUEUE_SOURCE_PREFIX = 'liked-songs:'
 const ALBUM_QUEUE_SOURCE_PREFIX = 'album:'
 const CLOUD_QUEUE_SOURCE_PREFIX = 'cloud:'
+const VALID_LX_QUALITIES: LxQuality[] = ['128k', '320k', 'flac', 'flac24bit']
 
 export type PlaybackQueueSnapshot = {
   queue: PlaybackTrack[]
@@ -176,6 +195,61 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
     return null
   }
 
+  const lockedPlatform =
+    typeof track.lockedPlatform === 'string' &&
+    LX_SOURCE_KEYS.includes(track.lockedPlatform as LxSourceKey)
+      ? (track.lockedPlatform as LxSourceKey)
+      : undefined
+  const lockedLxSourceId =
+    typeof track.lockedLxSourceId === 'string' && track.lockedLxSourceId.trim()
+      ? track.lockedLxSourceId.trim()
+      : undefined
+  const preferredQuality =
+    typeof track.preferredQuality === 'string' &&
+    VALID_LX_QUALITIES.includes(track.preferredQuality as LxQuality)
+      ? (track.preferredQuality as LxQuality)
+      : undefined
+  const rawLxInfo =
+    track.lxInfo && isRecord(track.lxInfo)
+      ? (track.lxInfo as Record<string, unknown>)
+      : null
+  const lxInfo = rawLxInfo
+    ? {
+        songmid:
+          typeof rawLxInfo.songmid === 'string' ||
+          typeof rawLxInfo.songmid === 'number'
+            ? rawLxInfo.songmid
+            : undefined,
+        hash:
+          typeof rawLxInfo.hash === 'string' && rawLxInfo.hash.trim()
+            ? rawLxInfo.hash.trim()
+            : undefined,
+        strMediaMid:
+          typeof rawLxInfo.strMediaMid === 'string' &&
+          rawLxInfo.strMediaMid.trim()
+            ? rawLxInfo.strMediaMid.trim()
+            : undefined,
+        copyrightId:
+          typeof rawLxInfo.copyrightId === 'string' &&
+          rawLxInfo.copyrightId.trim()
+            ? rawLxInfo.copyrightId.trim()
+            : undefined,
+        albumId:
+          typeof rawLxInfo.albumId === 'string' ||
+          typeof rawLxInfo.albumId === 'number'
+            ? rawLxInfo.albumId
+            : undefined,
+        source:
+          typeof rawLxInfo.source === 'string' && rawLxInfo.source.trim()
+            ? rawLxInfo.source.trim()
+            : undefined,
+        img:
+          typeof rawLxInfo.img === 'string' && rawLxInfo.img.trim()
+            ? rawLxInfo.img.trim()
+            : undefined,
+      }
+    : undefined
+
   return {
     id,
     name,
@@ -200,6 +274,10 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
       typeof track.translatedLyricText === 'string'
         ? track.translatedLyricText.trim()
         : undefined,
+    lockedPlatform,
+    lockedLxSourceId,
+    preferredQuality,
+    lxInfo,
   }
 }
 

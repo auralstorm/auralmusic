@@ -1,10 +1,12 @@
+import type { BuiltinSongSearchResult } from '@/services/music-source/builtin-search'
 import type {
   RawArtist,
   RawSearchArtistItem,
-  RawSearchResultPayload,
+  SearchSourceTab,
   SearchResultRowItem,
   SearchType,
 } from './types'
+import type { RawSearchResultPayload } from './types'
 
 export type { SearchResultRowItem, SearchType } from './types'
 
@@ -61,6 +63,57 @@ function formatSearchArtistMeta(artist: RawSearchArtistItem) {
   return meta.join(' · ') || '歌手'
 }
 
+function formatDurationLabel(duration: number | undefined) {
+  if (!duration || !Number.isFinite(duration) || duration <= 0) {
+    return ''
+  }
+
+  const totalSeconds = Math.floor(duration / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes.toString().padStart(2, '0')}:${seconds
+    .toString()
+    .padStart(2, '0')}`
+}
+
+export function normalizeBuiltinSearchResults(
+  response: BuiltinSongSearchResult,
+  sourceTab: SearchSourceTab
+): SearchResultRowItem[] {
+  return (response.list || []).flatMap(item => {
+    if (!item.id) {
+      return []
+    }
+
+    return [
+      {
+        id: item.id,
+        type: 'song',
+        name: item.name?.trim() || '未知歌曲',
+        artistName: item.artistNames?.trim() || '未知歌手',
+        coverUrl: item.coverUrl?.trim() || '',
+        durationLabel: formatDurationLabel(item.duration),
+        qualityLabel: item.qualityLabel?.trim() || '',
+        targetId: item.id,
+        disabled: false,
+        searchSourceId: sourceTab.id,
+        searchSourceName: sourceTab.name,
+        playbackTrack: {
+          id: item.id,
+          name: item.name?.trim() || '未知歌曲',
+          artistNames: item.artistNames?.trim() || '未知歌手',
+          albumName: item.albumName?.trim() || '未知专辑',
+          coverUrl: item.coverUrl?.trim() || '',
+          duration: item.duration ?? 0,
+          fee: typeof item.fee === 'number' ? item.fee : 0,
+          lockedPlatform: sourceTab.id,
+          lxInfo: item.lxInfo,
+        },
+      },
+    ]
+  })
+}
+
 export function normalizeSearchResults(
   response: unknown,
   type: SearchType
@@ -86,6 +139,8 @@ export function normalizeSearchResults(
           name: song.name || '未知歌曲',
           artistName,
           coverUrl,
+          durationLabel: formatDurationLabel(song.dt),
+          qualityLabel: '',
           targetId: song.id,
           disabled: false,
           playbackTrack: {
@@ -96,6 +151,20 @@ export function normalizeSearchResults(
             coverUrl,
             duration: song.dt || 0,
             fee: typeof song.fee === 'number' ? song.fee : 0,
+            lockedPlatform: 'wy',
+            lxInfo: {
+              songmid: song.id,
+              hash: String(song.id),
+              strMediaMid: String(song.id),
+              copyrightId: String(song.id),
+              albumId:
+                typeof song.al?.id === 'number' ||
+                typeof song.al?.id === 'string'
+                  ? song.al.id
+                  : undefined,
+              source: 'wy',
+              img: coverUrl,
+            },
           },
         },
       ]
@@ -115,6 +184,8 @@ export function normalizeSearchResults(
           name: album.name || '未知专辑',
           artistName: album.artist?.name || formatArtistNames(album.artists),
           coverUrl: album.picUrl || '',
+          durationLabel: '',
+          qualityLabel: '',
           targetId: album.id,
           disabled: false,
           playbackTrack: null,
@@ -136,6 +207,8 @@ export function normalizeSearchResults(
           name: artist.name || '未知歌手',
           artistName: formatSearchArtistMeta(artist),
           coverUrl: artist.picUrl || artist.img1v1Url || '',
+          durationLabel: '',
+          qualityLabel: '',
           targetId: artist.id,
           disabled: false,
           playbackTrack: null,
@@ -157,6 +230,8 @@ export function normalizeSearchResults(
           name: playlist.name || '未知歌单',
           artistName: playlist.creator?.nickname?.trim() || '网易云音乐',
           coverUrl: playlist.coverImgUrl || playlist.picUrl || '',
+          durationLabel: '',
+          qualityLabel: '',
           targetId: playlist.id,
           disabled: false,
           playbackTrack: null,
@@ -177,6 +252,8 @@ export function normalizeSearchResults(
         name: mv.name || '未知 MV',
         artistName: mv.artistName?.trim() || formatArtistNames(mv.artists),
         coverUrl: mv.cover || mv.coverUrl || mv.imgurl16v9 || '',
+        durationLabel: '',
+        qualityLabel: '',
         targetId: mv.id,
         disabled: false,
         playbackTrack: null,

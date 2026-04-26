@@ -42,24 +42,31 @@ export function formatLxInterval(durationMs: number) {
 
 export function toLxMusicInfo(track: PlaybackTrack): LxMusicInfo {
   const trackId = String(track.id)
+  const lxInfo = track.lxInfo
+  const source =
+    track.lockedLxSourceId?.trim() ||
+    track.lockedPlatform ||
+    lxInfo?.source?.trim() ||
+    'wy'
 
   return {
-    songmid: track.id,
-    hash: trackId,
-    strMediaMid: trackId,
-    copyrightId: trackId,
+    songmid: lxInfo?.songmid ?? track.id,
+    hash: lxInfo?.hash ?? trackId,
+    strMediaMid: lxInfo?.strMediaMid ?? trackId,
+    copyrightId: lxInfo?.copyrightId ?? trackId,
     name: track.name,
     singer: track.artistNames,
     album: track.albumName,
-    source: 'wy',
+    albumId: lxInfo?.albumId,
+    source,
     interval: formatLxInterval(track.duration),
-    img: track.coverUrl,
+    img: track.coverUrl || lxInfo?.img,
   }
 }
 
 export function selectBestLxSource(
   sources: LxInitedData['sources'],
-  preferred: LxSourceKey[] = LX_PLAYBACK_SOURCE_PRIORITY
+  preferred: string[] = LX_PLAYBACK_SOURCE_PRIORITY
 ) {
   const available = new Set(
     Object.entries(sources)
@@ -84,6 +91,13 @@ function mapAudioQualityLevelToLxQuality(
   quality: AudioQualityLevel
 ): LxQuality {
   return AUDIO_QUALITY_TO_LX[quality] || '320k'
+}
+
+function resolveRequestedLxQuality(
+  track: PlaybackTrack,
+  quality: AudioQualityLevel
+): LxQuality {
+  return track.preferredQuality ?? mapAudioQualityLevelToLxQuality(quality)
 }
 
 export async function resolveTrackWithLxMusicSource(options: {
@@ -132,10 +146,15 @@ export async function resolveTrackWithLxMusicSource(options: {
   }
 
   const musicInfo = toLxMusicInfo(track)
-  const source = selectBestLxSource(runner.getSources(), [
-    musicInfo.source,
-    ...LX_PLAYBACK_SOURCE_PRIORITY,
-  ])
+  const source = selectBestLxSource(
+    runner.getSources(),
+    track.lockedLxSourceId || track.lockedPlatform
+      ? [
+          track.lockedLxSourceId ?? track.lockedPlatform!,
+          ...LX_PLAYBACK_SOURCE_PRIORITY,
+        ]
+      : [musicInfo.source, ...LX_PLAYBACK_SOURCE_PRIORITY]
+  )
   if (!source) {
     return null
   }
@@ -144,7 +163,7 @@ export async function resolveTrackWithLxMusicSource(options: {
     const url = await runner.getMusicUrl(
       source,
       musicInfo,
-      mapAudioQualityLevelToLxQuality(quality)
+      resolveRequestedLxQuality(track, quality)
     )
 
     return {
