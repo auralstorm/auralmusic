@@ -64,6 +64,7 @@ export type PlayerBackgroundMode = 'off' | 'static' | 'dynamic'
 export const PLAYER_ARTWORK_STYLE_OPTIONS = [
   { label: '默认封面', value: 'default' },
   { label: '黑胶唱片', value: 'vinylRecord' },
+  { label: '镭射 CD', value: 'holographicCd' },
 ] as const
 export type PlayerArtworkStyle =
   (typeof PLAYER_ARTWORK_STYLE_OPTIONS)[number]['value']

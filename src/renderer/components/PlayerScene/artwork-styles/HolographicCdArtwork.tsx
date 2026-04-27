@@ -1,10 +1,10 @@
 import { Music2 } from 'lucide-react'
 
-import vinylImageUrl from '@/assets/vinyl.png'
+import holographicImageUrl from '@/assets/holographic.png'
 import { cn } from '@/lib/utils'
 import type { PlayerArtworkStyleComponentProps } from './types'
 
-const VinylRecordArtwork = ({
+const HolographicCdArtwork = ({
   coverUrl,
   sizedCoverUrl,
   title,
@@ -23,37 +23,39 @@ const VinylRecordArtwork = ({
         }}
       >
         <div className='relative isolate h-full w-full'>
-          <div
-            className={cn(
-              'player-rotating-disc relative z-10 h-full w-full',
-              shouldSpin && 'is-spinning'
-            )}
-          >
-            <div className='absolute inset-[24%] overflow-hidden rounded-full bg-white/10 shadow-[inset_0_0_24px_rgba(255,255,255,0.18)]'>
+          <div className='relative z-10 h-full w-full'>
+            <div className='absolute inset-[17.5%] z-0 overflow-hidden rounded-full bg-white/8 shadow-[inset_0_0_32px_rgba(255,255,255,0.24)]'>
               {coverUrl ? (
                 <img
                   src={sizedCoverUrl}
                   alt={title}
-                  className='h-full w-full object-cover'
+                  className={cn(
+                    'player-rotating-disc h-full w-full object-cover',
+                    shouldSpin && 'is-spinning'
+                  )}
                   draggable={false}
                 />
               ) : (
-                <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-white/20 to-white/5 text-white/72'>
+                <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-200/25 via-fuchsia-200/18 to-white/8 text-white/78'>
                   <Music2 className='size-14' />
                 </div>
               )}
             </div>
             <img
-              src={vinylImageUrl}
+              src={holographicImageUrl}
               alt=''
               aria-hidden='true'
-              className='pointer-events-none absolute inset-0 h-full w-full object-contain drop-shadow-[0_42px_90px_rgba(0,0,0,0.45)] select-none'
+              className='pointer-events-none absolute inset-0 z-20 h-full w-full object-contain drop-shadow-[0_42px_90px_rgba(0,0,0,0.48)] select-none'
               draggable={false}
             />
           </div>
           <div
             aria-hidden='true'
-            className='absolute inset-[16%] z-0 rounded-full bg-black/30 blur-3xl'
+            className='absolute inset-[13%] z-0 rounded-full bg-cyan-300/20 blur-3xl'
+          />
+          <div
+            aria-hidden='true'
+            className='absolute inset-[18%] z-0 rounded-full bg-fuchsia-300/18 blur-2xl'
           />
         </div>
       </div>
@@ -70,4 +72,4 @@ const VinylRecordArtwork = ({
   )
 }
 
-export default VinylRecordArtwork
+export default HolographicCdArtwork

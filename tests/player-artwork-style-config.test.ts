@@ -14,6 +14,7 @@ test('player artwork style defaults to the existing cover layout', () => {
 test('normalizePlayerArtworkStyle preserves supported values and falls back for invalid values', () => {
   assert.equal(normalizePlayerArtworkStyle('default'), 'default')
   assert.equal(normalizePlayerArtworkStyle('vinylRecord'), 'vinylRecord')
+  assert.equal(normalizePlayerArtworkStyle('holographicCd'), 'holographicCd')
   assert.equal(normalizePlayerArtworkStyle(undefined), 'default')
   assert.equal(normalizePlayerArtworkStyle('cassette'), 'default')
 })
@@ -21,6 +22,6 @@ test('normalizePlayerArtworkStyle preserves supported values and falls back for 
 test('player artwork style options stay aligned with persisted values', () => {
   assert.deepEqual(
     PLAYER_ARTWORK_STYLE_OPTIONS.map(option => option.value),
-    ['default', 'vinylRecord']
+    ['default', 'vinylRecord', 'holographicCd']
   )
 })

@@ -31,6 +31,22 @@ const vinylArtworkSource = readFileSync(
   'utf8'
 )
 
+const holographicCdArtworkSource = readFileSync(
+  new URL(
+    '../src/renderer/components/PlayerScene/artwork-styles/HolographicCdArtwork.tsx',
+    import.meta.url
+  ),
+  'utf8'
+)
+
+const artworkRegistrySource = readFileSync(
+  new URL(
+    '../src/renderer/components/PlayerScene/artwork-styles/registry.ts',
+    import.meta.url
+  ),
+  'utf8'
+)
+
 test('basic settings exposes player artwork style selection', () => {
   assert.match(basicSettingsSource, /PLAYER_ARTWORK_STYLE_OPTIONS/)
   assert.match(basicSettingsSource, /playerArtworkStyle/)
@@ -50,6 +66,15 @@ test('player artwork container resolves styles through the registry', () => {
 
 test('vinyl artwork uses css rotation instead of Pixi cover rendering', () => {
   assert.match(vinylArtworkSource, /vinyl\.png/)
-  assert.match(vinylArtworkSource, /player-vinyl-record/)
+  assert.match(vinylArtworkSource, /player-rotating-disc/)
   assert.doesNotMatch(vinylArtworkSource, /PlayerScenePixiCover/)
+})
+
+test('holographic CD artwork is registered and preserves the template overlay', () => {
+  assert.match(artworkRegistrySource, /holographicCd:\s*HolographicCdArtwork/)
+  assert.match(holographicCdArtworkSource, /holographic\.png/)
+  assert.match(holographicCdArtworkSource, /player-rotating-disc/)
+  assert.match(holographicCdArtworkSource, /inset-\[17\.5%\]/)
+  assert.match(holographicCdArtworkSource, /z-20/)
+  assert.doesNotMatch(holographicCdArtworkSource, /PlayerScenePixiCover/)
 })
