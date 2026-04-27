@@ -22,6 +22,7 @@ import PlayerSceneProgress from './PlayerSceneProgress'
 import { resolveAmllBackgroundState } from './player-background-amll.model'
 import { ensureCurrentTrackCover } from './player-cover.service'
 import { usePlayerSceneChromeVisibility } from './usePlayerSceneChromeVisibility'
+import { usePlayerSceneCoverUrl } from './usePlayerSceneCoverUrl'
 import { usePlayerLyrics } from './usePlayerLyrics'
 
 const PlayerScene = () => {
@@ -137,6 +138,7 @@ const PlayerScene = () => {
   const coverUrl = useMemo(() => {
     return currentTrack?.coverUrl || ''
   }, [currentTrack?.coverUrl])
+  const visualCoverUrl = usePlayerSceneCoverUrl(coverUrl)
   const title = useMemo(() => {
     return currentTrack?.name || '暂无播放歌曲'
   }, [currentTrack?.name])
@@ -189,7 +191,7 @@ const PlayerScene = () => {
           onPointerMove={handleChromePointerActivity}
         >
           <PlayerSceneAmllBackground
-            coverUrl={coverUrl}
+            coverUrl={visualCoverUrl}
             playing={shouldPlayAmllBackground}
             hasLyrics={lyrics.length > 0}
             enabled={showPlayerBackground}
@@ -230,7 +232,7 @@ const PlayerScene = () => {
           <div className='relative z-10 grid h-full min-h-0 grid-cols-[minmax(320px,0.86fr)_minmax(420px,1.14fr)] items-center gap-16 px-14 py-16 xl:px-20'>
             <div className='flex min-h-0 flex-col items-center gap-8 2xl:gap-12'>
               <PlayerSceneArtwork
-                coverUrl={coverUrl}
+                coverUrl={visualCoverUrl}
                 title={title}
                 artistNames={artistNames}
                 isPlaying={isPlaying}

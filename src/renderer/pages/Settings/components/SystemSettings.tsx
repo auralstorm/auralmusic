@@ -420,10 +420,13 @@ const SystemSettings = () => {
       <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
         <div className='space-y-1'>
           <div className='text-muted-foreground text-sm font-medium'>
-            磁盘缓存
+            听歌自动缓存
           </div>
           <p className='text-muted-foreground text-xs'>
-            将播放过的音乐与歌词缓存到本地磁盘，提升二次播放速度
+            开启后会缓存播放过的音乐、歌词与封面，提升二次播放速度。关闭后不再新增自动缓存，历史缓存可手动清理。
+          </p>
+          <p className='text-muted-foreground text-xs'>
+            为保障均衡器和播放兼容性，播放过程中可能产生少量临时运行数据，退出后自动清理。
           </p>
         </div>
         <ToggleSetting
@@ -497,6 +500,7 @@ const SystemSettings = () => {
             缓存状态
           </div>
           <p className='text-muted-foreground text-xs'>
+            {!diskCacheEnabled ? '已关闭自动缓存，历史缓存仍可手动清理。' : ''}
             已用 {formatStorageSize(cacheStatus.usedBytes)} / 上限{' '}
             {formatStorageSize(diskCacheMaxBytes)}
           </p>

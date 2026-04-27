@@ -2,6 +2,7 @@ import electron from 'electron'
 import path from 'node:path'
 
 import { CacheService } from '../cache/cache-service.ts'
+import { PlaybackTempCacheService } from '../cache/playback-temp-cache-service.ts'
 import {
   CACHE_IPC_CHANNELS,
   type ResolveAudioSourceOptions,
@@ -31,6 +32,9 @@ type CacheIpcRegistrationOptions = {
   }
   browserWindowFromWebContents?: (webContents: unknown) => unknown
   appGetPath?: (name: 'appData' | 'sessionData') => string
+  appLifecycle?: {
+    on: (event: 'before-quit', handler: () => void) => void
+  }
   getConfigValue?: <K extends keyof AppConfig>(key: K) => AppConfig[K]
   cacheService?: Pick<
     CacheService,
@@ -42,6 +46,10 @@ type CacheIpcRegistrationOptions = {
     | 'resolveImageSource'
     | 'readLyricsPayload'
     | 'writeLyricsPayload'
+  >
+  playbackTempCacheService?: Pick<
+    PlaybackTempCacheService,
+    'getDefaultTempRoot' | 'clear' | 'resolveAudioSource'
   >
 }
 
@@ -63,9 +71,25 @@ function createDefaultCacheService(
   })
 }
 
+function resolveDefaultPlaybackTempCacheRoot(
+  appGetPath: (name: 'appData' | 'sessionData') => string
+) {
+  return path.join(appGetPath('sessionData'), 'AuralMusic', 'playback-temp')
+}
+
+function createDefaultPlaybackTempCacheService(
+  appGetPath: (name: 'appData' | 'sessionData') => string
+) {
+  return new PlaybackTempCacheService({
+    defaultRootDir: resolveDefaultPlaybackTempCacheRoot(appGetPath),
+  })
+}
+
 export function createCacheIpc(options: CacheIpcRegistrationOptions = {}) {
   const ipcMain = options.ipcMain ?? electron.ipcMain
   const dialog = options.dialog ?? electron.dialog
+  const appLifecycle =
+    options.appLifecycle ?? (!options.cacheService ? electron.app : undefined)
   const browserWindowFromWebContents =
     options.browserWindowFromWebContents ??
     ((webContents: unknown) =>
@@ -78,9 +102,24 @@ export function createCacheIpc(options: CacheIpcRegistrationOptions = {}) {
   const getConfigValue = options.getConfigValue ?? getConfig
   const cacheService =
     options.cacheService ?? createDefaultCacheService(appGetPath)
+  let playbackTempCacheService = options.playbackTempCacheService
+
+  const getPlaybackTempCacheService = () => {
+    playbackTempCacheService ??=
+      createDefaultPlaybackTempCacheService(appGetPath)
+    return playbackTempCacheService
+  }
 
   return {
     register() {
+      if (!options.cacheService || options.playbackTempCacheService) {
+        const tempCacheService = getPlaybackTempCacheService()
+        void tempCacheService.clear()
+        appLifecycle?.on('before-quit', () => {
+          void tempCacheService.clear()
+        })
+      }
+
       ipcMain.handle(CACHE_IPC_CHANNELS.GET_DEFAULT_DIRECTORY, () => {
         return cacheService.getDefaultCacheRoot()
       })
@@ -126,10 +165,18 @@ export function createCacheIpc(options: CacheIpcRegistrationOptions = {}) {
           options?: ResolveAudioSourceOptions
         ) => {
           const forceCache = options?.force === true
+          const diskCacheEnabled = getConfigValue('diskCacheEnabled')
+          if (forceCache && !diskCacheEnabled) {
+            return getPlaybackTempCacheService().resolveAudioSource({
+              cacheKey,
+              sourceUrl,
+            })
+          }
+
           return cacheService.resolveAudioSource({
             cacheKey,
             sourceUrl,
-            enabled: forceCache || getConfigValue('diskCacheEnabled'),
+            enabled: diskCacheEnabled,
             cacheDir: getConfigValue('diskCacheDir'),
             maxBytes: getConfigValue('diskCacheMaxBytes'),
           })
