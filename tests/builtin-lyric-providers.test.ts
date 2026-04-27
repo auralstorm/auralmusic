@@ -133,6 +133,41 @@ test('kw builtin lyric provider converts lrclist entries into lrc text', async (
   })
 })
 
+test('kw builtin lyric provider prefers encrypted newlyric response decoding', async () => {
+  const provider = createKwBuiltinLyricProvider({
+    requestRaw: async url => {
+      assert.match(url, /^http:\/\/newlyric\.kuwo\.cn\/newlyric\.lrc\?/)
+      return {
+        statusCode: 200,
+        statusMessage: 'OK',
+        headers: {},
+        bytes: 3,
+        raw: new Uint8Array([1, 2, 3]),
+        body: '',
+      }
+    },
+    decodeKwLyricResponse: async payload => {
+      assert.equal(payload.lrcBase64, 'AQID')
+      assert.equal(payload.isGetLyricx, true)
+      return '[ti:测试]\n[00:01.00]第一句\n[00:02.00]<0,100>第二句'
+    },
+  })
+
+  const result = await provider.getLyric(
+    createTrack({
+      lockedPlatform: 'kw',
+      lxInfo: {
+        songmid: '156483846',
+        source: 'kw',
+      },
+    })
+  )
+
+  assert.deepEqual(result, {
+    lyric: '[ti:测试]\n[00:01.00]第一句\n[00:02.00]第二句',
+  })
+})
+
 test('kg builtin lyric provider downloads and decodes base64 lyric content', async () => {
   const provider = createKgBuiltinLyricProvider({
     requestJson: async url => {

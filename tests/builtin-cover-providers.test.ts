@@ -150,6 +150,75 @@ test('kg builtin cover provider resolves cover url from kugou privilege payload'
   })
 })
 
+test('kg builtin cover provider ignores kugou default placeholder covers', async () => {
+  const provider = createKgBuiltinCoverProvider({
+    requestJson: async () => ({
+      data: [
+        {
+          info: {
+            image:
+              'https://imgessl.kugou.com/stdmusic/{size}/20160907/20160907163100703378.jpg',
+            imgsize: ['480'],
+          },
+        },
+      ],
+    }),
+  })
+
+  const result = await provider.getCover(
+    createTrack({
+      lockedPlatform: 'kg',
+      lxInfo: {
+        songmid: '1139129604',
+        hash: '2C7CEB6CC2340ECC8948E0ACE62F0CF8',
+        albumId: '69080900009',
+        source: 'kg',
+      },
+    }) as never
+  )
+
+  assert.equal(result, null)
+})
+
+test('kg builtin cover provider uses audio id when songmid is a 32 char kugou hash', async () => {
+  let requestBody: Record<string, unknown> | null = null
+  const provider = createKgBuiltinCoverProvider({
+    requestJson: async (_url, options) => {
+      requestBody =
+        typeof options?.body === 'string'
+          ? (JSON.parse(options.body) as Record<string, unknown>)
+          : null
+      return {
+        data: [
+          {
+            info: {
+              image:
+                'https://imgessl.kugou.com/stdmusic/{size}/20240101/real.jpg',
+              imgsize: ['480'],
+            },
+          },
+        ],
+      }
+    },
+  })
+
+  await provider.getCover(
+    createTrack({
+      lockedPlatform: 'kg',
+      lxInfo: {
+        songmid: '2C7CEB6CC2340ECC8948E0ACE62F0CF8',
+        audioId: '1139129604_0',
+        hash: '2C7CEB6CC2340ECC8948E0ACE62F0CF8',
+        albumId: '69080900009',
+        source: 'kg',
+      },
+    }) as never
+  )
+
+  const resource = (requestBody?.resource as Array<Record<string, unknown>>)[0]
+  assert.equal(resource.album_audio_id, '1139129604')
+})
+
 test('mg builtin cover provider falls back to song pic endpoint when search result cover is missing', async () => {
   const provider = createMgBuiltinCoverProvider({
     requestJson: async url => {
@@ -172,5 +241,34 @@ test('mg builtin cover provider falls back to song pic endpoint when search resu
 
   assert.deepEqual(result, {
     coverUrl: 'http://cdn.music.migu.cn/cover/large.jpg',
+  })
+})
+
+test('mg builtin cover provider prefers explicit song id for song pic endpoint', async () => {
+  let requestedUrl = ''
+  const provider = createMgBuiltinCoverProvider({
+    requestJson: async url => {
+      requestedUrl = url
+      return {
+        mediumPic: 'https://cdn.music.migu.cn/cover/medium.jpg',
+      }
+    },
+  })
+
+  const result = await provider.getCover(
+    createTrack({
+      lockedPlatform: 'mg',
+      lxInfo: {
+        songmid: 'fallback-songmid',
+        songId: 'real-song-id',
+        copyrightId: 'copyright-id',
+        source: 'mg',
+      },
+    }) as never
+  )
+
+  assert.match(requestedUrl, /songId=real-song-id/)
+  assert.deepEqual(result, {
+    coverUrl: 'https://cdn.music.migu.cn/cover/medium.jpg',
   })
 })

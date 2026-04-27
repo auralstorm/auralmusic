@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc/index.ts'
 import type {
   ImportedLxMusicSource,
+  KwLyricDecodePayload,
   LxHttpRequestOptions,
   LxHttpRequestResponse,
   LxInitedData,
@@ -21,6 +22,7 @@ export type MusicSourceApi = {
     url: string,
     options?: LxHttpRequestOptions
   ) => Promise<LxHttpRequestResponse>
+  decodeKwLyricResponse: (payload: KwLyricDecodePayload) => Promise<string>
 }
 
 const musicSourceApi: MusicSourceApi = {
@@ -48,6 +50,12 @@ const musicSourceApi: MusicSourceApi = {
       IPC_CHANNELS.MUSIC_SOURCE.LX_HTTP_REQUEST,
       url,
       options
+    )
+  },
+  decodeKwLyricResponse: async payload => {
+    return ipcRenderer.invoke(
+      IPC_CHANNELS.MUSIC_SOURCE.DECODE_KW_LYRIC,
+      payload
     )
   },
 }

@@ -9,7 +9,10 @@ import '@pixi/events'
 import { Sprite } from '@pixi/sprite'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isLocalMediaUrl } from '../../../shared/local-media.ts'
-import { resolvePlayerSceneCoverFitMode } from './player-scene-artwork.model'
+import {
+  resolvePlayerSceneCoverFitMode,
+  shouldShowNativeCoverFallback,
+} from './player-scene-artwork.model'
 import {
   resolvePixelArcadeBlockSize,
   shouldSuppressWaterRipple,
@@ -276,6 +279,7 @@ export default function PlayerScenePixiCover({
   const renderSizeRef = useRef({ width: 0, height: 0 })
   const loadRequestIdRef = useRef(0)
   const [isCoverReady, setIsCoverReady] = useState(false)
+  const [textureLoadFailed, setTextureLoadFailed] = useState(false)
   const pipeline = useMemo(
     () => resolveRetroPresetPipeline(retroCoverPreset),
     [retroCoverPreset]
@@ -710,6 +714,7 @@ export default function PlayerScenePixiCover({
     }
 
     setIsCoverReady(false)
+    setTextureLoadFailed(false)
     const requestId = loadRequestIdRef.current + 1
     loadRequestIdRef.current = requestId
 
@@ -733,6 +738,8 @@ export default function PlayerScenePixiCover({
           return
         }
         console.error('load player scene cover texture failed', error)
+        setTextureLoadFailed(true)
+        setIsCoverReady(true)
       }
     }
 
@@ -787,7 +794,19 @@ export default function PlayerScenePixiCover({
       {!isCoverReady ? (
         <div className='absolute inset-0 z-10 animate-pulse bg-black/20' />
       ) : null}
-      <div ref={hostRef} className='absolute inset-0 overflow-hidden' />
+      {shouldShowNativeCoverFallback(src, textureLoadFailed) ? (
+        <img
+          src={src}
+          alt=''
+          className='absolute inset-0 h-full w-full object-cover'
+          draggable={false}
+        />
+      ) : null}
+      <div
+        ref={hostRef}
+        className='absolute inset-0 overflow-hidden'
+        aria-hidden={textureLoadFailed}
+      />
     </div>
   )
 }

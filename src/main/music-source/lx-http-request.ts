@@ -9,11 +9,11 @@ import type {
 
 type ElectronNet = typeof Electron.net
 
-function parseLxHttpBody(rawBody: string) {
+function parseLxHttpBody(rawBody: Buffer) {
   try {
-    return JSON.parse(rawBody) as unknown
+    return JSON.parse(rawBody.toString('utf8')) as unknown
   } catch {
-    return rawBody
+    return rawBody.toString('utf8')
   }
 }
 
@@ -144,9 +144,9 @@ export function createLxHttpRequestResponse(
   statusCode: number,
   statusMessage: string,
   headers: Record<string, string | string[] | undefined>,
-  rawBody: string
+  rawBody: Buffer | string
 ): LxHttpRequestResponse {
-  const raw = Buffer.from(rawBody)
+  const raw = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody)
 
   return {
     statusCode,
@@ -154,7 +154,7 @@ export function createLxHttpRequestResponse(
     headers: normalizeIncomingHeaders(headers),
     bytes: raw.byteLength,
     raw,
-    body: parseLxHttpBody(rawBody),
+    body: parseLxHttpBody(raw),
   }
 }
 
@@ -219,7 +219,7 @@ export async function requestLxHttpWithElectronNet(
             response.statusCode,
             response.statusMessage || '',
             response.headers,
-            Buffer.concat(chunks).toString('utf8')
+            Buffer.concat(chunks)
           )
         )
       })
@@ -292,7 +292,7 @@ export async function requestLxHttpWithNode(
               response.statusCode || 0,
               response.statusMessage || '',
               response.headers,
-              Buffer.concat(chunks).toString('utf8')
+              Buffer.concat(chunks)
             )
           )
         })

@@ -532,3 +532,61 @@ test('createDownloadSourceResolver does not fall through to official when music 
     'lx',
   ])
 })
+
+test('createDownloadSourceResolver sends non-wy locked tracks directly to lx source', async () => {
+  const calls: string[] = []
+
+  const resolveDownloadSource = createDownloadSourceResolver({
+    getConfig: () => createConfig(),
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
+    getSongUrlV1: async () => {
+      calls.push('official-playback')
+      return {
+        data: {
+          data: [{ id: 77, url: 'https://cdn.example.com/official.mp3' }],
+        },
+      }
+    },
+    getSongDownloadUrlV1: async () => {
+      calls.push('official-download')
+      return {
+        data: { data: { url: 'https://cdn.example.com/official.flac' } },
+      }
+    },
+    getSongUrlMatch: async () => {
+      calls.push('builtin-unblock')
+      return { data: { data: 'https://cdn.example.com/unblock.mp3' } }
+    },
+    resolveTrackWithLxMusicSource: async params => {
+      calls.push(`lx:${params.track.lockedPlatform}:${params.quality}`)
+      return {
+        id: 77,
+        url: 'https://cdn.example.com/tencent.flac',
+        time: 200000,
+        br: 0,
+      }
+    },
+  })
+
+  const result = await resolveDownloadSource({
+    track: {
+      ...createTrack(),
+      id: 77,
+      lockedPlatform: 'tx',
+      lxInfo: {
+        songmid: 'tx-mid',
+        source: 'tx',
+      },
+    },
+    requestedQuality: 'lossless',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/tencent.flac',
+    quality: 'lossless',
+    provider: 'lxMusic',
+    fileExtension: '.flac',
+  })
+  assert.deepEqual(calls, ['lx:tx:lossless'])
+})

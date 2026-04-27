@@ -23,6 +23,14 @@ function normalizeMgCoverUrl(value: unknown) {
   return /^https?:/i.test(coverUrl) ? coverUrl : `http:${coverUrl}`
 }
 
+function readOptionalId(value: unknown) {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value).trim()
+  }
+
+  return ''
+}
+
 async function requestMgCoverJson(
   url: string,
   options: LxHttpRequestOptions = {}
@@ -35,7 +43,6 @@ async function requestMgCoverJson(
     },
     ...options,
   })
-
   if (response.statusCode < 200 || response.statusCode >= 300) {
     throw new Error(`HTTP ${response.statusCode}`)
   }
@@ -56,10 +63,9 @@ export function createMgBuiltinCoverProvider(
       }
 
       const songId =
-        typeof track.lxInfo?.songmid === 'string' ||
-        typeof track.lxInfo?.songmid === 'number'
-          ? String(track.lxInfo.songmid).trim()
-          : ''
+        readOptionalId(track.lxInfo?.songId) ||
+        readOptionalId(track.lxInfo?.songmid) ||
+        readOptionalId(track.lxInfo?.copyrightId)
 
       if (!songId) {
         return null

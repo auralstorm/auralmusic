@@ -29,6 +29,8 @@ export type LxSourceConfig = {
 
 export type LxMusicInfo = {
   songmid: string | number
+  songId?: string | number
+  audioId?: string
   hash?: string
   strMediaMid?: string
   copyrightId?: string
@@ -125,6 +127,11 @@ export type LxHttpRequestResponse = {
   bytes: number
   raw: Uint8Array
   body: unknown
+}
+
+export type KwLyricDecodePayload = {
+  lrcBase64: string
+  isGetLyricx?: boolean
 }
 
 const UNKNOWN_SOURCE_NAME = '未知音源'

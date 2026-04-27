@@ -33,6 +33,8 @@ export type PlaybackTrack = {
     Pick<
       LxMusicInfo,
       | 'songmid'
+      | 'songId'
+      | 'audioId'
       | 'hash'
       | 'strMediaMid'
       | 'copyrightId'
@@ -219,6 +221,15 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
           typeof rawLxInfo.songmid === 'string' ||
           typeof rawLxInfo.songmid === 'number'
             ? rawLxInfo.songmid
+            : undefined,
+        songId:
+          typeof rawLxInfo.songId === 'string' ||
+          typeof rawLxInfo.songId === 'number'
+            ? rawLxInfo.songId
+            : undefined,
+        audioId:
+          typeof rawLxInfo.audioId === 'string' && rawLxInfo.audioId.trim()
+            ? rawLxInfo.audioId.trim()
             : undefined,
         hash:
           typeof rawLxInfo.hash === 'string' && rawLxInfo.hash.trim()

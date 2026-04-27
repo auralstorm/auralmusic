@@ -85,7 +85,8 @@ function createRequestHeaders(
 function buildResolveContext(
   runtimeConfig: DownloadRuntimeConfig,
   authSession: AuthSession | null,
-  trackFee: number
+  trackFee: number,
+  lockedPlatform: ResolveContext['lockedPlatform']
 ): ResolveContext {
   return {
     scene: 'download',
@@ -95,6 +96,7 @@ function buildResolveContext(
     }),
     isVip: authSession?.isVip === true,
     trackFee,
+    lockedPlatform,
     config: {
       musicSourceEnabled: runtimeConfig.musicSourceEnabled,
       musicSourceProviders: runtimeConfig.musicSourceProviders ?? [],
@@ -134,7 +136,8 @@ export function createDownloadSourceResolver(
     const context = buildResolveContext(
       runtimeConfig,
       authSession,
-      typeof payload.fee === 'number' ? payload.fee : 0
+      typeof payload.fee === 'number' ? payload.fee : 0,
+      payload.lockedPlatform
     )
     const resolverPolicy = buildResolverPolicy(context)
 

@@ -10,6 +10,7 @@ import { memo } from 'react'
 
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
+import PlaybackDownloadButton from './PlaybackDownloadButton'
 import { usePlaybackControlPreferences } from './usePlaybackControlPreferences'
 
 type PlaybackPreferenceControlsProps = {
@@ -35,6 +36,7 @@ const PlaybackPreferenceControls = ({
 
   return (
     <div className='text-foreground/70 flex items-center justify-end gap-3'>
+      <PlaybackDownloadButton />
       <button
         type='button'
         aria-label='播放列表'

@@ -101,6 +101,7 @@ function normalizeMgSearchResult(
           fee: 0,
           lxInfo: {
             songmid: id,
+            songId: typeof data.songId === 'string' ? data.songId.trim() : id,
             copyrightId,
             albumId:
               typeof data.albumId === 'string' ||

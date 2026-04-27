@@ -3,6 +3,10 @@ import type {
   AudioQualityLevel,
   EnhancedSourceModule,
 } from '../../../shared/config.ts'
+import type {
+  LxMusicInfo,
+  LxSourceKey,
+} from '../../../shared/lx-music-source.ts'
 import type { DownloadSourceProvider } from '../../../shared/download.ts'
 import type {
   ResolveContext,
@@ -38,6 +42,19 @@ export interface DownloadTrack {
   coverUrl: string
   duration: number
   fee?: number
+  lockedPlatform?: LxSourceKey
+  lxInfo?: Partial<
+    Pick<
+      LxMusicInfo,
+      | 'songmid'
+      | 'hash'
+      | 'strMediaMid'
+      | 'copyrightId'
+      | 'albumId'
+      | 'source'
+      | 'img'
+    >
+  >
 }
 
 export type DownloadResolutionPolicy = 'strict' | 'fallback'

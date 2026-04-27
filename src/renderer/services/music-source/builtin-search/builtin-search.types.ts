@@ -13,6 +13,8 @@ export type BuiltinSongSearchItem = {
   fee: number
   lxInfo?: {
     songmid?: string | number
+    songId?: string | number
+    audioId?: string
     hash?: string
     strMediaMid?: string
     copyrightId?: string

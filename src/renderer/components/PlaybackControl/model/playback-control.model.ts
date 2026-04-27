@@ -2,7 +2,10 @@ import type {
   PlaybackMode,
   PlaybackTrack,
 } from '../../../../shared/playback.ts'
+import type { LxSourceKey } from '../../../../shared/lx-music-source.ts'
+import { isLocalMediaUrl } from '../../../../shared/local-media.ts'
 import type { PlaybackControlTrack } from '../types'
+import type { TrackListDownloadSong } from '../../TrackList/types'
 
 export const PLAYBACK_MODE_LABELS: Record<PlaybackMode, string> = {
   'repeat-all': '\u5faa\u73af\u64ad\u653e',
@@ -64,4 +67,39 @@ export function getPlaybackProgressViewState(
 
 export function getPlaybackModeLabel(playbackMode: PlaybackMode) {
   return PLAYBACK_MODE_LABELS[playbackMode]
+}
+
+export function shouldShowPlaybackLikeButton(input: {
+  sourceUrl: string
+  lockedPlatform?: LxSourceKey
+}) {
+  if (isLocalMediaUrl(input.sourceUrl)) {
+    return false
+  }
+
+  return !input.lockedPlatform || input.lockedPlatform === 'wy'
+}
+
+export function shouldShowPlaybackDownloadButton(downloadEnabled: boolean) {
+  return downloadEnabled
+}
+
+export function createPlaybackDownloadSong(
+  track: PlaybackTrack | null | undefined
+): TrackListDownloadSong | null {
+  if (!track) {
+    return null
+  }
+
+  return {
+    id: track.id,
+    name: track.name,
+    artistNames: track.artistNames,
+    albumName: track.albumName,
+    coverUrl: track.coverUrl,
+    duration: track.duration,
+    fee: track.fee,
+    lockedPlatform: track.lockedPlatform,
+    lxInfo: track.lxInfo,
+  }
 }

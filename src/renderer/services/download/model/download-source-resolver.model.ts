@@ -37,13 +37,15 @@ function createDefaultProviders(): Record<
 function toResolveContext(
   authState: { isAuthenticated: boolean; isVip: boolean },
   trackFee: number,
-  config: DownloadResolverConfig
+  config: DownloadResolverConfig,
+  lockedPlatform: ResolveContext['lockedPlatform']
 ): ResolveContext {
   return {
     scene: 'download',
     isAuthenticated: authState.isAuthenticated,
     isVip: authState.isVip,
     trackFee,
+    lockedPlatform,
     config: {
       musicSourceEnabled: config.musicSourceEnabled,
       musicSourceProviders: config.musicSourceProviders,
@@ -84,7 +86,8 @@ export function createDownloadSourceResolver(
     const context = toResolveContext(
       authState,
       typeof options.track.fee === 'number' ? options.track.fee : 0,
-      config
+      config,
+      options.track.lockedPlatform
     )
     const resolverPolicy = buildResolverPolicy(context)
     const levels =

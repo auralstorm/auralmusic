@@ -16,6 +16,10 @@ import {
   requestLxHttpWithElectronNet,
   requestLxHttpWithNode,
 } from '../music-source/lx-http-request'
+import {
+  decodeKwLyricResponse,
+  type KwLyricDecodePayload,
+} from '../music-source/kw-lyric-decode'
 
 const { ipcMain } = electron
 
@@ -52,6 +56,13 @@ export function registerMusicSourceIpc() {
         )
         return requestLxHttpWithNode(url, options)
       }
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.MUSIC_SOURCE.DECODE_KW_LYRIC,
+    (_event, payload: KwLyricDecodePayload) => {
+      return decodeKwLyricResponse(payload)
     }
   )
 

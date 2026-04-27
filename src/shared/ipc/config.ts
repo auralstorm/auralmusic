@@ -11,5 +11,6 @@ export const IPC_CHANNELS = {
     REMOVE_LX_SCRIPT: 'music-source:remove-lx-script',
     DOWNLOAD_LX_SCRIPT: 'music-source:download-lx-script',
     LX_HTTP_REQUEST: 'music-source:lx-http-request',
+    DECODE_KW_LYRIC: 'music-source:decode-kw-lyric',
   },
 } as const

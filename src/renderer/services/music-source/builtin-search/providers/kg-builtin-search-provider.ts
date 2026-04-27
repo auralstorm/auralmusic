@@ -55,6 +55,7 @@ function normalizeKgItem(song: Record<string, unknown>) {
     fee: 0,
     lxInfo: {
       songmid: id,
+      audioId: String(id),
       hash,
       albumId:
         typeof song.AlbumID === 'string' || typeof song.AlbumID === 'number'

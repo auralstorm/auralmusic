@@ -20,8 +20,32 @@ function normalizeKgImage(value: unknown, imgSize?: unknown) {
     return ''
   }
 
-  const size = Array.isArray(imgSize) ? readText(imgSize[0]) : ''
-  return size ? image.replace('{size}', size) : image
+  const size = Array.isArray(imgSize) ? imgSize[0] : ''
+  const coverUrl = size ? image.replace('{size}', size) : image
+  return isKugouDefaultCoverUrl(coverUrl) ? '' : coverUrl
+}
+
+function resolveKgAlbumAudioId(songmid: string, audioId: string) {
+  // 酷狗搜索结果的 songmid 可能是 hash，封面接口需要真实 Audioid。
+  if (songmid.length === 32 && audioId) {
+    return audioId.split('_')[0]?.trim() || songmid
+  }
+
+  return songmid
+}
+
+export function isKugouDefaultCoverUrl(value: unknown) {
+  const coverUrl = readText(value).toLowerCase()
+  if (!coverUrl) {
+    return false
+  }
+
+  return (
+    coverUrl.includes('20160907163100703378') ||
+    coverUrl.includes('/default') ||
+    coverUrl.includes('nopic') ||
+    coverUrl.includes('no_pic')
+  )
 }
 
 async function requestKgCoverJson(
@@ -53,6 +77,7 @@ export function createKgBuiltinCoverProvider(
       }
 
       const hash = readText(track.lxInfo?.hash)
+      const audioId = readText(track.lxInfo?.audioId)
       const songmid =
         typeof track.lxInfo?.songmid === 'string' ||
         typeof track.lxInfo?.songmid === 'number'
@@ -67,6 +92,8 @@ export function createKgBuiltinCoverProvider(
       if (!hash || !songmid) {
         return null
       }
+
+      const albumAudioId = resolveKgAlbumAudioId(songmid, audioId)
 
       const payload = await requestJson(
         'http://media.store.kugou.com/v1/get_res_privilege',
@@ -86,7 +113,7 @@ export function createKgBuiltinCoverProvider(
             relate: 1,
             resource: [
               {
-                album_audio_id: songmid,
+                album_audio_id: albumAudioId,
                 album_id: albumId,
                 hash,
                 id: 0,
@@ -115,7 +142,6 @@ export function createKgBuiltinCoverProvider(
               (info as { imgsize?: unknown }).imgsize
             )
           : ''
-
       return coverUrl ? { coverUrl } : null
     },
   }

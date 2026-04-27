@@ -110,3 +110,48 @@ test('main download fallback still tries builtin-unblock when legacy builtin pro
     'https://music.example.com/song/url/v1?id=1&level=higher&unblock=true',
   ])
 })
+
+test('main download fallback does not resolve non-wy locked tracks through official api', async () => {
+  const attemptedUrls: string[] = []
+  const resolveDownloadSource = createDownloadSourceResolver({
+    readBaseUrl: () => 'https://music.example.com',
+    getAuthSession: () => ({ userId: 1, cookie: 'MUSIC_U=token', isVip: true }),
+    fetcher: async input => {
+      const url = typeof input === 'string' ? input : input.toString()
+      attemptedUrls.push(url)
+      return Response.json({
+        data: { url: 'https://cdn.example.com/official.flac' },
+      })
+    },
+  })
+
+  const result = await resolveDownloadSource({
+    payload: {
+      songId: 'tx-mid',
+      songName: 'Tencent Song',
+      artistName: 'Artist',
+      requestedQuality: 'higher',
+      lockedPlatform: 'tx',
+    },
+    quality: 'higher',
+    runtimeConfig: {
+      musicSourceEnabled: true,
+      musicSourceProviders: ['lxMusic'],
+      luoxueSourceEnabled: true,
+      customMusicApiEnabled: false,
+      customMusicApiUrl: '',
+      downloadDir: '',
+      downloadQuality: 'higher',
+      downloadQualityPolicy: 'fallback',
+      downloadSkipExisting: true,
+      downloadConcurrency: 3,
+      downloadFileNamePattern: 'song-artist',
+      downloadEmbedCover: true,
+      downloadEmbedLyrics: true,
+      downloadEmbedTranslatedLyrics: false,
+    },
+  })
+
+  assert.equal(result, null)
+  assert.deepEqual(attemptedUrls, [])
+})

@@ -5,8 +5,10 @@ import AvatarCover from '@/components/AvatarCover'
 import { imageSizes, resizeImageUrl } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/stores/playback-store'
-import { isLocalMediaUrl } from '../../../shared/local-media.ts'
-import { DEFAULT_PLAYBACK_CONTROL_TRACK } from './model'
+import {
+  DEFAULT_PLAYBACK_CONTROL_TRACK,
+  shouldShowPlaybackLikeButton,
+} from './model'
 import { useCurrentTrackLike } from './useCurrentTrackLike'
 
 type PlaybackTrackInfoProps = {
@@ -30,10 +32,16 @@ const PlaybackTrackInfo = ({ hasTrack }: PlaybackTrackInfoProps) => {
   const trackSourceUrl = usePlaybackStore(
     state => state.currentTrack?.sourceUrl ?? ''
   )
+  const trackLockedPlatform = usePlaybackStore(
+    state => state.currentTrack?.lockedPlatform
+  )
   const openPlayerScene = usePlaybackStore(state => state.openPlayerScene)
   const { isLiked, isLikePending, handleToggleLike } =
     useCurrentTrackLike(trackId)
-  const showLikeButton = !isLocalMediaUrl(trackSourceUrl)
+  const showLikeButton = shouldShowPlaybackLikeButton({
+    sourceUrl: trackSourceUrl,
+    lockedPlatform: trackLockedPlatform,
+  })
 
   return (
     <div className='flex min-w-0 items-center gap-3'>

@@ -4,6 +4,7 @@ import type {
   DownloadQualityPolicy,
   MusicSourceProvider,
 } from './config.ts'
+import type { LxMusicInfo, LxSourceKey } from './lx-music-source.ts'
 
 export { DOWNLOAD_IPC_CHANNELS } from './ipc/download.ts'
 
@@ -55,6 +56,19 @@ export type SongDownloadPayload = {
   resolvedQuality?: AudioQualityLevel | null
   sourceProvider?: DownloadSourceProvider
   fileExtension?: string | null
+  lockedPlatform?: LxSourceKey
+  lxInfo?: Partial<
+    Pick<
+      LxMusicInfo,
+      | 'songmid'
+      | 'hash'
+      | 'strMediaMid'
+      | 'copyrightId'
+      | 'albumId'
+      | 'source'
+      | 'img'
+    >
+  >
   metadata?: DownloadTaskMetadata
 }
 

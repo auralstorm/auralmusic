@@ -63,7 +63,7 @@ const SearchInputBar = ({
               type='button'
               variant={source.id === activeSourceId ? 'default' : 'ghost'}
               size='sm'
-              className='rounded-xl px-3'
+              className='rounded-xl px-3 text-2xl'
               onClick={() => onSourceChange?.(source.id)}
             >
               {source.name}

@@ -265,3 +265,50 @@ test('resolveTrackWithLxMusicSource honors a dynamic locked lx source id', async
     globalThis.window = originalWindow
   }
 })
+
+test('resolveTrackWithLxMusicSource does not downgrade locked platform to another lx source', async () => {
+  const originalWindow = globalThis.window
+  let requestedSource: string | null = null
+  const fakeRunner = {
+    dispose: () => undefined,
+    isInitialized: () => true,
+    matchesScript: (script: string) => script === 'mock lx script',
+    getSources: () => ({
+      wy: {
+        name: 'NetEase',
+        type: 'music' as const,
+        actions: ['musicUrl'] as const,
+        qualitys: ['320k'] as const,
+      },
+    }),
+    getMusicUrl: async (source: string) => {
+      requestedSource = source
+      return 'https://cdn.example.com/wrong-source.mp3'
+    },
+  }
+
+  globalThis.window = {
+    electronMusicSource: {
+      readLxScript: async () => 'mock lx script',
+    },
+  } as typeof globalThis.window
+
+  setLxMusicRunner(fakeRunner as never)
+
+  try {
+    const result = await resolveTrackWithLxMusicSource({
+      track: {
+        ...createTrack(),
+        lockedPlatform: 'tx',
+      },
+      quality: 'higher',
+      config: createConfig(),
+    })
+
+    assert.equal(result, null)
+    assert.equal(requestedSource, null)
+  } finally {
+    setLxMusicRunner(null)
+    globalThis.window = originalWindow
+  }
+})
