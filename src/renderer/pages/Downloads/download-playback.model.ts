@@ -47,8 +47,15 @@ export function buildDownloadTaskPlaybackTrack(
     artistNames: task.artistName?.trim() || '本地下载',
     albumName: task.albumName?.trim() || '本地文件',
     coverUrl: task.coverUrl || '',
-    duration: 0,
+    duration:
+      typeof task.durationMs === 'number' && Number.isFinite(task.durationMs)
+        ? Math.max(0, task.durationMs)
+        : 0,
     sourceUrl,
+    ...(task.lyricText ? { lyricText: task.lyricText } : {}),
+    ...(task.translatedLyricText
+      ? { translatedLyricText: task.translatedLyricText }
+      : {}),
   }
 }
 

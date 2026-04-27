@@ -39,6 +39,7 @@ export type DownloadTaskMetadata = {
   coverUrl?: string
   lyric?: string
   translatedLyric?: string
+  durationMs?: number
 }
 
 export type SongDownloadPayload = {
@@ -48,6 +49,7 @@ export type SongDownloadPayload = {
   fee?: number
   coverUrl?: string
   albumName?: string
+  durationMs?: number
   directory?: string
   fileName?: string
   requestedQuality: AudioQualityLevel
@@ -85,6 +87,10 @@ export type DownloadTask = {
   progress: number
   errorMessage: string | null
   targetPath: string
+  fileSizeBytes: number | null
+  durationMs: number
+  lyricText: string
+  translatedLyricText: string
   note: string | null
   warningMessage: string | null
   createdAt: number

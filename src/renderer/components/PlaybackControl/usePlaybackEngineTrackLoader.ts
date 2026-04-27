@@ -157,7 +157,10 @@ export function usePlaybackEngineTrackLoader({
         const audio = playbackRuntime.getAudioElement()
         playbackRuntime.setVolume(volumeRef.current / 100)
         playbackRuntime.setPlaybackRate(playbackSpeedRef.current)
-        latestState.setDuration(result.time || track.duration)
+        const resolvedDuration = result.time || track.duration
+        if (resolvedDuration > 0) {
+          latestState.setDuration(resolvedDuration)
+        }
 
         const restoreProgress = latestState.pendingRestoreProgress
         if (restoreProgress > 0) {

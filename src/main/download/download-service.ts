@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import NodeID3 from 'node-id3'
 
@@ -20,6 +20,10 @@ import {
   type SongDownloadPayload,
 } from './download-types.ts'
 import { createDownloadSourceResolver } from './download-source-resolver.ts'
+import {
+  readDownloadFilePlaybackMetadata,
+  type DownloadFilePlaybackMetadata,
+} from './download-file-metadata.ts'
 
 type DownloadServiceOptions = {
   defaultRootDir: string
@@ -34,6 +38,9 @@ type DownloadServiceOptions = {
     input: ResolveSongUrlInput
   ) => Promise<ResolvedSongDownload | null>
   fetchMetadata?: (songId: number | string) => Promise<DownloadTaskMetadata>
+  readPlaybackMetadata?: (
+    targetPath: string
+  ) => Promise<DownloadFilePlaybackMetadata>
   downloadFetcher?: typeof fetch
   embedMetadata?: (input: {
     filePath: string
@@ -313,6 +320,23 @@ function normalizePersistedTask(task: unknown): DownloadTask | null {
         ? value.errorMessage
         : null,
     targetPath: typeof value.targetPath === 'string' ? value.targetPath : '',
+    fileSizeBytes:
+      typeof value.fileSizeBytes === 'number' &&
+      Number.isFinite(value.fileSizeBytes) &&
+      value.fileSizeBytes >= 0
+        ? Math.floor(value.fileSizeBytes)
+        : null,
+    durationMs:
+      typeof value.durationMs === 'number' &&
+      Number.isFinite(value.durationMs) &&
+      value.durationMs >= 0
+        ? Math.floor(value.durationMs)
+        : 0,
+    lyricText: typeof value.lyricText === 'string' ? value.lyricText : '',
+    translatedLyricText:
+      typeof value.translatedLyricText === 'string'
+        ? value.translatedLyricText
+        : '',
     note:
       value.note === null || typeof value.note === 'string' ? value.note : null,
     warningMessage:
@@ -363,11 +387,15 @@ function readSongDetailMetadata(payload: unknown): DownloadTaskMetadata {
         songs?: Array<{
           al?: { name?: string; picUrl?: string }
           album?: { name?: string; picUrl?: string }
+          dt?: number
+          duration?: number
         }>
         data?: {
           songs?: Array<{
             al?: { name?: string; picUrl?: string }
             album?: { name?: string; picUrl?: string }
+            dt?: number
+            duration?: number
           }>
         }
       }
@@ -380,6 +408,13 @@ function readSongDetailMetadata(payload: unknown): DownloadTaskMetadata {
   return {
     albumName: album?.name || '',
     coverUrl: album?.picUrl || '',
+    durationMs:
+      typeof firstSong?.dt === 'number' && Number.isFinite(firstSong.dt)
+        ? Math.max(0, Math.floor(firstSong.dt))
+        : typeof firstSong?.duration === 'number' &&
+            Number.isFinite(firstSong.duration)
+          ? Math.max(0, Math.floor(firstSong.duration))
+          : undefined,
   }
 }
 
@@ -453,6 +488,9 @@ export class DownloadService {
   private readonly getAuthSession?: () => AuthSession | null
   private readonly resolveSongUrl?: DownloadServiceOptions['resolveSongUrl']
   private readonly fetchMetadata?: DownloadServiceOptions['fetchMetadata']
+  private readonly readPlaybackMetadata: (
+    targetPath: string
+  ) => Promise<DownloadFilePlaybackMetadata>
   private readonly downloadFetcher: typeof fetch
   private readonly embedMetadata?: DownloadServiceOptions['embedMetadata']
   private readonly openPath?: DownloadServiceOptions['openPath']
@@ -474,6 +512,8 @@ export class DownloadService {
     this.getAuthSession = options.getAuthSession
     this.resolveSongUrl = options.resolveSongUrl
     this.fetchMetadata = options.fetchMetadata
+    this.readPlaybackMetadata =
+      options.readPlaybackMetadata ?? readDownloadFilePlaybackMetadata
     this.downloadFetcher = options.downloadFetcher ?? fetch
     this.embedMetadata = options.embedMetadata
     this.openPath = options.openPath
@@ -512,6 +552,15 @@ export class DownloadService {
       progress: 0,
       errorMessage: null,
       targetPath: '',
+      fileSizeBytes: null,
+      durationMs:
+        typeof payload.durationMs === 'number' &&
+        Number.isFinite(payload.durationMs) &&
+        payload.durationMs >= 0
+          ? Math.floor(payload.durationMs)
+          : 0,
+      lyricText: payload.metadata?.lyric || '',
+      translatedLyricText: payload.metadata?.translatedLyric || '',
       note: null,
       warningMessage: null,
       createdAt,
@@ -633,6 +682,102 @@ export class DownloadService {
     }
 
     this.writePersistedTasks?.(cloneTasks(this.getTasks()))
+    void this.hydratePersistedTaskPlaybackMetadata()
+  }
+
+  private needsPlaybackMetadataHydration(task: DownloadTask) {
+    return !task.targetPath ||
+      (task.status !== 'completed' && task.status !== 'skipped')
+      ? false
+      : task.fileSizeBytes === null ||
+          task.durationMs <= 0 ||
+          (!task.lyricText && !task.translatedLyricText)
+  }
+
+  private applyPlaybackMetadata(
+    task: DownloadTask,
+    metadata: Partial<DownloadFilePlaybackMetadata> & {
+      fileSizeBytes?: number | null
+    }
+  ) {
+    let didUpdate = false
+
+    if (task.fileSizeBytes === null && metadata.fileSizeBytes != null) {
+      task.fileSizeBytes = metadata.fileSizeBytes
+      didUpdate = true
+    }
+
+    if (
+      task.durationMs <= 0 &&
+      typeof metadata.durationMs === 'number' &&
+      metadata.durationMs > 0
+    ) {
+      task.durationMs = metadata.durationMs
+      didUpdate = true
+    }
+
+    if (!task.lyricText && metadata.lyricText) {
+      task.lyricText = metadata.lyricText
+      didUpdate = true
+    }
+
+    if (!task.translatedLyricText && metadata.translatedLyricText) {
+      task.translatedLyricText = metadata.translatedLyricText
+      didUpdate = true
+    }
+
+    if (didUpdate) {
+      task.updatedAt = this.now()
+    }
+
+    return didUpdate
+  }
+
+  private async readTaskPlaybackMetadata(targetPath: string) {
+    const [fileSizeBytes, playbackMetadata] = await Promise.all([
+      this.readFileSizeBytes(targetPath),
+      this.readPlaybackMetadata(targetPath).catch(() => ({
+        durationMs: 0,
+        lyricText: '',
+        translatedLyricText: '',
+      })),
+    ])
+
+    return {
+      ...playbackMetadata,
+      fileSizeBytes,
+    }
+  }
+
+  private async hydratePersistedTaskPlaybackMetadata() {
+    let didUpdate = false
+
+    for (const task of this.tasks.values()) {
+      if (!this.needsPlaybackMetadataHydration(task)) {
+        continue
+      }
+
+      const metadata = await this.readTaskPlaybackMetadata(task.targetPath)
+      didUpdate = this.applyPlaybackMetadata(task, metadata) || didUpdate
+    }
+
+    if (didUpdate) {
+      this.emitTasksChanged()
+    }
+  }
+
+  async hydrateTaskPlaybackMetadata(taskId: string) {
+    const task = this.tasks.get(taskId)
+    if (!task || !this.needsPlaybackMetadataHydration(task)) {
+      return task ? cloneTask(task) : null
+    }
+
+    const metadata = await this.readTaskPlaybackMetadata(task.targetPath)
+    if (this.applyPlaybackMetadata(task, metadata)) {
+      this.emitTasksChanged()
+    }
+
+    return cloneTask(task)
   }
 
   private updateTask(taskId: string, updater: (task: DownloadTask) => void) {
@@ -717,9 +862,11 @@ export class DownloadService {
         runtimeConfig.downloadSkipExisting &&
         (await this.pathExists(targetPath))
       ) {
+        const existingMetadata = await this.readTaskPlaybackMetadata(targetPath)
         this.finishTask(taskId, currentTask => {
           currentTask.status = 'skipped'
           currentTask.progress = 100
+          this.applyPlaybackMetadata(currentTask, existingMetadata)
           currentTask.warningMessage =
             'Skipped download because the target file already exists.'
         })
@@ -750,10 +897,13 @@ export class DownloadService {
           runtimeConfig.downloadSkipExisting &&
           (await this.pathExists(targetPath))
         ) {
+          const existingMetadata =
+            await this.readTaskPlaybackMetadata(targetPath)
           this.finishTask(taskId, currentTask => {
             currentTask.targetPath = targetPath
             currentTask.status = 'skipped'
             currentTask.progress = 100
+            this.applyPlaybackMetadata(currentTask, existingMetadata)
             currentTask.warningMessage =
               'Skipped download because the target file already exists.'
           })
@@ -777,11 +927,20 @@ export class DownloadService {
         resolved.payload,
         runtimeConfig
       )
+      const fileSizeBytes =
+        (await this.readFileSizeBytes(targetPath)) ?? audioBuffer.byteLength
+      const playbackMetadata = await this.readPlaybackMetadata(targetPath)
+        .then(metadata => ({
+          ...metadata,
+          fileSizeBytes,
+        }))
+        .catch(() => ({ fileSizeBytes }))
 
       this.finishTask(taskId, currentTask => {
         currentTask.status = 'completed'
         currentTask.progress = 100
         currentTask.targetPath = targetPath
+        this.applyPlaybackMetadata(currentTask, playbackMetadata)
         if (metadataResult.note) {
           currentTask.note = currentTask.note
             ? `${currentTask.note} ${metadataResult.note}`.trim()
@@ -805,6 +964,15 @@ export class DownloadService {
       updater(task)
       task.completedAt = this.now()
     })
+  }
+
+  private async readFileSizeBytes(targetPath: string) {
+    try {
+      const fileStat = await stat(targetPath)
+      return fileStat.size
+    } catch {
+      return null
+    }
   }
 
   private async resolveDownloadSource(taskId: string) {

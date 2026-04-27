@@ -143,6 +143,13 @@ export function createDownloadIpc(
         return downloadService.getTasks()
       })
 
+      ipcMain.handle(
+        DOWNLOAD_IPC_CHANNELS.HYDRATE_TASK_PLAYBACK_METADATA,
+        async (_event, taskId) => {
+          return downloadService.hydrateTaskPlaybackMetadata(taskId as string)
+        }
+      )
+
       ipcMain.handle(DOWNLOAD_IPC_CHANNELS.REMOVE_TASK, (_event, taskId) => {
         return downloadService.removeTask(taskId as string)
       })

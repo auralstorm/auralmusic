@@ -9,6 +9,7 @@ import {
   ENHANCED_SOURCE_MODULES,
   LOCAL_LIBRARY_SCAN_FORMATS,
   MUSIC_SOURCE_PROVIDERS,
+  PLAYER_ARTWORK_STYLES,
   RETRO_COVER_PRESETS,
   defaultConfig,
   normalizeDiskCacheDir,
@@ -36,6 +37,7 @@ import {
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
+  normalizePlayerArtworkStyle,
   normalizePlayerBackgroundMode,
   normalizeRememberPlaybackSession,
   normalizeShowLocalLibraryMenu,
@@ -240,6 +242,10 @@ const CONFIG_STORE_SCHEMA = {
     type: 'string',
     enum: ['off', 'static', 'dynamic'],
   },
+  playerArtworkStyle: {
+    type: 'string',
+    enum: PLAYER_ARTWORK_STYLES,
+  },
   animationEffect: {
     type: 'string',
     enum: ANIMATION_EFFECT_LEVELS,
@@ -418,6 +424,16 @@ class ConfigStore {
         ConfigStore.instance.set(
           'playerBackgroundMode',
           normalizedPlayerBackgroundMode
+        )
+      }
+
+      const playerArtworkStyle = ConfigStore.instance.get('playerArtworkStyle')
+      const normalizedPlayerArtworkStyle =
+        normalizePlayerArtworkStyle(playerArtworkStyle)
+      if (playerArtworkStyle !== normalizedPlayerArtworkStyle) {
+        ConfigStore.instance.set(
+          'playerArtworkStyle',
+          normalizedPlayerArtworkStyle
         )
       }
 

@@ -22,6 +22,10 @@ function normalizeDownloadTask(
     status: task.status,
     progress: task.progress,
     quality: task.resolvedQuality || task.requestedQuality || '-',
+    fileSizeBytes: task.fileSizeBytes,
+    durationMs: task.durationMs,
+    lyricText: task.lyricText,
+    translatedLyricText: task.translatedLyricText,
   }
 }
 

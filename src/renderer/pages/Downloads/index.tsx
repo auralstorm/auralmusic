@@ -38,13 +38,28 @@ const Downloads = () => {
       tasks={visibleTasks}
       onFilterChange={setActiveFilter}
       onOpenFile={taskId => {
-        const queue = buildDownloadTaskPlaybackQueue(visibleTasks, taskId)
+        void (async () => {
+          await window.electronDownload
+            .hydrateTaskPlaybackMetadata(taskId)
+            .catch(() => null)
+          const latestTasks = await useDownloadTaskStore
+            .getState()
+            .refreshTasks()
+          const latestVisibleTasks = filterDownloadTasks(
+            latestTasks,
+            activeFilter
+          )
+          const queue = buildDownloadTaskPlaybackQueue(
+            latestVisibleTasks,
+            taskId
+          )
 
-        if (!queue.tracks.length) {
-          return
-        }
+          if (!queue.tracks.length) {
+            return
+          }
 
-        playQueueFromIndex(queue.tracks, queue.startIndex)
+          playQueueFromIndex(queue.tracks, queue.startIndex)
+        })()
       }}
       onOpenFolder={taskId => {
         void window.electronDownload.openDownloadedFileFolder(taskId)

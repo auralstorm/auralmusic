@@ -12,6 +12,7 @@ export type DownloadApi = {
   openDirectory: (directory?: string) => Promise<boolean>
   enqueueSongDownload: (payload: SongDownloadPayload) => Promise<DownloadTask>
   getTasks: () => Promise<DownloadTask[]>
+  hydrateTaskPlaybackMetadata: (taskId: string) => Promise<DownloadTask | null>
   removeTask: (taskId: string) => Promise<boolean>
   openDownloadedFile: (taskId: string) => Promise<boolean>
   openDownloadedFileFolder: (taskId: string) => Promise<boolean>
@@ -63,6 +64,12 @@ export function createDownloadApi(dependencies: DownloadApiDependencies = {}) {
       return renderer.invoke(DOWNLOAD_IPC_CHANNELS.GET_TASKS) as Promise<
         DownloadTask[]
       >
+    },
+    hydrateTaskPlaybackMetadata: async taskId => {
+      return renderer.invoke(
+        DOWNLOAD_IPC_CHANNELS.HYDRATE_TASK_PLAYBACK_METADATA,
+        taskId
+      ) as Promise<DownloadTask | null>
     },
     removeTask: async taskId => {
       return renderer.invoke(

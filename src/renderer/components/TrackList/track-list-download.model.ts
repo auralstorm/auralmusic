@@ -72,6 +72,7 @@ export function buildTrackDownloadContext(
     fee: trackSource.fee,
     coverUrl: trackSource.coverUrl,
     albumName: item.albumName,
+    durationMs: trackSource.duration,
     requestedQuality: 'higher',
     ...(trackSource.lockedPlatform
       ? { lockedPlatform: trackSource.lockedPlatform }

@@ -62,6 +62,34 @@ export function getDownloadTaskQualityLabel(
   return DOWNLOAD_TASK_QUALITY_LABELS[normalizedQuality] || normalizedQuality
 }
 
+export function formatDownloadTaskFileSize(
+  fileSizeBytes: number | null | undefined
+) {
+  if (
+    typeof fileSizeBytes !== 'number' ||
+    !Number.isFinite(fileSizeBytes) ||
+    fileSizeBytes < 0
+  ) {
+    return '-'
+  }
+
+  if (fileSizeBytes < 1024) {
+    return `${fileSizeBytes} B`
+  }
+
+  const units = ['KB', 'MB', 'GB', 'TB'] as const
+  let value = fileSizeBytes / 1024
+  let unitIndex = 0
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+
+  const digits = value >= 100 ? 0 : value >= 10 ? 1 : 2
+  return `${value.toFixed(digits)} ${units[unitIndex]}`
+}
+
 export function filterDownloadTasks(
   tasks: DownloadTask[],
   filter: DownloadTaskFilterValue
@@ -116,6 +144,7 @@ export function buildDownloadTaskViewModels(
     statusLabel: getDownloadTaskStatusLabel(task.status),
     progressLabel: formatDownloadTaskProgress(task),
     qualityLabel: getDownloadTaskQualityLabel(task.quality),
+    fileSizeLabel: formatDownloadTaskFileSize(task.fileSizeBytes),
     canOpenFile: canOpenDownloadTaskFile(task),
     canOpenFolder: canOpenDownloadTaskFolder(task),
     canRemove: true,
