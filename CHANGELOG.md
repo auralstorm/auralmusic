@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.3.0](https://github.com/auralstorm/auralmusic/compare/v1.2.0...v1.3.0) (2026-04-28)
+
+### Features
+
+- add application logging infrastructure ([277be2e](https://github.com/auralstorm/auralmusic/commit/277be2efaefb3a74900ce2f858abccc17c28f499))
+- add builtin multi-platform search metadata ([6714782](https://github.com/auralstorm/auralmusic/commit/671478221e321256813997504608ecd4afd67955))
+- add local library detail pages ([fbbe80e](https://github.com/auralstorm/auralmusic/commit/fbbe80ece100fbbc130a6207b0e54c45d66faafd))
+- add pixel arcade retro cover preset ([225b1b5](https://github.com/auralstorm/auralmusic/commit/225b1b55937d97d927733d83d68eb5125015824e))
+- add vinyl player artwork style ([09d3b5b](https://github.com/auralstorm/auralmusic/commit/09d3b5b24b2d5c28b73d4ba356a50f798ee1073f))
+- define pixel arcade retro pipeline ([edee225](https://github.com/auralstorm/auralmusic/commit/edee225cbb3a8a1e5c8e17cf8f146c7b3c09a2d8))
+- improve lx playback source handling ([7973f39](https://github.com/auralstorm/auralmusic/commit/7973f39005b5ae88fe6f964b270e5e62e6b061c1))
+- polish local library interactions ([f803ca0](https://github.com/auralstorm/auralmusic/commit/f803ca0f279c8acf5898814c910227ef6be4929c))
+- register pixel arcade retro preset ([44b5031](https://github.com/auralstorm/auralmusic/commit/44b50317a2f2eb893b1c6e49abeed236c37ec0af))
+- route paid tracks by vip fee policy ([df4c89d](https://github.com/auralstorm/auralmusic/commit/df4c89d695f64265db29f711ed20e7a444d18f15))
+
+### Bug Fixes
+
+- hydrate download playback metadata ([b12294c](https://github.com/auralstorm/auralmusic/commit/b12294c5e8f84df95b8de6d0aba5890c56909535))
+- normalize migu search cover urls ([48a5b75](https://github.com/auralstorm/auralmusic/commit/48a5b759b4f89fdb5c7dbf45f62c0f2fa07d55fa))
+- refine local playback controls ([e11dc07](https://github.com/auralstorm/auralmusic/commit/e11dc0733be3cb6961e860136af836ec9f48fc40))
+- refine playback cache and metadata flows ([b847a76](https://github.com/auralstorm/auralmusic/commit/b847a763d4ee53a52de962556dbb4290989389c9))
+- refine playback cache and visual cover handling ([16bee3e](https://github.com/auralstorm/auralmusic/commit/16bee3e8162d5ca0773df09ef92a10309f4e48a0))
+- set python 3.11 for release packaging ([0349a96](https://github.com/auralstorm/auralmusic/commit/0349a961ecb13a91535e55794938ea6a21a8bf73))
+
 ## [1.2.0](https://github.com/auralstorm/auralmusic/compare/v1.1.0...v1.2.0) (2026-04-24)
 
 ### Features
