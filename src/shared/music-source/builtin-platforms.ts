@@ -1,5 +1,6 @@
 import type { BuiltinPlatformId } from './types.ts'
 
+/** 内置解灰模块支持的平台白名单，lxMusic 单独走脚本解析器，不归到这里。 */
 const BUILTIN_PLATFORM_IDS = new Set<BuiltinPlatformId>([
   'migu',
   'kugou',
@@ -7,6 +8,7 @@ const BUILTIN_PLATFORM_IDS = new Set<BuiltinPlatformId>([
   'bilibili',
 ])
 
+/** 从用户配置中筛出内置平台，保持顺序、去重并过滤未知 provider。 */
 export function normalizeBuiltinPlatforms(
   providers: readonly unknown[] | null | undefined
 ): BuiltinPlatformId[] {

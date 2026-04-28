@@ -1,5 +1,10 @@
+import { LX_SOURCE_KEYS } from './lx-music-source.ts'
+import type { LxMusicInfo, LxQuality, LxSourceKey } from './lx-music-source.ts'
+
+/** 播放器状态枚举，store、托盘和 UI 控件共用。 */
 export type PlaybackStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
 
+/** 播放模式切换顺序，按钮点击按该顺序轮换。 */
 export const PLAYBACK_MODE_SEQUENCE = [
   'repeat-all',
   'shuffle',
@@ -8,10 +13,13 @@ export const PLAYBACK_MODE_SEQUENCE = [
 
 export type PlaybackMode = (typeof PLAYBACK_MODE_SEQUENCE)[number]
 
+/** 队列推进原因：手动切歌和自动播完在单曲循环下行为不同。 */
 export type PlaybackAdvanceReason = 'manual' | 'auto'
 
+/** 队列推进方向。 */
 export type PlaybackAdvanceDirection = 'next' | 'previous'
 
+/** 播放队列中的标准曲目模型。 */
 export type PlaybackTrack = {
   id: number
   name: string
@@ -19,27 +27,49 @@ export type PlaybackTrack = {
   albumName: string
   coverUrl: string
   duration: number
+  fee?: number
   sourceUrl?: string
   lyricText?: string
   translatedLyricText?: string
+  lockedPlatform?: LxSourceKey
+  lockedLxSourceId?: string
+  preferredQuality?: LxQuality
+  lxInfo?: Partial<
+    Pick<
+      LxMusicInfo,
+      | 'songmid'
+      | 'songId'
+      | 'audioId'
+      | 'hash'
+      | 'strMediaMid'
+      | 'copyrightId'
+      | 'albumId'
+      | 'source'
+      | 'img'
+    >
+  >
 }
 
 const PLAYLIST_QUEUE_SOURCE_PREFIX = 'playlist:'
 const LIKED_SONGS_QUEUE_SOURCE_PREFIX = 'liked-songs:'
 const ALBUM_QUEUE_SOURCE_PREFIX = 'album:'
 const CLOUD_QUEUE_SOURCE_PREFIX = 'cloud:'
+const VALID_LX_QUALITIES: LxQuality[] = ['128k', '320k', 'flac', 'flac24bit']
 
+/** 播放队列快照，currentIndex 为 -1 表示空队列。 */
 export type PlaybackQueueSnapshot = {
   queue: PlaybackTrack[]
   currentIndex: number
   currentTrack: PlaybackTrack | null
 }
 
+/** queueSourceKey 解析后的来源描述，用于恢复当前队列上下文。 */
 export type PlaybackQueueSourceDescriptor = {
   type: 'playlist' | 'liked-songs' | 'album' | 'cloud'
   id: number
 }
 
+/** /song/url/v1 标准化后的单曲 URL 结果。 */
 export type SongUrlV1Result = {
   id: number
   url: string
@@ -47,6 +77,7 @@ export type SongUrlV1Result = {
   br: number
 }
 
+/** 队列步进结果，同时携带随机播放顺序和游标。 */
 export type PlaybackQueueStepResult = {
   index: number | null
   shuffleOrder: number[]
@@ -68,6 +99,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object'
 }
 
+/** 兼容 Music API 可能返回 data 或 data.data 两种层级。 */
 function readSongUrlItems(payload: unknown): unknown[] {
   if (!isRecord(payload)) {
     return []
@@ -85,6 +117,7 @@ function readSongUrlItems(payload: unknown): unknown[] {
   return []
 }
 
+/** 归一化 /song/url/v1 响应，取第一个有 URL 的条目。 */
 export function normalizeSongUrlV1Response(
   payload: unknown
 ): SongUrlV1Result | null {
@@ -104,6 +137,7 @@ export function normalizeSongUrlV1Response(
   }
 }
 
+/** 归一化解灰匹配接口响应，缺失 id/time/br 时沿用官方接口结果。 */
 export function normalizeSongUrlMatchResponse(
   payload: unknown,
   fallback: Pick<SongUrlV1Result, 'id' | 'time' | 'br'>
@@ -132,10 +166,12 @@ export function normalizeSongUrlMatchResponse(
   }
 }
 
+/** 生成官方 URL 请求尝试序列，开启 unblock 时先官方后解灰。 */
 export function createSongUrlRequestAttempts(unblockEnabled: boolean) {
   return unblockEnabled ? [false, true] : [false]
 }
 
+/** 归一化播放音量，限制 0-100 的整数。 */
 export function normalizePlaybackVolume(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return 70
@@ -144,6 +180,7 @@ export function normalizePlaybackVolume(value: unknown) {
   return Math.min(100, Math.max(0, Math.round(value)))
 }
 
+/** 归一化播放模式。 */
 export function normalizePlaybackMode(value: unknown): PlaybackMode {
   if (
     typeof value === 'string' &&
@@ -155,6 +192,7 @@ export function normalizePlaybackMode(value: unknown): PlaybackMode {
   return 'repeat-all'
 }
 
+/** 获取下一个播放模式。 */
 export function getNextPlaybackMode(mode: PlaybackMode): PlaybackMode {
   const currentIndex = PLAYBACK_MODE_SEQUENCE.indexOf(mode)
   const nextIndex =
@@ -163,6 +201,7 @@ export function getNextPlaybackMode(mode: PlaybackMode): PlaybackMode {
   return PLAYBACK_MODE_SEQUENCE[nextIndex]
 }
 
+/** 归一化外部传入的播放曲目，过滤无 id 或无名称的非法项。 */
 export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
   if (!isRecord(track)) {
     return null
@@ -174,6 +213,70 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
   if (!id || !name) {
     return null
   }
+
+  const lockedPlatform =
+    typeof track.lockedPlatform === 'string' &&
+    LX_SOURCE_KEYS.includes(track.lockedPlatform as LxSourceKey)
+      ? (track.lockedPlatform as LxSourceKey)
+      : undefined
+  const lockedLxSourceId =
+    typeof track.lockedLxSourceId === 'string' && track.lockedLxSourceId.trim()
+      ? track.lockedLxSourceId.trim()
+      : undefined
+  const preferredQuality =
+    typeof track.preferredQuality === 'string' &&
+    VALID_LX_QUALITIES.includes(track.preferredQuality as LxQuality)
+      ? (track.preferredQuality as LxQuality)
+      : undefined
+  const rawLxInfo =
+    track.lxInfo && isRecord(track.lxInfo)
+      ? (track.lxInfo as Record<string, unknown>)
+      : null
+  const lxInfo = rawLxInfo
+    ? {
+        songmid:
+          typeof rawLxInfo.songmid === 'string' ||
+          typeof rawLxInfo.songmid === 'number'
+            ? rawLxInfo.songmid
+            : undefined,
+        songId:
+          typeof rawLxInfo.songId === 'string' ||
+          typeof rawLxInfo.songId === 'number'
+            ? rawLxInfo.songId
+            : undefined,
+        audioId:
+          typeof rawLxInfo.audioId === 'string' && rawLxInfo.audioId.trim()
+            ? rawLxInfo.audioId.trim()
+            : undefined,
+        hash:
+          typeof rawLxInfo.hash === 'string' && rawLxInfo.hash.trim()
+            ? rawLxInfo.hash.trim()
+            : undefined,
+        strMediaMid:
+          typeof rawLxInfo.strMediaMid === 'string' &&
+          rawLxInfo.strMediaMid.trim()
+            ? rawLxInfo.strMediaMid.trim()
+            : undefined,
+        copyrightId:
+          typeof rawLxInfo.copyrightId === 'string' &&
+          rawLxInfo.copyrightId.trim()
+            ? rawLxInfo.copyrightId.trim()
+            : undefined,
+        albumId:
+          typeof rawLxInfo.albumId === 'string' ||
+          typeof rawLxInfo.albumId === 'number'
+            ? rawLxInfo.albumId
+            : undefined,
+        source:
+          typeof rawLxInfo.source === 'string' && rawLxInfo.source.trim()
+            ? rawLxInfo.source.trim()
+            : undefined,
+        img:
+          typeof rawLxInfo.img === 'string' && rawLxInfo.img.trim()
+            ? rawLxInfo.img.trim()
+            : undefined,
+      }
+    : undefined
 
   return {
     id,
@@ -188,6 +291,7 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
         : '未知专辑',
     coverUrl: typeof track.coverUrl === 'string' ? track.coverUrl : '',
     duration: typeof track.duration === 'number' ? track.duration : 0,
+    fee: typeof track.fee === 'number' ? track.fee : 0,
     sourceUrl:
       typeof track.sourceUrl === 'string' && track.sourceUrl.trim()
         ? track.sourceUrl.trim()
@@ -198,9 +302,14 @@ export function normalizePlaybackTrack(track: unknown): PlaybackTrack | null {
       typeof track.translatedLyricText === 'string'
         ? track.translatedLyricText.trim()
         : undefined,
+    lockedPlatform,
+    lockedLxSourceId,
+    preferredQuality,
+    lxInfo,
   }
 }
 
+/** 创建播放队列快照，并把起始下标夹到合法范围。 */
 export function createPlaybackQueueSnapshot(
   tracks: unknown[],
   startIndex: number
@@ -229,10 +338,12 @@ export function createPlaybackQueueSnapshot(
   }
 }
 
+/** 创建歌单队列来源 key。 */
 export function createPlaylistQueueSourceKey(playlistId: number | string) {
   return createPrefixedQueueSourceKey(PLAYLIST_QUEUE_SOURCE_PREFIX, playlistId)
 }
 
+/** 创建我喜欢队列来源 key。 */
 export function createLikedSongsQueueSourceKey(playlistId: number | string) {
   return createPrefixedQueueSourceKey(
     LIKED_SONGS_QUEUE_SOURCE_PREFIX,
@@ -240,14 +351,17 @@ export function createLikedSongsQueueSourceKey(playlistId: number | string) {
   )
 }
 
+/** 创建专辑队列来源 key。 */
 export function createAlbumQueueSourceKey(albumId: number | string) {
   return createPrefixedQueueSourceKey(ALBUM_QUEUE_SOURCE_PREFIX, albumId)
 }
 
+/** 创建云盘队列来源 key。 */
 export function createCloudQueueSourceKey(userId: number | string) {
   return createPrefixedQueueSourceKey(CLOUD_QUEUE_SOURCE_PREFIX, userId)
 }
 
+/** 创建带类型前缀的队列来源 key，非法 id 保留前缀作为不可解析标记。 */
 function createPrefixedQueueSourceKey(
   prefix: string,
   sourceId: number | string
@@ -260,12 +374,14 @@ function createPrefixedQueueSourceKey(
   return normalizedId > 0 ? `${prefix}${normalizedId}` : prefix
 }
 
+/** 从歌单 queueSourceKey 中解析歌单 id。 */
 export function resolvePlaylistIdFromQueueSourceKey(
   sourceKey: string | null | undefined
 ) {
   return resolvePrefixedQueueSourceId(sourceKey, PLAYLIST_QUEUE_SOURCE_PREFIX)
 }
 
+/** 从指定前缀的 queueSourceKey 中解析正整数 id。 */
 function resolvePrefixedQueueSourceId(
   sourceKey: string | null | undefined,
   prefix: string
@@ -279,6 +395,7 @@ function resolvePrefixedQueueSourceId(
   return sourceId > 0 ? sourceId : null
 }
 
+/** 将 queueSourceKey 解析成来源类型和 id。 */
 export function resolveQueueSourceDescriptor(
   sourceKey: string | null | undefined
 ): PlaybackQueueSourceDescriptor | null {
@@ -329,6 +446,7 @@ export function resolveQueueSourceDescriptor(
   return null
 }
 
+/** 获取顺序播放下一首下标，到队尾返回 null。 */
 export function getNextQueueIndex(
   queue: PlaybackTrack[],
   currentIndex: number
@@ -338,6 +456,7 @@ export function getNextQueueIndex(
   return nextIndex < queue.length ? nextIndex : null
 }
 
+/** 获取顺序播放上一首下标，到队首返回 null。 */
 export function getPreviousQueueIndex(
   queue: PlaybackTrack[],
   currentIndex: number
@@ -347,6 +466,7 @@ export function getPreviousQueueIndex(
   return queue.length > 0 && previousIndex >= 0 ? previousIndex : null
 }
 
+/** 将当前下标夹到队列范围内。 */
 function clampQueueIndex(queueLength: number, currentIndex: number) {
   if (queueLength <= 0) {
     return -1
@@ -359,6 +479,7 @@ function clampQueueIndex(queueLength: number, currentIndex: number) {
   return Math.min(queueLength - 1, Math.max(0, currentIndex))
 }
 
+/** 读取随机下标，注入 random 便于单元测试固定随机序列。 */
 function readRandomIndex(random: () => number, upperBound: number) {
   const value = random()
   const safeValue = Number.isFinite(value) ? value : 0
@@ -369,6 +490,7 @@ function readRandomIndex(random: () => number, upperBound: number) {
   )
 }
 
+/** 校验随机播放顺序是否覆盖当前队列全部下标且无重复。 */
 function isCompleteShuffleOrder(order: number[], queueLength: number) {
   if (order.length !== queueLength) {
     return false
@@ -389,6 +511,7 @@ function isCompleteShuffleOrder(order: number[], queueLength: number) {
   return true
 }
 
+/** 创建随机播放顺序，当前歌曲固定放第一位，避免切到随机模式时立刻跳歌。 */
 export function createShuffleOrder(
   queueLength: number,
   currentIndex: number,
@@ -413,6 +536,7 @@ export function createShuffleOrder(
   return [safeCurrentIndex, ...remainingIndexes]
 }
 
+/** 修复或复用随机播放状态，保证当前歌曲和 cursor 对齐。 */
 function resolveShuffleState(
   queueLength: number,
   currentIndex: number,
@@ -457,6 +581,7 @@ function resolveShuffleState(
   }
 }
 
+/** repeat-all 下按方向循环推进队列。 */
 function resolveRepeatQueueIndex(
   queueLength: number,
   currentIndex: number,
@@ -475,6 +600,7 @@ function resolveRepeatQueueIndex(
   return safeCurrentIndex + 1 < queueLength ? safeCurrentIndex + 1 : 0
 }
 
+/** 随机模式下按随机顺序和游标推进队列。 */
 function resolveShuffleQueueStep({
   queueLength,
   currentIndex,
@@ -548,6 +674,11 @@ function resolveShuffleQueueStep({
   }
 }
 
+/**
+ * 计算下一步播放位置。
+ *
+ * repeat-one 只有自动播完时停留当前曲，手动下一首仍按列表推进，符合播放器常见交互。
+ */
 export function resolvePlaybackQueueStep({
   queueLength,
   currentIndex,
@@ -598,6 +729,7 @@ export function resolvePlaybackQueueStep({
   }
 }
 
+/** 计算队列项 UI 状态，loading 也按播放中显示，避免切歌加载时高亮闪烁。 */
 export function getPlaybackQueueItemState(
   itemIndex: number,
   currentIndex: number,

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   createLxFetchRequestOptions,
+  normalizeLxScriptRequestResultToLyric,
   normalizeLxScriptRequestResultToUrl,
   readLxResponseBodyUrl,
   resolveLxMusicUrlResult,
@@ -30,6 +31,24 @@ test('normalizeLxScriptRequestResultToUrl reads common lx result shapes', () => 
   )
   assert.equal(normalizeLxScriptRequestResultToUrl({}), null)
   assert.equal(normalizeLxScriptRequestResultToUrl(null), null)
+})
+
+test('normalizeLxScriptRequestResultToLyric reads common lx lyric result shapes', () => {
+  assert.equal(
+    normalizeLxScriptRequestResultToLyric('[00:01.00]line'),
+    '[00:01.00]line'
+  )
+  assert.equal(
+    normalizeLxScriptRequestResultToLyric({ lyric: '[00:02.00]field' }),
+    '[00:02.00]field'
+  )
+  assert.equal(
+    normalizeLxScriptRequestResultToLyric({
+      data: { lyric: '[00:03.00]nested' },
+    }),
+    '[00:03.00]nested'
+  )
+  assert.equal(normalizeLxScriptRequestResultToLyric({}), null)
 })
 
 test('selectSupportedLxQuality falls back through supported qualities', () => {

@@ -1,8 +1,7 @@
 import type { SongDownloadPayload } from '../../../shared/download.ts'
-import {
-  createDownloadSourceResolver,
-  type DownloadResolutionPolicy,
-  type ResolvedDownloadSource,
+import type {
+  DownloadResolutionPolicy,
+  ResolvedDownloadSource,
 } from '../../services/download/download-source-resolver.ts'
 import type {
   ResolveDownloadSource,
@@ -18,7 +17,17 @@ export const TRACK_DOWNLOAD_TOASTS = {
   sourceResolutionFailed: '无法解析下载源，歌曲未加入队列，请稍后重试',
 } as const
 
-const defaultResolveDownloadSource = createDownloadSourceResolver()
+let defaultResolveDownloadSource: ResolveDownloadSource | null = null
+
+async function getDefaultResolveDownloadSource() {
+  if (!defaultResolveDownloadSource) {
+    const { createDownloadSourceResolver } =
+      await import('../../services/download/download-source-resolver.ts')
+    defaultResolveDownloadSource = createDownloadSourceResolver()
+  }
+
+  return defaultResolveDownloadSource
+}
 
 function formatArtistNames(artists?: Array<{ name: string }> | null) {
   if (!artists?.length) {
@@ -40,6 +49,9 @@ function buildTrackDownloadSource(
     albumName: item.albumName || '',
     coverUrl: item.coverUrl || fallbackCoverUrl || '',
     duration: item.duration,
+    fee: typeof item.fee === 'number' ? item.fee : 0,
+    lockedPlatform: item.lockedPlatform,
+    lxInfo: item.lxInfo,
   }
 }
 
@@ -57,9 +69,15 @@ export function buildTrackDownloadContext(
     songId: trackSource.id,
     songName: trackSource.name,
     artistName: trackSource.artistNames,
+    fee: trackSource.fee,
     coverUrl: trackSource.coverUrl,
     albumName: item.albumName,
+    durationMs: trackSource.duration,
     requestedQuality: 'higher',
+    ...(trackSource.lockedPlatform
+      ? { lockedPlatform: trackSource.lockedPlatform }
+      : {}),
+    ...(trackSource.lxInfo ? { lxInfo: trackSource.lxInfo } : {}),
   }
 }
 
@@ -86,7 +104,7 @@ export async function handleTrackDownload(options: {
   const requestedQuality = options.requestedQuality || context.requestedQuality
   const downloadQualityPolicy = options.downloadQualityPolicy ?? 'fallback'
   const resolveDownloadSource =
-    options.resolveDownloadSource ?? defaultResolveDownloadSource
+    options.resolveDownloadSource ?? (await getDefaultResolveDownloadSource())
   let resolvedSource: ResolvedDownloadSource | null
 
   try {

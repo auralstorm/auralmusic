@@ -50,6 +50,7 @@ const DEFAULT_TRAY_STATE: TrayState = {
 const TRAY_NOW_PLAYING_MAX_DISPLAY_UNITS = 30
 const TRAY_LABEL_ELLIPSIS = '...'
 
+/** 不同平台托盘图标格式不同，Windows 优先 ico，其它平台使用 png。 */
 function getTrayIconFilename(platform: NodeJS.Platform) {
   if (platform === 'win32') {
     return path.join('build', 'icons', 'icon.ico')
@@ -58,6 +59,7 @@ function getTrayIconFilename(platform: NodeJS.Platform) {
   return path.join('build', 'icons', 'png', '32x32.png')
 }
 
+/** 粗略按显示宽度计算字符占用，中文等宽字符按 2 个单位处理。 */
 function getCharacterDisplayUnits(character: string) {
   return (character.codePointAt(0) ?? 0) > 0xff ? 2 : 1
 }
@@ -72,6 +74,7 @@ function getTextDisplayUnits(text: string) {
   return total
 }
 
+/** 截断托盘正在播放文案，防止系统菜单被超长歌名撑宽。 */
 function truncateTrayLabel(
   text: string,
   maxDisplayUnits = TRAY_NOW_PLAYING_MAX_DISPLAY_UNITS
@@ -104,6 +107,7 @@ function truncateTrayLabel(
   return `${output}${TRAY_LABEL_ELLIPSIS}`
 }
 
+/** 解析托盘图标路径，兼容开发目录和打包后的 resources 目录。 */
 export function resolveTrayIconPath(options: {
   appPath: string
   resourcesPath: string
@@ -119,6 +123,7 @@ export function resolveTrayIconPath(options: {
   return candidates.find(options.pathExists) ?? candidates[0]
 }
 
+/** 图标文件缺失时生成兜底图标，避免 Tray 构造失败导致主进程启动失败。 */
 function getFallbackTrayIcon(
   nativeImage: TrayControllerOptions['nativeImage'],
   platform: NodeJS.Platform
@@ -144,6 +149,7 @@ function getFallbackTrayIcon(
   return image
 }
 
+/** 获取平台合适的托盘图标，macOS 下设置 template image 以适配系统深浅色。 */
 function getTrayIcon(options: {
   nativeImage: TrayControllerOptions['nativeImage']
   platform: NodeJS.Platform
@@ -170,6 +176,7 @@ function getTrayIcon(options: {
   return getFallbackTrayIcon(options.nativeImage, options.platform)
 }
 
+/** 格式化托盘顶部“正在播放”文案。 */
 function formatNowPlayingLabel(state: TrayState) {
   const title = state.currentTrackName.trim()
   const artist = state.currentArtistNames.trim()
@@ -181,6 +188,7 @@ function formatNowPlayingLabel(state: TrayState) {
   return truncateTrayLabel(artist ? `${title} - ${artist}` : title)
 }
 
+/** 构造播放模式 radio 菜单项，点击后只发送托盘命令，不直接修改播放器状态。 */
 function createPlaybackModeItem(
   label: string,
   playbackMode: PlaybackMode,
@@ -200,6 +208,7 @@ function createPlaybackModeItem(
   }
 }
 
+/** 根据当前播放状态生成托盘菜单模板。 */
 function buildTrayMenuTemplate(
   state: TrayState,
   options: Pick<
@@ -279,6 +288,11 @@ function buildTrayMenuTemplate(
   ]
 }
 
+/**
+ * 创建托盘控制器。
+ *
+ * 托盘状态由 renderer 同步，菜单点击再以命令形式回传 renderer，主进程不持有播放器业务状态。
+ */
 export function createTrayController(options: TrayControllerOptions) {
   const Tray = options.Tray ?? (electron.Tray as TrayConstructor)
   const Menu = options.Menu ?? electron.Menu
@@ -292,6 +306,7 @@ export function createTrayController(options: TrayControllerOptions) {
   let state = DEFAULT_TRAY_STATE
 
   const refreshMenu = () => {
+    // Electron 托盘菜单没有响应式更新能力，状态变化时重建整份菜单最稳定。
     if (!tray) {
       return
     }
@@ -304,6 +319,7 @@ export function createTrayController(options: TrayControllerOptions) {
   return {
     initialize() {
       if (tray) {
+        // 防止重复初始化创建多个系统托盘图标。
         return tray
       }
 

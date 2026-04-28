@@ -15,18 +15,22 @@ const LX_SCRIPT_FILE_EXTENSION = '.js'
 const LX_SCRIPT_ID_PATTERN = /^[0-9a-f-]{36}$/i
 const { app, dialog } = electron
 
+/** LX 脚本单独存放在 userData/music-sources/lx，便于配置和缓存目录分离。 */
 function getLxScriptDirectory() {
   return path.join(app.getPath('userData'), 'music-sources', 'lx')
 }
 
+/** 根据脚本 id 生成受控路径，调用前必须校验 id，避免路径穿越。 */
 function getLxScriptPath(id: string) {
   return path.join(getLxScriptDirectory(), `${id}${LX_SCRIPT_FILE_EXTENSION}`)
 }
 
+/** 只接受 randomUUID 生成的 id，防止 renderer 用 ../ 构造任意文件路径。 */
 function isValidScriptId(id: string) {
   return LX_SCRIPT_ID_PATTERN.test(id)
 }
 
+/** 导入前做最小脚本特征校验，避免把普通文件写入音源目录。 */
 function assertLxMusicSourceScript(rawScript: string) {
   if (!rawScript.trim()) {
     throw new Error('音源脚本内容为空')
@@ -37,6 +41,7 @@ function assertLxMusicSourceScript(rawScript: string) {
   }
 }
 
+/** 打开文件选择器导入本地 LX 音源脚本，返回未持久化的草稿数据。 */
 export async function selectLxMusicSourceScript(
   ownerWindow?: BrowserWindow | null
 ): Promise<LxMusicSourceScriptDraft | null> {
@@ -65,6 +70,7 @@ export async function selectLxMusicSourceScript(
   }
 }
 
+/** 从远程 URL 下载 LX 音源脚本，仅允许 http/https，下载后仍执行脚本特征校验。 */
 export async function downloadLxMusicSourceScriptFromUrl(
   url: string
 ): Promise<LxMusicSourceScriptDraft> {
@@ -98,6 +104,7 @@ export async function downloadLxMusicSourceScriptFromUrl(
   }
 }
 
+/** 保存 LX 音源脚本到受控目录，并返回可写入配置的音源元信息。 */
 export async function saveLxMusicSourceScript(
   draft: LxMusicSourceScriptDraft,
   initedData?: LxInitedData
@@ -127,6 +134,7 @@ export async function saveLxMusicSourceScript(
   return source
 }
 
+/** 按 id 读取已保存脚本，非法 id 或文件不存在都返回 null。 */
 export async function readLxMusicSourceScript(
   id: string
 ): Promise<string | null> {
@@ -141,6 +149,7 @@ export async function readLxMusicSourceScript(
   }
 }
 
+/** 删除已保存脚本；非法 id 直接忽略，避免误删非音源文件。 */
 export async function removeLxMusicSourceScript(id: string): Promise<void> {
   if (!isValidScriptId(id)) {
     return

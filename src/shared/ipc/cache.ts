@@ -1,3 +1,4 @@
+/** 缓存 IPC 通道，覆盖目录选择、状态查询、资源解析和歌词载荷读写。 */
 export const CACHE_IPC_CHANNELS = {
   GET_DEFAULT_DIRECTORY: 'cache:get-default-directory',
   SELECT_DIRECTORY: 'cache:select-directory',

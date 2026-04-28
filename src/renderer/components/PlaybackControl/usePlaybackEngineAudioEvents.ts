@@ -22,6 +22,7 @@ export function usePlaybackEngineAudioEvents({
     let frameId = 0
     let lastProgressSyncTimestamp = 0
 
+    // 播放器隐藏或暂停时停掉帧循环，避免底栏进度同步持续触发全局 store 更新。
     const stopProgressSync = () => {
       if (!frameId) {
         return
@@ -47,6 +48,7 @@ export function usePlaybackEngineAudioEvents({
           audioEnded: audio.ended,
         })
       ) {
+        // loading 阶段保留帧循环但不写进度，防止旧音源元数据覆盖新音源状态。
         frameId = requestAnimationFrame(syncProgress)
         return
       }
@@ -82,6 +84,7 @@ export function usePlaybackEngineAudioEvents({
           audioEnded: audio.ended,
         })
       ) {
+        // 暂停态不跑 RAF，依赖 timeupdate 补齐拖拽/跳转后的最终进度。
         playbackState.setProgress(audio.currentTime * 1000)
       }
     }

@@ -4,12 +4,19 @@ import { Container } from '@pixi/display'
 import { BlurFilter } from '@pixi/filter-blur'
 import { ColorMatrixFilter } from '@pixi/filter-color-matrix'
 import { NoiseFilter } from '@pixi/filter-noise'
-import { Filter, Texture } from '@pixi/core'
+import { Filter, RenderTexture, SCALE_MODES, Texture } from '@pixi/core'
 import '@pixi/events'
 import { Sprite } from '@pixi/sprite'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isLocalMediaUrl } from '../../../shared/local-media.ts'
-import { resolvePlayerSceneCoverFitMode } from './player-scene-artwork.model'
+import {
+  resolvePlayerSceneCoverFitMode,
+  shouldShowNativeCoverFallback,
+} from './player-scene-artwork.model'
+import {
+  resolvePixelArcadeBlockSize,
+  shouldSuppressWaterRipple,
+} from './player-scene-pixel-crt.model'
 import { resolveRetroPresetPipeline } from './player-scene-retro.model'
 import type { PlayerScenePixiCoverProps } from './types'
 
@@ -257,17 +264,22 @@ export default function PlayerScenePixiCover({
   const hostRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
   const rootRef = useRef<Container | null>(null)
+  const pixelStageRef = useRef<Container | null>(null)
   const backdropSpriteRef = useRef<Sprite | null>(null)
   const coverSpriteRef = useRef<Sprite | null>(null)
+  const pixelSourceSpriteRef = useRef<Sprite | null>(null)
+  const pixelDisplaySpriteRef = useRef<Sprite | null>(null)
   const vignetteSpriteRef = useRef<Sprite | null>(null)
   const wearSpriteRef = useRef<Sprite | null>(null)
   const lightLeakSpriteRef = useRef<Sprite | null>(null)
   const scanlineSpriteRef = useRef<Sprite | null>(null)
+  const pixelRenderTextureRef = useRef<RenderTexture | null>(null)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const frameTimeRef = useRef(0)
   const renderSizeRef = useRef({ width: 0, height: 0 })
   const loadRequestIdRef = useRef(0)
   const [isCoverReady, setIsCoverReady] = useState(false)
+  const [textureLoadFailed, setTextureLoadFailed] = useState(false)
   const pipeline = useMemo(
     () => resolveRetroPresetPipeline(retroCoverPreset),
     [retroCoverPreset]
@@ -280,10 +292,104 @@ export default function PlayerScenePixiCover({
   const noiseFilterRef = useRef(new NoiseFilter(0, 0.35))
   const rippleFilterRef = useRef(createWaterRippleFilter())
 
+  const clearPixelRenderTexture = () => {
+    const pixelTexture = pixelRenderTextureRef.current
+    if (pixelTexture && !pixelTexture.destroyed) {
+      pixelTexture.destroy(true)
+    }
+    pixelRenderTextureRef.current = null
+  }
+
+  const applyCoverSpriteFit = (
+    sprite: Sprite,
+    width: number,
+    height: number,
+    textureWidth: number,
+    textureHeight: number
+  ) => {
+    const fitMode = resolvePlayerSceneCoverFitMode({
+      textureWidth,
+      textureHeight,
+    })
+    const coverScale = Math.max(width / textureWidth, height / textureHeight)
+    const containScale =
+      Math.min(width / textureWidth, height / textureHeight) *
+      NON_SQUARE_COVER_PADDING
+
+    sprite.position.set(width / 2, height / 2)
+    sprite.scale.set(fitMode === 'contain' ? containScale : coverScale)
+  }
+
+  const syncPixelRenderTexture = () => {
+    const app = appRef.current
+    const pixelStage = pixelStageRef.current
+    const pixelSourceSprite = pixelSourceSpriteRef.current
+    const pixelDisplaySprite = pixelDisplaySpriteRef.current
+
+    if (!app || !pixelStage || !pixelSourceSprite || !pixelDisplaySprite) {
+      return
+    }
+
+    const { width, height } = renderSizeRef.current
+    if (
+      width < MIN_RENDER_SIZE ||
+      height < MIN_RENDER_SIZE ||
+      !pipelineRef.current.pixel.enabled
+    ) {
+      pixelDisplaySprite.visible = false
+      clearPixelRenderTexture()
+      return
+    }
+
+    const blockSize = resolvePixelArcadeBlockSize({ width, height })
+    const pixelWidth = Math.max(24, Math.floor(width / blockSize))
+    const pixelHeight = Math.max(24, Math.floor(height / blockSize))
+    const textureWidth = pixelSourceSprite.texture.width || pixelWidth
+    const textureHeight = pixelSourceSprite.texture.height || pixelHeight
+
+    if (
+      !pixelRenderTextureRef.current ||
+      pixelRenderTextureRef.current.width !== pixelWidth ||
+      pixelRenderTextureRef.current.height !== pixelHeight
+    ) {
+      clearPixelRenderTexture()
+      pixelRenderTextureRef.current = RenderTexture.create({
+        width: pixelWidth,
+        height: pixelHeight,
+      })
+      pixelRenderTextureRef.current.baseTexture.scaleMode = SCALE_MODES.NEAREST
+    }
+
+    applyCoverSpriteFit(
+      pixelSourceSprite,
+      pixelWidth,
+      pixelHeight,
+      textureWidth,
+      textureHeight
+    )
+
+    pixelDisplaySprite.texture = pixelRenderTextureRef.current
+    pixelDisplaySprite.texture.baseTexture.scaleMode = SCALE_MODES.NEAREST
+    pixelDisplaySprite.anchor.set(0.5)
+    pixelDisplaySprite.position.set(width / 2, height / 2)
+    pixelDisplaySprite.width = width
+    pixelDisplaySprite.height = height
+    pixelDisplaySprite.visible = true
+    pixelDisplaySprite.roundPixels = true
+
+    app.renderer.render(pixelStage, {
+      renderTexture: pixelRenderTextureRef.current,
+      clear: true,
+    })
+  }
+
   const applyCoverLayout = () => {
     const backdropSprite = backdropSpriteRef.current
     const coverSprite = coverSpriteRef.current
-    if (!backdropSprite || !coverSprite) {
+    const pixelSourceSprite = pixelSourceSpriteRef.current
+    const pixelDisplaySprite = pixelDisplaySpriteRef.current
+
+    if (!backdropSprite || !coverSprite || !pixelDisplaySprite) {
       return
     }
 
@@ -299,16 +405,20 @@ export default function PlayerScenePixiCover({
       textureHeight,
     })
     const coverScale = Math.max(width / textureWidth, height / textureHeight)
-    const containScale =
-      Math.min(width / textureWidth, height / textureHeight) *
-      NON_SQUARE_COVER_PADDING
 
     // 长图封面保留完整主体，背景层负责补满方形舞台，避免主视觉退化成海报排版。
     backdropSprite.position.set(width / 2, height / 2)
     backdropSprite.scale.set(coverScale)
     backdropSprite.alpha = fitMode === 'contain' ? NON_SQUARE_BACKDROP_ALPHA : 0
-    coverSprite.position.set(width / 2, height / 2)
-    coverSprite.scale.set(fitMode === 'contain' ? containScale : coverScale)
+    applyCoverSpriteFit(coverSprite, width, height, textureWidth, textureHeight)
+
+    if (pixelSourceSprite) {
+      pixelSourceSprite.texture = coverSprite.texture
+    }
+
+    pixelDisplaySprite.visible = pipelineRef.current.pixel.enabled
+    coverSprite.visible = !pipelineRef.current.pixel.enabled
+    syncPixelRenderTexture()
   }
 
   const updateOverlayTextures = () => {
@@ -372,8 +482,9 @@ export default function PlayerScenePixiCover({
     const noiseFilter = noiseFilterRef.current
     const rippleFilter = rippleFilterRef.current
     const coverSprite = coverSpriteRef.current
+    const pixelSourceSprite = pixelSourceSpriteRef.current
 
-    if (!coverSprite) {
+    if (!coverSprite || !pixelSourceSprite) {
       return
     }
 
@@ -395,7 +506,16 @@ export default function PlayerScenePixiCover({
 
     blurFilter.blur = pipelineRef.current.blurStrength
     noiseFilter.noise = pipelineRef.current.noiseIntensity
-    coverSprite.filters = [rippleFilter, colorFilter, blurFilter, noiseFilter]
+    const activeSprite = pipelineRef.current.pixel.enabled
+      ? pixelSourceSprite
+      : coverSprite
+    const inactiveSprite = pipelineRef.current.pixel.enabled
+      ? coverSprite
+      : pixelSourceSprite
+
+    inactiveSprite.filters = null
+    activeSprite.filters = [rippleFilter, colorFilter, blurFilter, noiseFilter]
+    syncPixelRenderTexture()
   }
 
   useEffect(() => {
@@ -427,6 +547,9 @@ export default function PlayerScenePixiCover({
     rootRef.current = root
     app.stage.addChild(root)
 
+    const pixelStage = new Container()
+    pixelStageRef.current = pixelStage
+
     const backdropSprite = new Sprite(Texture.EMPTY)
     backdropSprite.anchor.set(0.5)
     backdropSpriteRef.current = backdropSprite
@@ -434,6 +557,15 @@ export default function PlayerScenePixiCover({
     const coverSprite = new Sprite(Texture.EMPTY)
     coverSprite.anchor.set(0.5)
     coverSpriteRef.current = coverSprite
+
+    const pixelSourceSprite = new Sprite(Texture.EMPTY)
+    pixelSourceSprite.anchor.set(0.5)
+    pixelSourceSpriteRef.current = pixelSourceSprite
+    pixelStage.addChild(pixelSourceSprite)
+
+    const pixelDisplaySprite = new Sprite(Texture.EMPTY)
+    pixelDisplaySprite.visible = false
+    pixelDisplaySpriteRef.current = pixelDisplaySprite
 
     const lightLeakSprite = new Sprite(Texture.WHITE)
     lightLeakSpriteRef.current = lightLeakSprite
@@ -446,6 +578,7 @@ export default function PlayerScenePixiCover({
 
     root.addChild(backdropSprite)
     root.addChild(coverSprite)
+    root.addChild(pixelDisplaySprite)
     root.addChild(lightLeakSprite)
     root.addChild(vignetteSprite)
     root.addChild(wearSprite)
@@ -492,11 +625,18 @@ export default function PlayerScenePixiCover({
       const rippleFilter = rippleFilterRef.current
 
       rippleFilter.uniforms.time = frameTimeRef.current * 0.016
-      rippleFilter.uniforms.strength = WATER_RIPPLE_STRENGTH
+      rippleFilter.uniforms.strength = shouldSuppressWaterRipple(
+        retroCoverPreset
+      )
+        ? 0
+        : WATER_RIPPLE_STRENGTH
 
       if (pipelineState.noiseAnimateSpeed > 0) {
         noiseFilter.seed =
           (noiseFilter.seed + delta * pipelineState.noiseAnimateSpeed) % 1
+        if (pipelineState.pixel.enabled) {
+          syncPixelRenderTexture()
+        }
       }
 
       if (pipelineState.flickerAmplitude > 0) {
@@ -535,6 +675,8 @@ export default function PlayerScenePixiCover({
         }
       })
 
+      clearPixelRenderTexture()
+
       app.destroy(true, {
         children: true,
         texture: false,
@@ -542,8 +684,11 @@ export default function PlayerScenePixiCover({
       })
       appRef.current = null
       rootRef.current = null
+      pixelStageRef.current = null
       backdropSpriteRef.current = null
       coverSpriteRef.current = null
+      pixelSourceSpriteRef.current = null
+      pixelDisplaySpriteRef.current = null
       vignetteSpriteRef.current = null
       wearSpriteRef.current = null
       lightLeakSpriteRef.current = null
@@ -555,11 +700,21 @@ export default function PlayerScenePixiCover({
     const app = appRef.current
     const backdropSprite = backdropSpriteRef.current
     const coverSprite = coverSpriteRef.current
-    if (!app || !backdropSprite || !coverSprite || !src.trim()) {
+    const pixelSourceSprite = pixelSourceSpriteRef.current
+    const pixelDisplaySprite = pixelDisplaySpriteRef.current
+    if (
+      !app ||
+      !backdropSprite ||
+      !coverSprite ||
+      !pixelSourceSprite ||
+      !pixelDisplaySprite ||
+      !src.trim()
+    ) {
       return
     }
 
     setIsCoverReady(false)
+    setTextureLoadFailed(false)
     const requestId = loadRequestIdRef.current + 1
     loadRequestIdRef.current = requestId
 
@@ -572,6 +727,8 @@ export default function PlayerScenePixiCover({
 
         backdropSprite.texture = texture
         coverSprite.texture = texture
+        pixelSourceSprite.texture = texture
+        pixelDisplaySprite.visible = pipelineRef.current.pixel.enabled
         applyCoverLayout()
         setIsCoverReady(true)
         applyRetroFilters()
@@ -581,6 +738,8 @@ export default function PlayerScenePixiCover({
           return
         }
         console.error('load player scene cover texture failed', error)
+        setTextureLoadFailed(true)
+        setIsCoverReady(true)
       }
     }
 
@@ -607,7 +766,12 @@ export default function PlayerScenePixiCover({
 
     const shouldRunTicker = shouldAnimate && isVisible
     const rippleFilter = rippleFilterRef.current
-    rippleFilter.uniforms.strength = shouldRunTicker ? WATER_RIPPLE_STRENGTH : 0
+    const effectiveRippleStrength = shouldSuppressWaterRipple(retroCoverPreset)
+      ? 0
+      : WATER_RIPPLE_STRENGTH
+    rippleFilter.uniforms.strength = shouldRunTicker
+      ? effectiveRippleStrength
+      : 0
     rippleFilter.uniforms.time = shouldRunTicker
       ? rippleFilter.uniforms.time
       : 0
@@ -620,7 +784,7 @@ export default function PlayerScenePixiCover({
 
     app.stop()
     app.render()
-  }, [isVisible, shouldAnimate, src])
+  }, [isVisible, shouldAnimate, retroCoverPreset, src])
 
   return (
     <div
@@ -630,7 +794,19 @@ export default function PlayerScenePixiCover({
       {!isCoverReady ? (
         <div className='absolute inset-0 z-10 animate-pulse bg-black/20' />
       ) : null}
-      <div ref={hostRef} className='absolute inset-0 overflow-hidden' />
+      {shouldShowNativeCoverFallback(src, textureLoadFailed) ? (
+        <img
+          src={src}
+          alt=''
+          className='absolute inset-0 h-full w-full object-cover'
+          draggable={false}
+        />
+      ) : null}
+      <div
+        ref={hostRef}
+        className='absolute inset-0 overflow-hidden'
+        aria-hidden={textureLoadFailed}
+      />
     </div>
   )
 }

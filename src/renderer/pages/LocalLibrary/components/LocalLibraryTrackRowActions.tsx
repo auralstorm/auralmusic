@@ -1,4 +1,12 @@
-import { FolderOpen, MoreHorizontal, Play, Trash, Trash2 } from 'lucide-react'
+import {
+  FolderOpen,
+  ListMinus,
+  ListPlus,
+  MoreHorizontal,
+  Play,
+  Trash,
+  Trash2,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +25,8 @@ interface LocalLibraryTrackRowActionsProps {
   disabled?: boolean
   onPlay: () => void
   onRevealTrack: (track: LocalLibraryTrackRecord) => void
+  onAddToPlaylist?: (track: LocalLibraryTrackRecord) => void
+  onRemoveFromPlaylist?: (track: LocalLibraryTrackRecord) => void
   onDelete: (
     track: LocalLibraryTrackRecord,
     mode: LocalLibraryTrackDeleteMode
@@ -28,6 +38,8 @@ const LocalLibraryTrackRowActions = ({
   disabled = false,
   onPlay,
   onRevealTrack,
+  onAddToPlaylist,
+  onRemoveFromPlaylist,
   onDelete,
 }: LocalLibraryTrackRowActionsProps) => {
   return (
@@ -67,6 +79,24 @@ const LocalLibraryTrackRowActions = ({
             <FolderOpen className='size-4' />
             打开所在位置
           </DropdownMenuItem>
+          {onAddToPlaylist ? (
+            <DropdownMenuItem
+              className='rounded-xl'
+              onClick={() => onAddToPlaylist(track)}
+            >
+              <ListPlus className='size-4' />
+              添加到歌单
+            </DropdownMenuItem>
+          ) : null}
+          {onRemoveFromPlaylist ? (
+            <DropdownMenuItem
+              className='rounded-xl'
+              onClick={() => onRemoveFromPlaylist(track)}
+            >
+              <ListMinus className='size-4' />
+              移出歌单
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem
             className='rounded-xl'
             onClick={() => onDelete(track, 'library-only')}

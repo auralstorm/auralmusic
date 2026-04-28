@@ -11,6 +11,7 @@ import {
   type ShortcutBindings,
 } from './shortcut-keys.ts'
 
+/** 网易云音质等级，从标准音质到沉浸/母带等高规格音质。 */
 export const AUDIO_QUALITY_LEVELS = [
   'standard',
   'higher',
@@ -25,6 +26,7 @@ export const AUDIO_QUALITY_LEVELS = [
 
 export type AudioQualityLevel = (typeof AUDIO_QUALITY_LEVELS)[number]
 
+/** 下载文件命名模板，主进程下载服务会据此生成文件名。 */
 export const DOWNLOAD_FILE_NAME_PATTERNS = [
   'song-artist',
   'artist-song',
@@ -33,10 +35,12 @@ export const DOWNLOAD_FILE_NAME_PATTERNS = [
 export type DownloadFileNamePattern =
   (typeof DOWNLOAD_FILE_NAME_PATTERNS)[number]
 
+/** 下载音质策略：strict 只尝试指定音质，fallback 允许向低音质降级。 */
 export const DOWNLOAD_QUALITY_POLICIES = ['strict', 'fallback'] as const
 
 export type DownloadQualityPolicy = (typeof DOWNLOAD_QUALITY_POLICIES)[number]
 
+/** 音源提供方配置，内置平台和 LX 脚本共用这一层用户配置。 */
 export const MUSIC_SOURCE_PROVIDERS = [
   'migu',
   'kugou',
@@ -47,6 +51,7 @@ export const MUSIC_SOURCE_PROVIDERS = [
 
 export type MusicSourceProvider = (typeof MUSIC_SOURCE_PROVIDERS)[number]
 
+/** 内置解灰模块枚举，空数组表示显式关闭全部增强模块。 */
 export const ENHANCED_SOURCE_MODULES = [
   'unm',
   'bikonoo',
@@ -58,8 +63,22 @@ export const ENHANCED_SOURCE_MODULES = [
 
 export type EnhancedSourceModule = (typeof ENHANCED_SOURCE_MODULES)[number]
 
+/** 窗口关闭行为：询问、最小化到托盘或直接退出。 */
 export type CloseBehavior = 'ask' | 'minimize' | 'quit'
+/** 播放器背景模式，dynamic 会启用更重的实时视觉效果。 */
 export type PlayerBackgroundMode = 'off' | 'static' | 'dynamic'
+
+/** 播放器封面展示风格选项，设置页和渲染逻辑共享。 */
+export const PLAYER_ARTWORK_STYLE_OPTIONS = [
+  { label: '默认封面', value: 'default' },
+  { label: '黑胶唱片', value: 'vinylRecord' },
+  { label: '镭射 CD', value: 'holographicCd' },
+] as const
+export type PlayerArtworkStyle =
+  (typeof PLAYER_ARTWORK_STYLE_OPTIONS)[number]['value']
+export const PLAYER_ARTWORK_STYLES = PLAYER_ARTWORK_STYLE_OPTIONS.map(
+  option => option.value
+) as readonly PlayerArtworkStyle[]
 
 // 复古预设只保留一份元数据，避免设置页和 schema 长期各自维护一套枚举。
 export const RETRO_COVER_PRESET_OPTIONS = [
@@ -72,6 +91,7 @@ export const RETRO_COVER_PRESET_OPTIONS = [
   { label: '经典黑胶封面', value: 'vinylClassic' },
   { label: 'CRT 老式显像管', value: 'crt' },
   { label: '拍立得复古', value: 'polaroid' },
+  { label: '像素街机 CRT', value: 'pixelArcade' },
 ] as const
 export type RetroCoverPreset =
   (typeof RETRO_COVER_PRESET_OPTIONS)[number]['value']
@@ -83,6 +103,7 @@ export const ANIMATION_EFFECT_LEVELS = ['standard', 'reduced', 'off'] as const
 
 export type AnimationEffectLevel = (typeof ANIMATION_EFFECT_LEVELS)[number]
 
+/** 本地曲库可扫描音频格式选项。 */
 export const LOCAL_LIBRARY_SCAN_FORMAT_OPTIONS = [
   { label: 'MP3', value: 'mp3' },
   { label: 'FLAC', value: 'flac' },
@@ -100,8 +121,10 @@ export const LOCAL_LIBRARY_SCAN_FORMATS = LOCAL_LIBRARY_SCAN_FORMAT_OPTIONS.map(
 
 export const MIN_PLAYBACK_SPEED = 0.5
 export const MAX_PLAYBACK_SPEED = 2.0
+/** 默认磁盘缓存容量上限：1GB。 */
 export const DEFAULT_DISK_CACHE_MAX_BYTES = 1024 * 1024 * 1024
 
+/** 应用完整配置模型，main 持久化，renderer 通过 IPC 读取/写入。 */
 export interface AppConfig {
   theme: 'light' | 'dark' | 'system'
   themeColor: string | null
@@ -137,6 +160,7 @@ export interface AppConfig {
   closeBehavior: CloseBehavior
   rememberCloseChoice: boolean
   playerBackgroundMode: PlayerBackgroundMode
+  playerArtworkStyle: PlayerArtworkStyle
   animationEffect: AnimationEffectLevel
   immersivePlayerControls: boolean
   playbackFadeEnabled: boolean
@@ -155,6 +179,7 @@ export interface AppConfig {
   downloadEmbedTranslatedLyrics: boolean
 }
 
+/** 新用户和重置配置时使用的默认配置。 */
 export const defaultConfig: AppConfig = {
   theme: 'system',
   themeColor: null,
@@ -190,6 +215,7 @@ export const defaultConfig: AppConfig = {
   closeBehavior: 'ask',
   rememberCloseChoice: false,
   playerBackgroundMode: 'static',
+  playerArtworkStyle: 'default',
   animationEffect: 'standard',
   immersivePlayerControls: false,
   playbackFadeEnabled: false,
@@ -208,10 +234,12 @@ export const defaultConfig: AppConfig = {
   downloadEmbedTranslatedLyrics: false,
 }
 
+/** 归一化动态封面开关，非布尔值回退默认值。 */
 export function normalizeDynamicCoverEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.dynamicCoverEnabled
 }
 
+/** 归一化复古封面预设。 */
 export function normalizeRetroCoverPreset(value: unknown): RetroCoverPreset {
   return typeof value === 'string' &&
     RETRO_COVER_PRESETS.includes(value as RetroCoverPreset)
@@ -219,10 +247,22 @@ export function normalizeRetroCoverPreset(value: unknown): RetroCoverPreset {
     : defaultConfig.retroCoverPreset
 }
 
+/** 归一化播放器封面展示风格。 */
+export function normalizePlayerArtworkStyle(
+  value: unknown
+): PlayerArtworkStyle {
+  return typeof value === 'string' &&
+    PLAYER_ARTWORK_STYLES.includes(value as PlayerArtworkStyle)
+    ? (value as PlayerArtworkStyle)
+    : defaultConfig.playerArtworkStyle
+}
+
+/** 归一化本地曲库菜单显示开关。 */
 export function normalizeShowLocalLibraryMenu(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.showLocalLibraryMenu
 }
 
+/** 归一化本地曲库根目录，去空、去重并保留用户配置顺序。 */
 export function normalizeLocalLibraryRoots(value: unknown) {
   if (!Array.isArray(value)) {
     return defaultConfig.localLibraryRoots
@@ -238,6 +278,7 @@ export function normalizeLocalLibraryRoots(value: unknown) {
   ]
 }
 
+/** 归一化扫描格式，非法或空数组回退默认全格式。 */
 export function normalizeLocalLibraryScanFormats(value: unknown) {
   if (!Array.isArray(value)) {
     return defaultConfig.localLibraryScanFormats
@@ -257,18 +298,21 @@ export function normalizeLocalLibraryScanFormats(value: unknown) {
   return formats.length > 0 ? formats : defaultConfig.localLibraryScanFormats
 }
 
+/** 归一化在线歌词匹配开关。 */
 export function normalizeLocalLibraryOnlineLyricMatchEnabled(value: unknown) {
   return typeof value === 'boolean'
     ? value
     : defaultConfig.localLibraryOnlineLyricMatchEnabled
 }
 
+/** 归一化播放会话恢复开关。 */
 export function normalizeRememberPlaybackSession(value: unknown) {
   return typeof value === 'boolean'
     ? value
     : defaultConfig.rememberPlaybackSession
 }
 
+/** 归一化播放速度，限制在播放器支持范围内。 */
 export function normalizePlaybackSpeed(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return defaultConfig.playbackSpeed
@@ -277,16 +321,19 @@ export function normalizePlaybackSpeed(value: unknown) {
   return Math.min(MAX_PLAYBACK_SPEED, Math.max(MIN_PLAYBACK_SPEED, value))
 }
 
+/** 配置层封装 equalizer 归一化，方便 config store 统一调用。 */
 export function normalizeEqualizerConfigValue(value: unknown) {
   return normalizeEqualizerConfig(value)
 }
 
+/** 归一化播放器背景模式。 */
 export function normalizePlayerBackgroundMode(value: unknown) {
   return value === 'off' || value === 'dynamic' || value === 'static'
     ? value
     : defaultConfig.playerBackgroundMode
 }
 
+/** 归一化动画强度，off/reduced 用于低性能或无障碍偏好。 */
 export function normalizeAnimationEffect(value: unknown) {
   return typeof value === 'string' &&
     ANIMATION_EFFECT_LEVELS.includes(value as AnimationEffectLevel)
@@ -294,16 +341,19 @@ export function normalizeAnimationEffect(value: unknown) {
     : defaultConfig.animationEffect
 }
 
+/** 归一化沉浸播放器控件开关。 */
 export function normalizeImmersivePlayerControls(value: unknown) {
   return typeof value === 'boolean'
     ? value
     : defaultConfig.immersivePlayerControls
 }
 
+/** 归一化播放淡入淡出开关。 */
 export function normalizePlaybackFadeEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.playbackFadeEnabled
 }
 
+/** 归一化磁盘缓存容量，向下取整并拒绝非正数。 */
 export function normalizeDiskCacheMaxBytes(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     return defaultConfig.diskCacheMaxBytes
@@ -312,26 +362,32 @@ export function normalizeDiskCacheMaxBytes(value: unknown) {
   return Math.floor(value)
 }
 
+/** 归一化歌词翻译显示开关。 */
 export function normalizeShowLyricTranslation(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.showLyricTranslation
 }
 
+/** 归一化卡拉 OK 歌词开关。 */
 export function normalizeLyricsKaraokeEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.lyricsKaraokeEnabled
 }
 
+/** 归一化磁盘缓存开关。 */
 export function normalizeDiskCacheEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.diskCacheEnabled
 }
 
+/** 归一化磁盘缓存目录，非字符串回退默认空目录。 */
 export function normalizeDiskCacheDir(value: unknown) {
   return typeof value === 'string' ? value : defaultConfig.diskCacheDir
 }
 
+/** 归一化下载功能开关。 */
 export function normalizeDownloadEnabled(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.downloadEnabled
 }
 
+/** 归一化下载音质，兼容旧版本 high -> higher。 */
 export function normalizeDownloadQuality(value: unknown) {
   if (value === 'high') {
     return 'higher'
@@ -343,6 +399,7 @@ export function normalizeDownloadQuality(value: unknown) {
     : defaultConfig.downloadQuality
 }
 
+/** 归一化下载音质策略。 */
 export function normalizeDownloadQualityPolicy(value: unknown) {
   return typeof value === 'string' &&
     DOWNLOAD_QUALITY_POLICIES.includes(value as DownloadQualityPolicy)
@@ -350,10 +407,12 @@ export function normalizeDownloadQualityPolicy(value: unknown) {
     : defaultConfig.downloadQualityPolicy
 }
 
+/** 归一化跳过已有文件开关。 */
 export function normalizeDownloadSkipExisting(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.downloadSkipExisting
 }
 
+/** 归一化下载目录，空字符串表示使用系统默认下载目录。 */
 export function normalizeDownloadDir(value: unknown) {
   if (typeof value !== 'string') {
     return defaultConfig.downloadDir
@@ -367,6 +426,7 @@ export function normalizeDownloadDir(value: unknown) {
   return normalizedValue
 }
 
+/** 归一化下载并发，限制在 1-10 之间。 */
 export function normalizeDownloadConcurrency(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return defaultConfig.downloadConcurrency
@@ -375,6 +435,7 @@ export function normalizeDownloadConcurrency(value: unknown) {
   return Math.min(10, Math.max(1, Math.floor(value)))
 }
 
+/** 归一化内置增强音源模块列表，过滤未知值并去重。 */
 export function normalizeEnhancedSourceModules(
   value: unknown
 ): EnhancedSourceModule[] {
@@ -392,6 +453,7 @@ export function normalizeEnhancedSourceModules(
   return [...new Set(modules)]
 }
 
+/** 归一化下载文件命名模板。 */
 export function normalizeDownloadFileNamePattern(value: unknown) {
   return typeof value === 'string' &&
     DOWNLOAD_FILE_NAME_PATTERNS.includes(value as DownloadFileNamePattern)
@@ -399,14 +461,17 @@ export function normalizeDownloadFileNamePattern(value: unknown) {
     : defaultConfig.downloadFileNamePattern
 }
 
+/** 归一化下载嵌入封面开关。 */
 export function normalizeDownloadEmbedCover(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.downloadEmbedCover
 }
 
+/** 归一化下载嵌入歌词开关。 */
 export function normalizeDownloadEmbedLyrics(value: unknown) {
   return typeof value === 'boolean' ? value : defaultConfig.downloadEmbedLyrics
 }
 
+/** 翻译歌词依赖原文歌词嵌入，关闭原文时强制关闭翻译歌词。 */
 export function normalizeDownloadEmbedTranslatedLyrics(
   value: unknown,
   embedLyrics = defaultConfig.downloadEmbedLyrics
@@ -420,4 +485,5 @@ export function normalizeDownloadEmbedTranslatedLyrics(
     : defaultConfig.downloadEmbedTranslatedLyrics
 }
 
+/** 配置 IPC 通道复导出，兼容旧代码从 config.ts 读取通道的用法。 */
 export { IPC_CHANNELS }

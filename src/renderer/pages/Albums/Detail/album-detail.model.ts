@@ -88,6 +88,7 @@ export function normalizeAlbumTracks(
       albumName: track.al?.name || '未知专辑',
       duration: track.dt || 0,
       coverUrl: track.al?.picUrl || fallbackCoverUrl,
+      fee: typeof track.fee === 'number' ? track.fee : 0,
     }
   })
 }

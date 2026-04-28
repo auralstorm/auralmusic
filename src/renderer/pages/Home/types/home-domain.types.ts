@@ -28,6 +28,7 @@ export interface RawAlbum {
 export interface RawSongLike {
   id?: number
   name?: string
+  fee?: number
   duration?: number
   dt?: number
   artists?: RawArtist[]

@@ -16,6 +16,12 @@ type RendererLoadTargetOptions = {
   rendererUrl?: string
 }
 
+/**
+ * 解析主窗口应该加载的 renderer 入口。
+ *
+ * 开发环境加载 Vite dev server，生产环境加载打包后的 index.html；这里把分支集中起来，
+ * 避免窗口创建逻辑同时关心路径和运行模式。
+ */
 export function resolveRendererLoadTarget({
   appIsPackaged,
   mainDirname,
@@ -29,6 +35,7 @@ export function resolveRendererLoadTarget({
   }
 
   if (!rendererUrl) {
+    // 开发模式没有 renderer URL 时窗口无法启动，直接抛错能更早暴露环境配置问题。
     throw new Error('ELECTRON_RENDERER_URL is required in development')
   }
 
@@ -38,6 +45,7 @@ export function resolveRendererLoadTarget({
   }
 }
 
+/** 解析 preload 打包产物路径，主窗口只通过这个受控桥接访问 Electron 能力。 */
 export function resolvePreloadPath(mainDirname: string) {
   return path.join(mainDirname, '../preload/index.cjs')
 }

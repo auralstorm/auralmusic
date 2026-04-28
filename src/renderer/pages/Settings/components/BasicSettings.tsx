@@ -9,7 +9,11 @@ import { Separator } from '@/components/ui/separator'
 import { useTheme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
 import { useConfigStore } from '@/stores/config-store'
-import type { AnimationEffectLevel } from '../../../../shared/config.ts'
+import {
+  PLAYER_ARTWORK_STYLE_OPTIONS,
+  type AnimationEffectLevel,
+  type PlayerArtworkStyle,
+} from '../../../../shared/config.ts'
 import type {
   PlayerBackgroundMode,
   ThemeValue,
@@ -109,6 +113,9 @@ const BasicSettings = () => {
   const playerBackgroundMode = useConfigStore(
     state => state.config.playerBackgroundMode
   )
+  const playerArtworkStyle = useConfigStore(
+    state => state.config.playerArtworkStyle
+  )
   const animationEffect = useConfigStore(state => state.config.animationEffect)
   const immersivePlayerControls = useConfigStore(
     state => state.config.immersivePlayerControls
@@ -134,6 +141,10 @@ const BasicSettings = () => {
 
   const handlePlayerBackgroundModeChange = (value: PlayerBackgroundMode) => {
     void setConfig('playerBackgroundMode', value)
+  }
+
+  const handlePlayerArtworkStyleChange = (value: PlayerArtworkStyle) => {
+    void setConfig('playerArtworkStyle', value)
   }
 
   const handleAnimationEffectChange = (value: AnimationEffectLevel) => {
@@ -162,6 +173,35 @@ const BasicSettings = () => {
           </SelectTrigger>
           <SelectContent align='end'>
             {THEME_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            播放器样式
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            控制播放器大界面的中心封面样式，后续新增样式会统一在这里切换。
+          </p>
+        </div>
+        <Select
+          value={playerArtworkStyle}
+          onValueChange={value =>
+            handlePlayerArtworkStyleChange(value as PlayerArtworkStyle)
+          }
+        >
+          <SelectTrigger className='bg-muted/60 h-9 w-full border-none px-4 shadow-none'>
+            <SelectValue placeholder='选择播放器样式' />
+          </SelectTrigger>
+          <SelectContent align='end'>
+            {PLAYER_ARTWORK_STYLE_OPTIONS.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

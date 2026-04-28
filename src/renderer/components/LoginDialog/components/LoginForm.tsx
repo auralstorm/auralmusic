@@ -103,7 +103,7 @@ const LoginForm = () => {
   return (
     <div className='flex flex-1 flex-col gap-4'>
       {errorMessage ? (
-        <div className='border-destructive/20 bg-destructive/5 text-destructive rounded-[18px] border px-4 py-3 text-sm'>
+        <div className='border-destructive/20 bg-destructive/5 text-destructive rounded-[18px] border px-4 py-3 text-sm dark:border-red-400/25 dark:bg-red-500/10 dark:text-red-200'>
           {errorMessage}
         </div>
       ) : null}

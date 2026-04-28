@@ -1,3 +1,4 @@
+/** 自动更新 IPC 通道，所有更新状态机操作都通过 UpdateService 转发。 */
 export const UPDATE_IPC_CHANNELS = {
   GET_SNAPSHOT: 'update:get-snapshot',
   CHECK_FOR_UPDATES: 'update:check-for-updates',

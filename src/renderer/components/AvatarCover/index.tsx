@@ -26,7 +26,7 @@ const AvatarCover = ({
 
   return (
     <div
-      className={cn('relative cursor-pointer', wrapperClass)}
+      className={cn('relative', wrapperClass)}
       onMouseEnter={() => !isAutoHovered && setIsHovered(true)}
       onMouseLeave={() => !isAutoHovered && setIsHovered(false)}
       onClick={onClickCover}

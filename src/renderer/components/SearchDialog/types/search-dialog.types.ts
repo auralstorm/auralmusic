@@ -1,6 +1,15 @@
+import type { LxSourceKey } from '../../../../shared/lx-music-source.ts'
 import type { PlaybackTrack } from '../../../../shared/playback.ts'
 
 export type SearchType = 'song' | 'album' | 'artist' | 'playlist' | 'mv'
+export type SearchSourceId = LxSourceKey
+export type SearchSourceProviderType = 'builtin'
+
+export interface SearchSourceTab {
+  id: SearchSourceId
+  name: string
+  providerType: SearchSourceProviderType
+}
 
 export interface SearchResultRowItem {
   id: number
@@ -8,16 +17,39 @@ export interface SearchResultRowItem {
   name: string
   artistName: string
   coverUrl: string
+  durationLabel: string
+  qualityLabel: string
   targetId: number
   disabled: boolean
+  searchSourceId?: SearchSourceId
+  searchSourceName?: string
   playbackTrack: PlaybackTrack | null
 }
+
+export interface SearchPlatformState<T = SearchResultRowItem> {
+  keywordSnapshot: string
+  items: T[]
+  page: number
+  limit: number
+  total: number
+  hasMore: boolean
+  requestKey: string | null
+  loading: boolean
+  error: string | null
+  hasSearched: boolean
+}
+
+export type SearchPlatformStates<T = SearchResultRowItem> = Record<
+  SearchSourceId,
+  SearchPlatformState<T>
+>
 
 export interface RawArtist {
   name?: string
 }
 
 export interface RawSongAlbum {
+  id?: number | string
   name?: string
   picUrl?: string
 }
@@ -25,6 +57,7 @@ export interface RawSongAlbum {
 export interface RawSongItem {
   id?: number
   name?: string
+  fee?: number
   dt?: number
   ar?: RawArtist[]
   al?: RawSongAlbum
@@ -80,8 +113,12 @@ export interface RawSearchResultPayload {
 export interface SearchInputBarProps {
   value: string
   type: SearchType
+  enhanced?: boolean
+  activeSourceId?: SearchSourceId
+  searchSourceTabs?: SearchSourceTab[]
   onValueChange: (value: string) => void
   onTypeChange: (value: SearchType) => void
+  onSourceChange?: (value: SearchSourceId) => void
 }
 
 export interface SearchResultListProps {

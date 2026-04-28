@@ -22,19 +22,33 @@ const LIKED_ARTISTS_LIMIT = 2000
 const LIKED_ALBUMS_PAGE_SIZE = 100
 
 const initialUserState = {
+  // 用户创建/收藏的歌单列表，首页和资料库会复用。
   likedPlaylist: [],
+  // 网易云“我喜欢的音乐”歌单 id，收藏歌曲同步依赖它。
   myLikedPlaylistId: null,
+  // 已收藏歌手列表，用于资料库展示。
   likedArtists: [],
+  // 已收藏专辑列表，用于资料库展示。
   likedAlbums: [],
+  // 已收藏歌手 id 集合，供详情页快速判断关注态。
   likedArtistIds: new Set<number>(),
+  // 已收藏专辑 id 集合，供详情页快速判断收藏态。
   likedAlbumIds: new Set<number>(),
+  // 已喜欢歌曲 id 集合，供歌曲列表和播放栏快速判断喜欢态。
   likedSongIds: new Set<number>(),
+  // 正在提交喜欢/取消喜欢的歌曲 id，避免重复点击造成状态抖动。
   likedSongPendingIds: new Set<number>(),
+  // 歌手收藏是否已完成首次加载。
   likedArtistsLoaded: false,
+  // 专辑收藏是否已完成首次加载。
   likedAlbumsLoaded: false,
+  // 喜欢歌曲 id 是否已完成首次加载。
   likedSongsLoaded: false,
+  // 歌手收藏请求锁，避免并发重复拉取。
   likedArtistsLoading: false,
+  // 专辑收藏请求锁，避免分页请求并发叠加。
   likedAlbumsLoading: false,
+  // 喜欢歌曲请求锁，避免同一登录态下重复拉取。
   likedSongsLoading: false,
 }
 
@@ -53,6 +67,7 @@ function toLikedSongIdSet(songIds: number[]) {
 const useUserStore = create<UserStoreState>((set, get) => ({
   ...initialUserState,
 
+  // 拉取用户歌单并识别“我喜欢的音乐”歌单 id。
   fetchLikedPlaylist: async () => {
     try {
       const userId = useAuthStore.getState().user?.userId
@@ -73,6 +88,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     }
   },
 
+  // 拉取收藏歌手列表，并同步生成 id 集合供 O(1) 查询。
   fetchLikedArtists: async () => {
     if (get().likedArtistsLoading) {
       return
@@ -111,6 +127,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     }
   },
 
+  // 分页拉取收藏专辑，接口没有足够大单页时需要循环合并。
   fetchLikedAlbums: async () => {
     if (get().likedAlbumsLoading) {
       return
@@ -168,6 +185,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     }
   },
 
+  // 拉取喜欢歌曲 id 列表，供全局歌曲喜欢态判断。
   fetchLikedSongs: async () => {
     if (get().likedSongsLoading) {
       return
@@ -205,6 +223,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     }
   },
 
+  // 判断歌手是否已收藏。
   isArtistLiked: artistId => {
     if (!artistId) {
       return false
@@ -212,6 +231,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     return get().likedArtistIds.has(artistId)
   },
 
+  // 判断专辑是否已收藏。
   isAlbumLiked: albumId => {
     if (!albumId) {
       return false
@@ -219,6 +239,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     return get().likedAlbumIds.has(albumId)
   },
 
+  // 判断歌曲是否已喜欢。
   isSongLiked: songId => {
     if (!songId) {
       return false
@@ -226,6 +247,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     return get().likedSongIds.has(songId)
   },
 
+  // 本地同步歌手关注态，配合接口成功后的 UI 乐观更新。
   toggleFollowed: (artistId, nextFollowed, artist) => {
     set(state => {
       const likedArtistIds = new Set(state.likedArtistIds)
@@ -249,6 +271,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     })
   },
 
+  // 本地同步专辑收藏态，配合接口成功后的 UI 乐观更新。
   toggleLikedAlbum: (albumId, nextLiked, album) => {
     set(state => {
       const likedAlbumIds = new Set(state.likedAlbumIds)
@@ -272,12 +295,14 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     })
   },
 
+  // 本地同步歌曲喜欢态，不直接负责远端请求。
   toggleLikedSong: (songId, nextLiked) => {
     set(state => ({
       likedSongIds: applySongLikeState(state.likedSongIds, songId, nextLiked),
     }))
   },
 
+  // 标记歌曲喜欢接口提交中，列表和播放栏共用这份 pending 态。
   setSongLikePending: (songId, pending) => {
     set(state => ({
       likedSongPendingIds: applySongLikePendingState(
@@ -288,6 +313,7 @@ const useUserStore = create<UserStoreState>((set, get) => ({
     }))
   },
 
+  // 登录用户切换或退出时清空所有用户私有缓存。
   resetUserData: () => {
     set({
       ...initialUserState,

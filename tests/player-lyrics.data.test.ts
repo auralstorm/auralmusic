@@ -31,6 +31,20 @@ test('readLyricTextBundle supports nested lyric payloads', () => {
   )
 })
 
+test('readLyricTextBundle supports lx lyric result shapes', () => {
+  assert.deepEqual(readLyricTextBundle('[00:01.00]LX line'), {
+    lrc: '[00:01.00]LX line',
+    tlyric: '',
+    yrc: '',
+  })
+
+  assert.deepEqual(readLyricTextBundle({ lyric: '[00:02.00]Direct field' }), {
+    lrc: '[00:02.00]Direct field',
+    tlyric: '',
+    yrc: '',
+  })
+})
+
 test('hasLyricTextBundle detects whether any lyric field is present', () => {
   assert.equal(hasLyricTextBundle({ lrc: '', tlyric: '', yrc: '' }), false)
   assert.equal(
@@ -39,6 +53,7 @@ test('hasLyricTextBundle detects whether any lyric field is present', () => {
   )
 })
 
-test('createLyricCacheKey namespaces lyric cache entries by new lyric api', () => {
-  assert.equal(createLyricCacheKey(1824020871), 'lyrics:new:1824020871')
+test('createLyricCacheKey namespaces lyric cache entries by source and track id', () => {
+  assert.equal(createLyricCacheKey(1824020871), 'lyrics:wy:1824020871')
+  assert.equal(createLyricCacheKey(1139129604, 'tx'), 'lyrics:tx:1139129604')
 })

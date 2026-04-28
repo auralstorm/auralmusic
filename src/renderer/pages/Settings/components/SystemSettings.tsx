@@ -158,6 +158,7 @@ const SystemSettings = () => {
     bytesToGb(diskCacheMaxBytes)
   )
   const [cacheStatus, setCacheStatus] = useState(EMPTY_CACHE_STATUS)
+  const [openingLogDirectory, setOpeningLogDirectory] = useState(false)
 
   const fontFamilies = mergeFontFamilies(systemFonts, currentFontFamily)
   const resolvedCacheDir =
@@ -328,6 +329,26 @@ const SystemSettings = () => {
     }
   }
 
+  const handleOpenLogDirectory = async () => {
+    if (openingLogDirectory) {
+      return
+    }
+
+    setOpeningLogDirectory(true)
+    try {
+      const opened = await window.electronLogger.openLogDirectory()
+      if (!opened) {
+        toast.error('打开日志目录失败')
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : '打开日志目录失败，请稍后重试'
+      )
+    } finally {
+      setOpeningLogDirectory(false)
+    }
+  }
+
   return (
     <div className='space-y-1'>
       <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
@@ -399,10 +420,13 @@ const SystemSettings = () => {
       <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
         <div className='space-y-1'>
           <div className='text-muted-foreground text-sm font-medium'>
-            磁盘缓存
+            听歌自动缓存
           </div>
           <p className='text-muted-foreground text-xs'>
-            将播放过的音乐与歌词缓存到本地磁盘，提升二次播放速度
+            开启后会缓存播放过的音乐、歌词与封面，提升二次播放速度。关闭后不再新增自动缓存，历史缓存可手动清理。
+          </p>
+          <p className='text-muted-foreground text-xs'>
+            为保障均衡器和播放兼容性，播放过程中可能产生少量临时运行数据，退出后自动清理。
           </p>
         </div>
         <ToggleSetting
@@ -476,6 +500,7 @@ const SystemSettings = () => {
             缓存状态
           </div>
           <p className='text-muted-foreground text-xs'>
+            {!diskCacheEnabled ? '已关闭自动缓存，历史缓存仍可手动清理。' : ''}
             已用 {formatStorageSize(cacheStatus.usedBytes)} / 上限{' '}
             {formatStorageSize(diskCacheMaxBytes)}
           </p>
@@ -527,6 +552,26 @@ const SystemSettings = () => {
           onClick={handleClearCache}
         >
           {clearingCache ? '清理中...' : '清理缓存'}
+        </Button>
+      </div>
+      <Separator />
+
+      <div className='grid grid-cols-[minmax(0,1fr)_minmax(180px,240px)] items-center gap-6 py-3'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-sm font-medium'>
+            应用日志
+          </div>
+          <p className='text-muted-foreground text-xs'>
+            打开本机日志目录，用于排查播放、下载和音源问题
+          </p>
+        </div>
+        <Button
+          type='button'
+          variant='outline'
+          disabled={openingLogDirectory}
+          onClick={handleOpenLogDirectory}
+        >
+          {openingLogDirectory ? '打开中...' : '打开日志目录'}
         </Button>
       </div>
       <Separator />

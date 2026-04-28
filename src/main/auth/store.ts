@@ -2,6 +2,7 @@ import electron from 'electron'
 import ElectronStore from 'electron-store'
 import { AUTH_STORE_NAME } from './types.ts'
 import { readMusicApiBaseUrlFromEnv } from '../music-api-runtime.ts'
+import { createMainLogger } from '../logging/logger'
 import { resolveAppStoreDirectory } from '../storage/store-path.ts'
 import { parseCookiePairs, type AuthSession } from '../../shared/auth.ts'
 import { resolveAuthRequestHeaders } from './request-header.ts'
@@ -17,11 +18,13 @@ const Store =
     }
   ).default ?? ElectronStore
 const { session } = electron
+const authLogger = createMainLogger('auth')
 
 const DEFAULT_AUTH_STATE: AuthStoreSchema = {
   session: null,
 }
 
+/** 构建鉴权存储配置，统一落到 userData 下，避免开发/生产目录漂移。 */
 export function buildAuthStoreOptions(
   resolveStoreDirectory: () => string = resolveAppStoreDirectory
 ) {
@@ -36,6 +39,7 @@ function createAuthStore() {
   return new Store<AuthStoreSchema>(buildAuthStoreOptions())
 }
 
+/** 鉴权存储使用单例，避免多个 electron-store 实例并发写入同一个文件。 */
 class AuthStore {
   private static instance: ReturnType<typeof createAuthStore>
 
@@ -66,11 +70,12 @@ function resolveAuthOrigin() {
   try {
     return new URL(baseURL).origin
   } catch (error) {
-    console.error('Failed to resolve auth origin:', error)
+    authLogger.error('Failed to resolve auth origin', { error })
     return undefined
   }
 }
 
+/** 将持久化会话里的 Cookie 写入 Electron 默认 session，供 BrowserWindow 请求自然携带。 */
 async function applyAuthCookies(authSession: AuthSession) {
   const origin = resolveAuthOrigin()
   if (!origin || !authSession.cookie) {
@@ -94,6 +99,7 @@ async function applyAuthCookies(authSession: AuthSession) {
   )
 }
 
+/** 清理 Electron session 中当前会话写入的 Cookie，退出登录时避免残留身份。 */
 async function clearAuthCookies(authSession?: AuthSession | null) {
   const origin = resolveAuthOrigin()
   if (!origin || !authSession?.cookie) {
@@ -112,22 +118,26 @@ async function clearAuthCookies(authSession?: AuthSession | null) {
   )
 }
 
+/** 读取当前持久化登录会话。 */
 export function getAuthSession() {
   return getAuthStore().get('session')
 }
 
+/** 保存登录会话并同步到 Electron Cookie jar。 */
 export async function setAuthSession(authSession: AuthSession) {
   getAuthStore().set('session', authSession)
   await applyAuthCookies(authSession)
   return authSession
 }
 
+/** 清除登录会话和对应 Cookie。 */
 export async function clearAuthSession() {
   const currentSession = getAuthStore().get('session')
   await clearAuthCookies(currentSession)
   getAuthStore().set('session', null)
 }
 
+/** 应用启动时恢复 Cookie，让刷新/重启后仍能访问需要登录的 Music API 接口。 */
 export async function bootstrapAuthSession() {
   const currentSession = getAuthStore().get('session')
   if (!currentSession) {
@@ -138,6 +148,11 @@ export async function bootstrapAuthSession() {
   return currentSession
 }
 
+/**
+ * 注册请求头注入 hook。
+ *
+ * hook 只能注册一次，否则每次启动流程重入都会重复修改同一请求头。
+ */
 export function registerAuthRequestHeaderHook() {
   if (authRequestHookRegistered) {
     return

@@ -14,6 +14,7 @@ const Store =
     }
   ).default ?? ElectronStore
 
+/** 构建下载任务持久化配置，统一存放在 Electron userData 目录。 */
 export function buildDownloadStoreOptions(
   resolveStoreDirectory: () => string = resolveAppStoreDirectory
 ) {
@@ -30,6 +31,7 @@ function createDownloadStore() {
   return new Store<DownloadStoreSchema>(buildDownloadStoreOptions())
 }
 
+/** 下载任务 store 单例，避免多个 electron-store 实例同时写入 tasks。 */
 class DownloadStore {
   private static instance: ReturnType<typeof createDownloadStore>
 
@@ -48,10 +50,12 @@ function getDownloadStore() {
   return DownloadStore.getInstance()
 }
 
+/** 读取持久化下载任务，服务启动时用于恢复任务列表。 */
 export function getPersistedDownloadTasks() {
   return getDownloadStore().get('tasks') || []
 }
 
+/** 写入下载任务快照，DownloadService 每次状态变化后调用。 */
 export function setPersistedDownloadTasks(tasks: DownloadTask[]) {
   getDownloadStore().set('tasks', tasks)
 }

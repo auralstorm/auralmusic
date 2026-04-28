@@ -1,6 +1,9 @@
+/** 均衡器单个频段允许的最小增益，单位 dB。 */
 export const EQ_GAIN_MIN = -12
+/** 均衡器单个频段允许的最大增益，单位 dB。 */
 export const EQ_GAIN_MAX = 12
 
+/** 10 段图形均衡器频点，顺序同时决定 UI 滑块顺序和 WebAudio 节点顺序。 */
 export const EQ_BANDS = [
   { frequency: 31, label: '31Hz' },
   { frequency: 62, label: '62Hz' },
@@ -16,11 +19,13 @@ export const EQ_BANDS = [
 
 export type EqualizerBandFrequency = (typeof EQ_BANDS)[number]['frequency']
 
+/** 单个频段的增益设置。 */
 export interface EqualizerBandGain {
   frequency: EqualizerBandFrequency
   gain: number
 }
 
+/** 用户当前均衡器配置。 */
 export interface EqualizerConfig {
   enabled: boolean
   presetId: string
@@ -28,6 +33,7 @@ export interface EqualizerConfig {
   bands: EqualizerBandGain[]
 }
 
+/** 内置均衡器预设。 */
 export interface EqualizerPreset {
   id: string
   name: string
@@ -35,6 +41,7 @@ export interface EqualizerPreset {
   bands: EqualizerBandGain[]
 }
 
+/** 根据预设增益数组生成完整 10 段配置，缺失频段自动补 0。 */
 function createBandGains(gains: number[]): EqualizerBandGain[] {
   return EQ_BANDS.map((band, index) => ({
     frequency: band.frequency,
@@ -42,6 +49,7 @@ function createBandGains(gains: number[]): EqualizerBandGain[] {
   }))
 }
 
+/** 内置预设列表，preamp 会预留余量以降低削波风险。 */
 export const EQ_PRESETS: EqualizerPreset[] = [
   {
     id: 'flat',
@@ -99,6 +107,7 @@ export const EQ_PRESETS: EqualizerPreset[] = [
   },
 ]
 
+/** 默认关闭均衡器，但保留 flat 预设结构便于 UI 直接绑定。 */
 export const DEFAULT_EQUALIZER_CONFIG: EqualizerConfig = {
   enabled: false,
   presetId: 'flat',
@@ -106,6 +115,7 @@ export const DEFAULT_EQUALIZER_CONFIG: EqualizerConfig = {
   bands: createBandGains([]),
 }
 
+/** 限制增益范围，防止配置文件手改后传入过大值造成爆音。 */
 function clampEqualizerGain(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return 0
@@ -114,6 +124,7 @@ function clampEqualizerGain(value: unknown) {
   return Math.min(EQ_GAIN_MAX, Math.max(EQ_GAIN_MIN, value))
 }
 
+/** 校验频段是否属于当前 10 段均衡器。 */
 function isEqualizerBandFrequency(
   value: unknown
 ): value is EqualizerBandFrequency {
@@ -122,6 +133,7 @@ function isEqualizerBandFrequency(
   )
 }
 
+/** 预设 id 不存在时回退 flat，兼容旧版本或手改配置。 */
 function normalizePresetId(value: unknown) {
   if (
     typeof value === 'string' &&
@@ -133,6 +145,7 @@ function normalizePresetId(value: unknown) {
   return DEFAULT_EQUALIZER_CONFIG.presetId
 }
 
+/** 归一化均衡器配置，保证频段完整、顺序稳定、增益在安全范围内。 */
 export function normalizeEqualizerConfig(value: unknown): EqualizerConfig {
   if (!value || typeof value !== 'object') {
     return DEFAULT_EQUALIZER_CONFIG
@@ -163,6 +176,7 @@ export function normalizeEqualizerConfig(value: unknown): EqualizerConfig {
   }
 }
 
+/** 应用内置预设，但保留当前 enabled 状态，避免切预设时意外开关均衡器。 */
 export function applyEqualizerPreset(
   currentConfig: EqualizerConfig,
   presetId: string
@@ -179,6 +193,7 @@ export function applyEqualizerPreset(
   }
 }
 
+/** 更新单个频段增益，并把 presetId 标记为 custom。 */
 export function updateEqualizerBandGain(
   currentConfig: EqualizerConfig,
   frequency: EqualizerBandFrequency,
@@ -197,6 +212,7 @@ export function updateEqualizerBandGain(
   }
 }
 
+/** 更新前置增益，并把 presetId 标记为 custom。 */
 export function updateEqualizerPreamp(
   currentConfig: EqualizerConfig,
   preamp: number

@@ -1,8 +1,10 @@
+/** 统一导出全部 IPC 通道，避免 main/preload/renderer 各自拼接字符串。 */
 export * from './auth.ts'
 export * from './cache.ts'
 export * from './config.ts'
 export * from './download.ts'
 export * from './local-library.ts'
+export * from './logging.ts'
 export * from './shortcut.ts'
 export * from './system-fonts.ts'
 export * from './tray.ts'

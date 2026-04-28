@@ -18,6 +18,9 @@ import {
   ArtistSongs,
   Albums,
   AlbumDetail,
+  LocalLibraryAlbumDetail,
+  LocalLibraryArtistDetail,
+  LocalLibraryPlaylistDetail,
 } from './routeComponents'
 
 export const routeMenuConfig: RouteMenuConfig[] = [
@@ -105,6 +108,21 @@ export const routeMenuConfig: RouteMenuConfig[] = [
         path: '/local-library',
         element: <LocalLibrary />,
         meta: { title: '本地乐库', icon: '' },
+      },
+      {
+        path: '/local-library/playlists/:playlistId',
+        element: <LocalLibraryPlaylistDetail />,
+        meta: { title: '本地歌单详情', icon: '', hidden: true },
+      },
+      {
+        path: '/local-library/albums/:albumName/:artistName',
+        element: <LocalLibraryAlbumDetail />,
+        meta: { title: '本地专辑详情', icon: '', hidden: true },
+      },
+      {
+        path: '/local-library/artists/:artistName',
+        element: <LocalLibraryArtistDetail />,
+        meta: { title: '本地歌手详情', icon: '', hidden: true },
       },
     ],
   },

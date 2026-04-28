@@ -70,7 +70,7 @@ const PlayerSceneAmllLyrics = ({
     <section className='relative min-h-0'>
       <div
         className={cn(
-          'h-[72vh] overflow-hidden pr-8 2xl:h-[81vh]',
+          'h-[74vh] overflow-hidden pr-8 2xl:h-[81vh]',
           '[&_.amll-lyric-player]:h-full [&_>div]:h-full'
         )}
         style={AMLL_PLAYER_STYLE}

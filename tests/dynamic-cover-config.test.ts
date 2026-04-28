@@ -30,6 +30,7 @@ test('normalizeRetroCoverPreset preserves supported values and falls back for in
   assert.equal(normalizeRetroCoverPreset('vinylClassic'), 'vinylClassic')
   assert.equal(normalizeRetroCoverPreset('crt'), 'crt')
   assert.equal(normalizeRetroCoverPreset('polaroid'), 'polaroid')
+  assert.equal(normalizeRetroCoverPreset('pixelArcade'), 'pixelArcade')
   assert.equal(normalizeRetroCoverPreset(undefined), 'off')
   assert.equal(normalizeRetroCoverPreset('classic'), 'off')
 })
@@ -47,6 +48,7 @@ test('retro cover preset options stay aligned with persisted preset values', () 
       'vinylClassic',
       'crt',
       'polaroid',
+      'pixelArcade',
     ]
   )
 })

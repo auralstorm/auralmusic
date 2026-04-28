@@ -15,14 +15,17 @@ const EMPTY_LYRIC_TEXT_BUNDLE: LyricTextBundle = {
   tlyric: '',
 }
 
+/** 去掉 UTF-8 BOM 和首尾空白，兼容从不同歌词来源写入的文本。 */
 function trimLyricText(text: string) {
   return text.replace(/^\uFEFF/, '').trim()
 }
 
+/** 判断歌词是否已经包含 LRC 时间戳。 */
 function hasTimestampMarkup(text: string) {
   return LRC_TIMESTAMP_DETECT_PATTERN.test(text)
 }
 
+/** 将毫秒格式化为 LRC 时间戳。 */
 function formatTimestamp(totalMs: number) {
   const minutes = Math.floor(totalMs / 60_000)
   const seconds = Math.floor((totalMs % 60_000) / 1000)
@@ -31,6 +34,7 @@ function formatTimestamp(totalMs: number) {
   return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}]`
 }
 
+/** 普通文本歌词转换成伪时间轴 LRC，保证播放器歌词组件能按统一格式消费。 */
 function toPseudoTimedLrc(text: string) {
   const normalizedText = trimLyricText(text)
   if (!normalizedText) {
@@ -49,6 +53,11 @@ function toPseudoTimedLrc(text: string) {
     .join('\n')
 }
 
+/**
+ * 拆分双语 LRC。
+ *
+ * 同一时间戳第一次出现视为原文，第二次出现视为翻译；超过两次时回到原文，避免异常歌词丢行。
+ */
 export function splitBilingualLrcText(rawText: string): LyricTextBundle {
   const normalizedText = trimLyricText(rawText)
   if (!normalizedText) {
@@ -94,6 +103,7 @@ export function splitBilingualLrcText(rawText: string): LyricTextBundle {
   }
 }
 
+/** 将 music-metadata 的同步歌词标签转换成 LRC 文本。 */
 function toTimedLyricsText(tag: Pick<ILyricsTag, 'text' | 'syncText'>) {
   if (tag.syncText?.length) {
     return tag.syncText
@@ -151,6 +161,7 @@ export function readEmbeddedTranslatedLyricText(
   return ''
 }
 
+/** 从音频内嵌歌词标签中读取原文/翻译歌词包。 */
 export function readEmbeddedLyricTextBundle(
   lyrics: Array<Pick<ILyricsTag, 'text' | 'syncText'>> | undefined
 ): LyricTextBundle {
@@ -169,6 +180,7 @@ export function readEmbeddedLyricTextBundle(
   }
 }
 
+/** 读取音频旁路同名 .lrc 文件，并按双语规则拆分。 */
 export async function readSidecarLrcTextBundle(audioFilePath: string) {
   const lrcPath = path.join(
     path.dirname(audioFilePath),

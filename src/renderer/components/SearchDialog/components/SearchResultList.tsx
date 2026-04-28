@@ -1,5 +1,8 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { SEARCH_TYPE_LABEL_MAP } from '../search-dialog.model'
+import {
+  createSearchResultRowIdentity,
+  SEARCH_TYPE_LABEL_MAP,
+} from '../search-dialog.model'
 import type { SearchResultListProps } from '../types'
 import SearchResultRow from './SearchResultRow'
 
@@ -24,13 +27,13 @@ const SearchResultList = ({
   if (loading && items.length === 0) {
     return (
       <div className='w-full space-y-3 py-2'>
-        <div className='text-muted-foreground grid grid-cols-[64px_minmax(0,1fr)_80px] gap-3 px-3 text-xs tracking-[0.18em] uppercase 2xl:grid-cols-[84px_minmax(0,1fr)_200px]'>
-          <span>封面</span>
+        <div className='text-muted-foreground grid grid-cols-[minmax(0,1fr)_120px_64px] gap-3 px-3 text-xs tracking-[0.18em] uppercase 2xl:grid-cols-[minmax(0,1fr)_180px_72px]'>
           <span>名称</span>
           <span>艺术家</span>
+          <span className='text-right'>时长</span>
         </div>
         {Array.from({ length: 6 }).map((_, index) => (
-          <Skeleton key={index} className='h-20 w-full rounded-2xl' />
+          <Skeleton key={index} className='h-14 w-full rounded-2xl' />
         ))}
       </div>
     )
@@ -61,7 +64,7 @@ const SearchResultList = ({
       </div> */}
       {items.map(item => (
         <SearchResultRow
-          key={`${item.type}-${item.id}`}
+          key={createSearchResultRowIdentity(item)}
           item={item}
           onSelect={onSelect}
         />

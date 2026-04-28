@@ -17,13 +17,16 @@ async function getDefaultConfig(): Promise<DownloadResolverConfig> {
   return useConfigStore.getState().config
 }
 
-async function getDefaultIsAuthenticated(): Promise<boolean> {
+async function getDefaultAuthState() {
   const authState = useAuthStore.getState()
-  return isAuthenticatedForMusicResolution({
-    loginStatus: authState.loginStatus,
-    userId: authState.user?.userId ?? authState.session?.userId ?? null,
-    cookie: authState.session?.cookie ?? null,
-  })
+  return {
+    isAuthenticated: isAuthenticatedForMusicResolution({
+      loginStatus: authState.loginStatus,
+      userId: authState.user?.userId ?? authState.session?.userId ?? null,
+      cookie: authState.session?.cookie ?? null,
+    }),
+    isVip: authState.session?.isVip === true,
+  }
 }
 
 export function createDownloadSourceResolver(
@@ -32,8 +35,11 @@ export function createDownloadSourceResolver(
   return createDownloadSourceResolverBase({
     ...deps,
     getConfig: deps.getConfig ?? getDefaultConfig,
-    getIsAuthenticated:
-      deps.getIsAuthenticated ??
-      (getDefaultIsAuthenticated as () => DownloadSourceMaybePromise<boolean>),
+    getAuthState:
+      deps.getAuthState ??
+      (getDefaultAuthState as () => DownloadSourceMaybePromise<{
+        isAuthenticated: boolean
+        isVip: boolean
+      }>),
   })
 }

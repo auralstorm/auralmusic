@@ -17,6 +17,7 @@ type MockDownloadTask = {
   status: 'queued' | 'downloading' | 'completed' | 'failed' | 'skipped'
   progress: number
   quality: string
+  fileSizeBytes?: number | null
 }
 
 function createTask(taskId: string, overrides: Partial<MockDownloadTask> = {}) {
@@ -72,6 +73,53 @@ test('download task store refreshes tasks from electron bridge', async () => {
     useDownloadTaskStore.getState().tasks[0]?.targetPath,
     tasks[0]?.targetPath
   )
+})
+
+test('download task store maps bridge file size into renderer tasks', async () => {
+  resetStore()
+
+  globalThis.window = Object.assign(globalThis.window ?? {}, {
+    electronDownload: {
+      getTasks: async () => [
+        {
+          id: 'bridge-task',
+          songId: 2001,
+          songName: 'Bridge Song',
+          artistName: 'Bridge Artist',
+          coverUrl: '',
+          albumName: null,
+          requestedQuality: 'higher',
+          resolvedQuality: 'lossless',
+          status: 'completed',
+          progress: 100,
+          errorMessage: null,
+          targetPath: 'F:\\downloads\\bridge.flac',
+          fileSizeBytes: 12_345_678,
+          durationMs: 210000,
+          lyricText: '[00:01.00]Bridge',
+          translatedLyricText: '[00:01.00]桥',
+          note: null,
+          warningMessage: null,
+          createdAt: 1,
+          updatedAt: 2,
+          completedAt: 3,
+        },
+      ],
+      onTasksChanged: () => () => undefined,
+      removeTask: async () => undefined,
+      openDownloadedFile: async () => undefined,
+      openDownloadedFileFolder: async () => undefined,
+    },
+  }) as Window & typeof globalThis
+
+  await useDownloadTaskStore.getState().refreshTasks()
+
+  const task = useDownloadTaskStore.getState().tasks[0]
+  assert.equal(task?.taskId, 'bridge-task')
+  assert.equal(task?.fileSizeBytes, 12_345_678)
+  assert.equal(task?.durationMs, 210000)
+  assert.equal(task?.lyricText, '[00:01.00]Bridge')
+  assert.equal(task?.translatedLyricText, '[00:01.00]桥')
 })
 
 test('download task store subscribes to task changes and replaces stale listeners', async () => {

@@ -16,6 +16,8 @@ function createOptions() {
     context: {
       scene: 'playback' as const,
       isAuthenticated: false,
+      isVip: false,
+      trackFee: 0,
       config: {
         musicSourceEnabled: true,
         musicSourceProviders: [],

@@ -17,6 +17,7 @@ export interface RawPlaylistPlaybackAlbum {
 export interface RawPlaylistPlaybackSong {
   id?: number
   name?: string
+  fee?: number
   dt?: number
   al?: RawPlaylistPlaybackAlbum
   ar?: RawPlaylistPlaybackArtist[]

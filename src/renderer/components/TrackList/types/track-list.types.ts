@@ -1,3 +1,8 @@
+import type {
+  LxMusicInfo,
+  LxSourceKey,
+} from '../../../../shared/lx-music-source.ts'
+
 export interface TrackListArtist {
   id?: number
   name: string
@@ -11,6 +16,20 @@ export interface TrackListItemData {
   artistNames?: string
   duration: number
   albumName?: string
+  fee?: number
+  lockedPlatform?: LxSourceKey
+  lxInfo?: Partial<
+    Pick<
+      LxMusicInfo,
+      | 'songmid'
+      | 'hash'
+      | 'strMediaMid'
+      | 'copyrightId'
+      | 'albumId'
+      | 'source'
+      | 'img'
+    >
+  >
 }
 
 export type TrackListVariant = 'default' | 'hot' | 'quick'

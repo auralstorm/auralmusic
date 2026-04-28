@@ -24,6 +24,13 @@ export function shouldRenderDynamicPlayerSceneArtwork(
   )
 }
 
+export function shouldShowNativeCoverFallback(
+  src: string,
+  textureLoadFailed: boolean
+) {
+  return textureLoadFailed && src.trim().length > 0
+}
+
 /**
  * 判断封面使用铺满还是完整显示，避免长图封面把播放器主视觉挤成海报比例。
  * @param input 封面原始纹理尺寸

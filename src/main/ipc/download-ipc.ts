@@ -38,6 +38,11 @@ type DownloadIpcRegistrationOptions = {
   downloadService?: DownloadService
 }
 
+/**
+ * 创建默认下载服务。
+ *
+ * 下载服务需要读取大量配置和系统打开文件能力，这里集中注入，DownloadService 本身只关心业务流程。
+ */
 function createDefaultDownloadService(
   appGetPath: (name: 'downloads') => string
 ) {
@@ -48,6 +53,7 @@ function createDefaultDownloadService(
       setPersistedDownloadTasks(tasks)
     },
     readConfig: () => ({
+      // 每次读取任务配置时取最新值，下载队列能响应用户刚修改的目录、质量和并发设置。
       musicSourceEnabled: getConfig('musicSourceEnabled'),
       musicSourceProviders: getConfig('musicSourceProviders'),
       luoxueSourceEnabled: getConfig('luoxueSourceEnabled'),
@@ -64,6 +70,7 @@ function createDefaultDownloadService(
       downloadEmbedTranslatedLyrics: getConfig('downloadEmbedTranslatedLyrics'),
     }),
     openPath: async targetPath => {
+      // shell.openPath 返回错误字符串，DownloadService 会把它转换成布尔结果。
       return electron.shell.openPath(targetPath)
     },
     showItemInFolder: targetPath => {
@@ -72,6 +79,11 @@ function createDefaultDownloadService(
   })
 }
 
+/**
+ * 创建下载 IPC 注册器。
+ *
+ * renderer 只发起任务命令和接收任务快照，真实下载、写文件、打开文件夹都留在主进程。
+ */
 export function createDownloadIpc(
   options: DownloadIpcRegistrationOptions = {}
 ) {
@@ -93,6 +105,7 @@ export function createDownloadIpc(
   return {
     register() {
       downloadService.subscribe(tasks => {
+        // 下载任务是跨页面共享状态，主进程广播完整快照让所有窗口保持一致。
         for (const window of getAllWindows()) {
           window.webContents.send(DOWNLOAD_IPC_CHANNELS.TASKS_CHANGED, tasks)
         }
@@ -143,6 +156,13 @@ export function createDownloadIpc(
         return downloadService.getTasks()
       })
 
+      ipcMain.handle(
+        DOWNLOAD_IPC_CHANNELS.HYDRATE_TASK_PLAYBACK_METADATA,
+        async (_event, taskId) => {
+          return downloadService.hydrateTaskPlaybackMetadata(taskId as string)
+        }
+      )
+
       ipcMain.handle(DOWNLOAD_IPC_CHANNELS.REMOVE_TASK, (_event, taskId) => {
         return downloadService.removeTask(taskId as string)
       })
@@ -164,6 +184,7 @@ export function createDownloadIpc(
   }
 }
 
+/** 注册下载 IPC 的生产入口。 */
 export function registerDownloadIpc(
   options: DownloadIpcRegistrationOptions = {}
 ) {

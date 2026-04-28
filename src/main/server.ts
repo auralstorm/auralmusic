@@ -48,9 +48,9 @@ export interface StartedMusicApiRuntime extends MusicApiRuntimeInfo {
 }
 
 /**
- * Check if a port is available
- * @param port
- * @returns
+ * 检查指定端口是否可监听。
+ *
+ * 这里只创建临时 server 进行探测，不复用业务进程，避免端口选择阶段启动 Music API 后难以回滚。
  */
 export function checkPortAvailable(
   port: number,
@@ -69,12 +69,14 @@ export function checkPortAvailable(
   })
 }
 
+/** 解析内置 NeteaseCloudMusicApiEnhanced 入口脚本路径。 */
 function resolveMusicApiEntryScript() {
   const packageJsonPath =
     require.resolve('@neteasecloudmusicapienhanced/api/package.json')
   return path.join(path.dirname(packageJsonPath), 'app.js')
 }
 
+/** 将子进程 stdout/stderr 透传到主进程，方便开发和日志系统收集启动异常。 */
 function bindMusicApiProcessLogs(child: MusicApiProcess) {
   child.stdout?.on('data', chunk => {
     process.stdout.write(String(chunk))
@@ -84,6 +86,7 @@ function bindMusicApiProcessLogs(child: MusicApiProcess) {
   })
 }
 
+/** 构造启动阶段提前退出的错误，带上退出码和 signal 便于诊断。 */
 function createMusicApiExitError(code: number | null, signal: string | null) {
   const codeLabel = code === null ? 'null' : String(code)
   const signalLabel = signal ?? 'null'
@@ -92,6 +95,7 @@ function createMusicApiExitError(code: number | null, signal: string | null) {
   )
 }
 
+/** 以 ELECTRON_RUN_AS_NODE 启动 Music API，避免创建额外 Electron 实例。 */
 function spawnMusicApiProcess({
   port,
   host,
@@ -116,6 +120,7 @@ function spawnMusicApiProcess({
   return child
 }
 
+/** 轮询 TCP 连接，直到 Music API 真正开始监听或超时。 */
 function waitForMusicApiListening({
   port,
   host,
@@ -152,6 +157,11 @@ function waitForMusicApiListening({
   })
 }
 
+/**
+ * 查找可用 Music API 端口。
+ *
+ * 默认从 7703 开始递增探测，避免用户本机已有服务占用默认端口时整个应用启动失败。
+ */
 export async function findAvailableMusicApiPort(
   options: FindAvailableMusicApiPortOptions = {}
 ) {
@@ -178,6 +188,12 @@ export async function findAvailableMusicApiPort(
   return port
 }
 
+/**
+ * 启动内置 Music API 子进程。
+ *
+ * 返回的 runtimeInfo 会写入环境变量并在应用退出时 dispose；启动成功以端口可连接为准，
+ * 不是单纯以 spawn 成功为准。
+ */
 async function startMusicApi(
   options: StartMusicApiOptions = {}
 ): Promise<StartedMusicApiRuntime> {

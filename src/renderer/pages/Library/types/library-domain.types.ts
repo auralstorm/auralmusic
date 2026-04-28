@@ -17,6 +17,7 @@ export interface LibrarySongItem {
   albumName: string
   coverUrl: string
   duration: number
+  fee?: number
 }
 
 export interface LibraryPlaylistItem {
@@ -74,6 +75,7 @@ export interface RawDailySongAlbum {
 export interface RawDailySong {
   id?: number
   name?: string
+  fee?: number
   dt?: number
   al?: RawDailySongAlbum
   ar?: RawDailySongArtist[]

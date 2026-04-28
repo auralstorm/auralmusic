@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { playbackRuntime } from '@/audio/playback-runtime/playback-runtime'
+import { createRendererLogger } from '@/lib/logger'
 import { resolvePlaybackSource } from '@/services/music-source/playback-source-resolver.ts'
 import { usePlaybackStore } from '@/stores/playback-store'
 import {
@@ -13,6 +14,8 @@ import {
   throwIfPlaybackRequestStale,
 } from './model'
 import type { PlaybackEngineTrackLoaderOptions } from './types'
+
+const playbackLogger = createRendererLogger('playback-engine')
 
 function getPlaybackRequestSnapshot() {
   const latestState = usePlaybackStore.getState()
@@ -55,6 +58,7 @@ export function usePlaybackEngineTrackLoader({
     const track = currentTrack
     const expectedTrackId = track.id
 
+    // 播放链路跨越解析、缓存、设备切换和自动播放，每个 await 后都要校验请求是否仍然有效。
     const loadAndPlay = async () => {
       if (usePlaybackStore.getState().shouldAutoPlayOnLoad) {
         usePlaybackStore.getState().markPlaybackLoading()
@@ -117,6 +121,7 @@ export function usePlaybackEngineTrackLoader({
           try {
             const cacheKey = `audio:${track.id}:${qualityRef.current}:${result.url}`
             resolvedAudioCacheKey = cacheKey
+            // 均衡器需要可 seek 的本地/代理音频源，必要时强制刷新缓存以避开远端流兼容问题。
             const cachedResult = await window.electronCache.resolveAudioSource(
               cacheKey,
               result.url,
@@ -137,7 +142,10 @@ export function usePlaybackEngineTrackLoader({
             if (error === STALE_PLAYBACK_REQUEST) {
               throw error
             }
-            console.error('resolve cached audio source failed', error)
+            playbackLogger.warn('resolve cached audio source failed', {
+              error,
+              trackId: track.id,
+            })
           }
         }
 
@@ -157,11 +165,15 @@ export function usePlaybackEngineTrackLoader({
         const audio = playbackRuntime.getAudioElement()
         playbackRuntime.setVolume(volumeRef.current / 100)
         playbackRuntime.setPlaybackRate(playbackSpeedRef.current)
-        latestState.setDuration(result.time || track.duration)
+        const resolvedDuration = result.time || track.duration
+        if (resolvedDuration > 0) {
+          latestState.setDuration(resolvedDuration)
+        }
 
         const restoreProgress = latestState.pendingRestoreProgress
         if (restoreProgress > 0) {
           try {
+            // 恢复进度必须等音频元数据就绪，否则部分浏览器内核会忽略 currentTime 写入。
             await applyPersistedProgress(audio, restoreProgress)
             throwIfPlaybackRequestStale(
               expectedRequestId,
@@ -174,7 +186,11 @@ export function usePlaybackEngineTrackLoader({
             if (error === STALE_PLAYBACK_REQUEST) {
               throw error
             }
-            console.error('restore playback progress failed', error)
+            playbackLogger.warn('restore playback progress failed', {
+              error,
+              restoreProgress,
+              trackId: track.id,
+            })
             usePlaybackStore.getState().setProgress(0)
           } finally {
             if (
@@ -209,7 +225,10 @@ export function usePlaybackEngineTrackLoader({
           if (error === STALE_PLAYBACK_REQUEST) {
             throw error
           }
-          console.error('apply audio output device failed', error)
+          playbackLogger.warn('apply audio output device failed', {
+            error,
+            trackId: track.id,
+          })
           toast.error(OUTPUT_DEVICE_UNAVAILABLE_MESSAGE)
         }
 
@@ -253,7 +272,12 @@ export function usePlaybackEngineTrackLoader({
           return
         }
 
-        console.error('load song url failed', error)
+        playbackLogger.error('load song url failed', {
+          error,
+          lockedLxSourceId: track.lockedLxSourceId,
+          lockedPlatform: track.lockedPlatform,
+          trackId: track.id,
+        })
         usePlaybackStore
           .getState()
           .markPlaybackError(PLAYBACK_UNAVAILABLE_MESSAGE)

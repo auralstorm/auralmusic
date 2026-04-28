@@ -11,6 +11,7 @@ export function buildLibraryQuickSongPlaybackQueue(
     albumName: song.albumName,
     coverUrl: song.coverUrl,
     duration: song.duration,
+    fee: typeof song.fee === 'number' ? song.fee : 0,
   }))
 }
 

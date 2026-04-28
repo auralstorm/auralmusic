@@ -51,6 +51,13 @@ test('pixi cover uses auto water ripple motion instead of pointer bulge distorti
   )
 })
 
+test('pixi cover wires pixelArcade through a nearest-neighbor render texture path', () => {
+  assert.match(pixiCoverSource, /RenderTexture/)
+  assert.match(pixiCoverSource, /SCALE_MODES\.NEAREST/)
+  assert.match(pixiCoverSource, /shouldSuppressWaterRipple/)
+  assert.match(pixiCoverSource, /pipelineState\.pixel\.enabled/)
+})
+
 test('pixi cover loads local protocol artwork through native image loading', () => {
   assert.match(
     pixiCoverSource,

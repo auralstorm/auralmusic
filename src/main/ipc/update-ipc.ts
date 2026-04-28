@@ -3,6 +3,7 @@ import { ipcMain } from 'electron'
 import { UPDATE_IPC_CHANNELS } from '../../shared/ipc/index.ts'
 import type { UpdateService } from '../updater/update-service.ts'
 
+/** 注册自动更新 IPC，所有更新状态机操作都委托给 UpdateService。 */
 export function registerUpdateIpc(updateService: UpdateService) {
   ipcMain.handle(UPDATE_IPC_CHANNELS.GET_SNAPSHOT, () => {
     return updateService.getSnapshot()

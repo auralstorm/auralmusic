@@ -133,3 +133,182 @@ test('resolveTrackWithLxMusicSource does not depend on deprecated musicSourcePro
     globalThis.window = originalWindow
   }
 })
+
+test('resolveTrackWithLxMusicSource honors lockedPlatform and preferredQuality from the track', async () => {
+  const originalWindow = globalThis.window
+  let requestedSource: string | null = null
+  let requestedQuality: string | null = null
+  const fakeRunner = {
+    dispose: () => undefined,
+    isInitialized: () => true,
+    matchesScript: (script: string) => script === 'mock lx script',
+    getSources: () => ({
+      wy: {
+        name: 'NetEase',
+        type: 'music' as const,
+        actions: ['musicUrl'] as const,
+        qualitys: ['320k'] as const,
+      },
+      tx: {
+        name: 'QQ',
+        type: 'music' as const,
+        actions: ['musicUrl'] as const,
+        qualitys: ['flac'] as const,
+      },
+    }),
+    getMusicUrl: async (
+      source: string,
+      _musicInfo: unknown,
+      quality: string
+    ) => {
+      requestedSource = source
+      requestedQuality = quality
+      return 'https://cdn.example.com/locked-platform.flac'
+    },
+  }
+
+  globalThis.window = {
+    electronMusicSource: {
+      readLxScript: async () => 'mock lx script',
+    },
+  } as typeof globalThis.window
+
+  setLxMusicRunner(fakeRunner as never)
+
+  try {
+    const result = await resolveTrackWithLxMusicSource({
+      track: {
+        ...createTrack(),
+        lockedPlatform: 'tx',
+        preferredQuality: 'flac',
+      },
+      quality: 'higher',
+      config: createConfig(),
+    })
+
+    assert.deepEqual(result, {
+      id: 1001,
+      url: 'https://cdn.example.com/locked-platform.flac',
+      time: 180000,
+      br: 0,
+    })
+    assert.equal(requestedSource, 'tx')
+    assert.equal(requestedQuality, 'flac')
+  } finally {
+    setLxMusicRunner(null)
+    globalThis.window = originalWindow
+  }
+})
+
+test('resolveTrackWithLxMusicSource honors a dynamic locked lx source id', async () => {
+  const originalWindow = globalThis.window
+  let requestedSource: string | null = null
+  let requestedQuality: string | null = null
+  const fakeRunner = {
+    dispose: () => undefined,
+    isInitialized: () => true,
+    matchesScript: (script: string) => script === 'mock lx script',
+    getSources: () => ({
+      wy: {
+        name: 'NetEase',
+        type: 'music' as const,
+        actions: ['musicUrl'] as const,
+        qualitys: ['320k'] as const,
+      },
+      qsvip: {
+        name: '汽水VIP',
+        type: 'music' as const,
+        actions: ['musicSearch', 'musicUrl'] as const,
+        qualitys: ['flac'] as const,
+      },
+    }),
+    getMusicUrl: async (
+      source: string,
+      _musicInfo: unknown,
+      quality: string
+    ) => {
+      requestedSource = source
+      requestedQuality = quality
+      return 'https://cdn.example.com/qsvip.flac'
+    },
+  }
+
+  globalThis.window = {
+    electronMusicSource: {
+      readLxScript: async () => 'mock lx script',
+    },
+  } as typeof globalThis.window
+
+  setLxMusicRunner(fakeRunner as never)
+
+  try {
+    const result = await resolveTrackWithLxMusicSource({
+      track: {
+        ...createTrack(),
+        lockedLxSourceId: 'qsvip',
+        preferredQuality: 'flac',
+      },
+      quality: 'higher',
+      config: createConfig(),
+    })
+
+    assert.deepEqual(result, {
+      id: 1001,
+      url: 'https://cdn.example.com/qsvip.flac',
+      time: 180000,
+      br: 0,
+    })
+    assert.equal(requestedSource, 'qsvip')
+    assert.equal(requestedQuality, 'flac')
+  } finally {
+    setLxMusicRunner(null)
+    globalThis.window = originalWindow
+  }
+})
+
+test('resolveTrackWithLxMusicSource does not downgrade locked platform to another lx source', async () => {
+  const originalWindow = globalThis.window
+  let requestedSource: string | null = null
+  const fakeRunner = {
+    dispose: () => undefined,
+    isInitialized: () => true,
+    matchesScript: (script: string) => script === 'mock lx script',
+    getSources: () => ({
+      wy: {
+        name: 'NetEase',
+        type: 'music' as const,
+        actions: ['musicUrl'] as const,
+        qualitys: ['320k'] as const,
+      },
+    }),
+    getMusicUrl: async (source: string) => {
+      requestedSource = source
+      return 'https://cdn.example.com/wrong-source.mp3'
+    },
+  }
+
+  globalThis.window = {
+    electronMusicSource: {
+      readLxScript: async () => 'mock lx script',
+    },
+  } as typeof globalThis.window
+
+  setLxMusicRunner(fakeRunner as never)
+
+  try {
+    const result = await resolveTrackWithLxMusicSource({
+      track: {
+        ...createTrack(),
+        lockedPlatform: 'tx',
+      },
+      quality: 'higher',
+      config: createConfig(),
+    })
+
+    assert.equal(result, null)
+    assert.equal(requestedSource, null)
+  } finally {
+    setLxMusicRunner(null)
+    globalThis.window = originalWindow
+  }
+})

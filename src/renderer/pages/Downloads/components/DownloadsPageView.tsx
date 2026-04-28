@@ -11,7 +11,7 @@ const DownloadsPageView = ({
   onRemoveTask,
 }: DownloadsPageViewProps) => {
   return (
-    <section className='w-full max-w-6xl space-y-6'>
+    <section className='w-full space-y-6'>
       <div className=''>
         <DownloadsFilterTabs
           activeFilter={activeFilter}

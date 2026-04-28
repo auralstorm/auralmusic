@@ -9,14 +9,16 @@ import type {
 
 type ElectronNet = typeof Electron.net
 
-function parseLxHttpBody(rawBody: string) {
+/** LX 脚本期望 body 尽量是 JSON；解析失败时回退文本，保留兼容性。 */
+function parseLxHttpBody(rawBody: Buffer) {
   try {
-    return JSON.parse(rawBody) as unknown
+    return JSON.parse(rawBody.toString('utf8')) as unknown
   } catch {
-    return rawBody
+    return rawBody.toString('utf8')
   }
 }
 
+/** 兼容 Headers、元组数组和普通对象三种 header 传入形态。 */
 function normalizeOutgoingHeaders(headers: LxHttpRequestOptions['headers']) {
   const result: Record<string, string | string[]> = {}
 
@@ -51,6 +53,7 @@ function hasHeader(headers: Record<string, string | string[]>, target: string) {
   return Object.keys(headers).some(key => key.toLowerCase() === target)
 }
 
+/** form 请求自动补 content-type，调用方显式传入时不覆盖。 */
 function normalizeRequestHeaders(options: LxHttpRequestOptions) {
   const headers = normalizeOutgoingHeaders(options.headers)
 
@@ -61,6 +64,7 @@ function normalizeRequestHeaders(options: LxHttpRequestOptions) {
   return headers
 }
 
+/** 将 Node/Electron 返回的多值响应头规整成 renderer 易消费的字符串字典。 */
 function normalizeIncomingHeaders(
   headers: Record<string, string | string[] | undefined>
 ) {
@@ -77,6 +81,7 @@ function normalizeIncomingHeaders(
   return result
 }
 
+/** 将 form 对象编码成 application/x-www-form-urlencoded 请求体。 */
 function encodeFormBody(form: LxHttpRequestOptions['form']) {
   if (!form) {
     return null
@@ -95,6 +100,7 @@ function encodeFormBody(form: LxHttpRequestOptions['form']) {
   return params.toString()
 }
 
+/** 将 LX 请求体转换成 Electron net/Node http 可写入的类型。 */
 function toWritableRequestBody(options: LxHttpRequestOptions) {
   const formBody = encodeFormBody(options.form)
   if (formBody) {
@@ -125,6 +131,7 @@ function toWritableRequestBody(options: LxHttpRequestOptions) {
   throw new Error('Unsupported LX HTTP request body type')
 }
 
+/** Node http.request 接收 string|string[] header，这里保留已归一化结果的结构。 */
 function normalizeNodeHeaders(headers: Record<string, string | string[]>) {
   const normalized = headers
   const result: Record<string, string | string[]> = {}
@@ -136,17 +143,19 @@ function normalizeNodeHeaders(headers: Record<string, string | string[]>) {
   return result
 }
 
+/** 处理相对重定向地址，和浏览器 URL 解析规则保持一致。 */
 function resolveRedirectUrl(location: string, baseUrl: string) {
   return new URL(location, baseUrl).toString()
 }
 
+/** 构造统一的 LX HTTP 响应对象，供 Electron net 和 Node fallback 共用。 */
 export function createLxHttpRequestResponse(
   statusCode: number,
   statusMessage: string,
   headers: Record<string, string | string[] | undefined>,
-  rawBody: string
+  rawBody: Buffer | string
 ): LxHttpRequestResponse {
-  const raw = Buffer.from(rawBody)
+  const raw = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody)
 
   return {
     statusCode,
@@ -154,10 +163,16 @@ export function createLxHttpRequestResponse(
     headers: normalizeIncomingHeaders(headers),
     bytes: raw.byteLength,
     raw,
-    body: parseLxHttpBody(rawBody),
+    body: parseLxHttpBody(raw),
   }
 }
 
+/**
+ * 使用 Electron net 发送 LX 请求。
+ *
+ * 优先走 Chromium 网络栈，可继承 Electron 的代理、证书和网络环境；超时被限制在 60 秒内，
+ * 防止音源脚本传入过大的 timeout 挂住主进程请求。
+ */
 export async function requestLxHttpWithElectronNet(
   net: ElectronNet,
   url: string,
@@ -219,7 +234,7 @@ export async function requestLxHttpWithElectronNet(
             response.statusCode,
             response.statusMessage || '',
             response.headers,
-            Buffer.concat(chunks).toString('utf8')
+            Buffer.concat(chunks)
           )
         )
       })
@@ -241,6 +256,11 @@ export async function requestLxHttpWithElectronNet(
   })
 }
 
+/**
+ * 使用 Node http/https 发送 LX 请求。
+ *
+ * 作为 electron.net 失败后的兼容兜底，并手动处理最多 5 次重定向。
+ */
 export async function requestLxHttpWithNode(
   url: string,
   options: LxHttpRequestOptions = {},
@@ -292,7 +312,7 @@ export async function requestLxHttpWithNode(
               response.statusCode || 0,
               response.statusMessage || '',
               response.headers,
-              Buffer.concat(chunks).toString('utf8')
+              Buffer.concat(chunks)
             )
           )
         })

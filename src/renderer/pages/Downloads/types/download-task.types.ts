@@ -16,6 +16,10 @@ export interface DownloadTask {
   status: DownloadTaskStatus
   progress: number
   quality: string
+  fileSizeBytes?: number | null
+  durationMs?: number
+  lyricText?: string
+  translatedLyricText?: string
 }
 
 export type DownloadTaskFilterValue =
@@ -36,6 +40,7 @@ export interface DownloadTaskViewModel {
   statusLabel: string
   progressLabel: string
   qualityLabel: string
+  fileSizeLabel: string
   canOpenFile: boolean
   canOpenFolder: boolean
   canRemove: boolean

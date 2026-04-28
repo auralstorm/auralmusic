@@ -1,3 +1,4 @@
+/** 窗口控制 IPC 通道，renderer 自绘标题栏和关闭确认逻辑依赖这组契约。 */
 export const WINDOW_IPC_CHANNELS = {
   MINIMIZE: 'window:minimize',
   TOGGLE_MAXIMIZE: 'window:toggle-maximize',

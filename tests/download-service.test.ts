@@ -111,6 +111,7 @@ test('DownloadService falls down the quality chain and completes an mp3 download
   assert.equal(completed.requestedQuality, 'jymaster')
   assert.equal(completed.resolvedQuality, 'sky')
   assert.equal(completed.progress, 100)
+  assert.equal(completed.fileSizeBytes, Buffer.byteLength('audio-data'))
   assert.match(completed.note ?? '', /downgraded/i)
   assert.equal(completed.warningMessage, null)
   assert.ok(completed.completedAt)
@@ -539,6 +540,7 @@ test('DownloadService skips same-name files that already exist', async () => {
 
   assert.equal(skipped.targetPath, existingPath)
   assert.equal(skipped.progress, 100)
+  assert.equal(skipped.fileSizeBytes, Buffer.byteLength('original-audio'))
   assert.match(skipped.warningMessage ?? '', /already exists/i)
   assert.equal(fetchCount, 0)
 
@@ -846,6 +848,10 @@ test('DownloadService marks persisted active tasks as failed when restoring afte
       progress: 42,
       errorMessage: null,
       targetPath: 'F:\\downloads\\interrupted.mp3',
+      fileSizeBytes: null,
+      durationMs: 0,
+      lyricText: '',
+      translatedLyricText: '',
       note: null,
       warningMessage: null,
       createdAt: 100,
@@ -868,4 +874,114 @@ test('DownloadService marks persisted active tasks as failed when restoring afte
   assert.equal(restoredTask?.progress, 42)
   assert.match(restoredTask?.errorMessage ?? '', /restart|interrupted/i)
   assert.ok(restoredTask?.completedAt)
+})
+
+test('DownloadService hydrates missing playback metadata for persisted completed tasks', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const targetPath = path.join(root, 'historical-track.mp3')
+  await writeFile(targetPath, 'historical-audio', 'utf8')
+
+  let persistedTasks: DownloadTask[] = [
+    {
+      id: 'task-historical-size',
+      songId: 'song-historical',
+      songName: 'Historical Song',
+      artistName: 'Historical Artist',
+      coverUrl: '',
+      albumName: null,
+      requestedQuality: 'higher',
+      resolvedQuality: 'higher',
+      status: 'completed',
+      progress: 100,
+      errorMessage: null,
+      targetPath,
+      fileSizeBytes: null,
+      durationMs: 0,
+      lyricText: '',
+      translatedLyricText: '',
+      note: null,
+      warningMessage: null,
+      createdAt: 100,
+      updatedAt: 120,
+      completedAt: 130,
+    },
+  ]
+
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(3_000),
+    readPersistedTasks: () => persistedTasks,
+    writePersistedTasks: tasks => {
+      persistedTasks = tasks.map(task => ({ ...task }))
+    },
+    readPlaybackMetadata: async () => ({
+      durationMs: 186000,
+      lyricText: '[00:01.00]historical line',
+      translatedLyricText: '[00:01.00]历史歌词',
+    }),
+  })
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const task = service.getTasks()[0]
+    if (
+      task?.fileSizeBytes === Buffer.byteLength('historical-audio') &&
+      task.durationMs === 186000
+    ) {
+      break
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 10))
+  }
+
+  const restoredTask = service.getTasks()[0]
+
+  assert.equal(
+    restoredTask?.fileSizeBytes,
+    Buffer.byteLength('historical-audio')
+  )
+  assert.equal(
+    persistedTasks[0]?.fileSizeBytes,
+    Buffer.byteLength('historical-audio')
+  )
+  assert.equal(restoredTask?.durationMs, 186000)
+  assert.equal(restoredTask?.lyricText, '[00:01.00]historical line')
+  assert.equal(restoredTask?.translatedLyricText, '[00:01.00]历史歌词')
+
+  await rm(root, { recursive: true, force: true })
+})
+
+test('DownloadService hydrates playback metadata on demand before playback', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'auralmusic-download-test-'))
+  const targetPath = path.join(root, 'on-demand-track.mp3')
+  await writeFile(targetPath, 'on-demand-audio', 'utf8')
+
+  const service = new DownloadService({
+    defaultRootDir: root,
+    now: createNowSequence(4_000),
+    readPlaybackMetadata: async () => ({
+      durationMs: 245000,
+      lyricText: '[00:02.00]on demand',
+      translatedLyricText: '',
+    }),
+  })
+
+  const task = await service.enqueueSongDownload({
+    songId: 'on-demand',
+    songName: 'On Demand',
+    artistName: 'Artist',
+    requestedQuality: 'higher',
+    sourceUrl: 'https://cdn.example.com/on-demand.mp3',
+    fileName: 'on-demand-track.mp3',
+  })
+  const completed = await waitForTaskStatus(service, task.id, 'skipped')
+
+  assert.equal(completed.durationMs, 245000)
+  assert.equal(completed.lyricText, '[00:02.00]on demand')
+
+  const hydrated = await service.hydrateTaskPlaybackMetadata(task.id)
+
+  assert.equal(hydrated?.durationMs, 245000)
+  assert.equal(hydrated?.lyricText, '[00:02.00]on demand')
+
+  await rm(root, { recursive: true, force: true })
 })

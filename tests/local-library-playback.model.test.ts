@@ -6,6 +6,7 @@ import {
   buildLocalLibraryPlaybackTrack,
   createLocalLibraryAlbumQueueSourceKey,
   createLocalLibraryArtistQueueSourceKey,
+  createLocalLibraryPlaylistQueueSourceKey,
   createLocalLibraryQueueSourceKey,
   resolveLocalLibraryQueueSourceDescriptor,
 } from '../src/renderer/pages/LocalLibrary/local-library-playback.model.ts'
@@ -43,6 +44,10 @@ test('local library queue source keys stay stable across tabs', () => {
   assert.equal(
     createLocalLibraryArtistQueueSourceKey('夏未來信'),
     'local-library:artist:%E5%A4%8F%E6%9C%AA%E4%BE%86%E4%BF%A1'
+  )
+  assert.equal(
+    createLocalLibraryPlaylistQueueSourceKey(12),
+    'local-library:playlist:12'
   )
 })
 
@@ -98,4 +103,13 @@ test('local library queue descriptor can rebuild scoped playback queues after li
     artistName: '夏未來信',
   })
   assert.equal(buildLocalLibraryPlaybackQueue(tracks, sourceKey).length, 2)
+  assert.deepEqual(
+    resolveLocalLibraryQueueSourceDescriptor(
+      createLocalLibraryPlaylistQueueSourceKey(12)
+    ),
+    {
+      type: 'playlist',
+      playlistId: 12,
+    }
+  )
 })

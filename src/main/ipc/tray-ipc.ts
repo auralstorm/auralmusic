@@ -15,6 +15,11 @@ type TrayIpcOptions = {
   }
 }
 
+/**
+ * 创建托盘 IPC 注册器。
+ *
+ * renderer 只同步托盘显示状态，真正的菜单构建和系统托盘生命周期由 TrayController 管理。
+ */
 export function createTrayIpc(options: TrayIpcOptions) {
   const ipcMain = options.ipcMain ?? electron.ipcMain
 
@@ -30,6 +35,7 @@ export function createTrayIpc(options: TrayIpcOptions) {
   }
 }
 
+/** 注册托盘 IPC 的便捷入口，保持和其它 registerXxxIpc 一致。 */
 export function registerTrayIpc(options: TrayIpcOptions) {
   createTrayIpc(options).register()
 }

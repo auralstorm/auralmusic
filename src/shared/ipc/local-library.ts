@@ -1,9 +1,17 @@
+/** 本地曲库 IPC 通道，包含查询、扫描、歌单变更、文件打开和在线歌词匹配。 */
 export const LOCAL_LIBRARY_IPC_CHANNELS = {
   GET_OVERVIEW: 'local-library:get-overview',
   GET_SNAPSHOT: 'local-library:get-snapshot',
   QUERY_TRACKS: 'local-library:query-tracks',
   QUERY_ALBUMS: 'local-library:query-albums',
   QUERY_ARTISTS: 'local-library:query-artists',
+  QUERY_PLAYLISTS: 'local-library:query-playlists',
+  GET_PLAYLIST_DETAIL: 'local-library:get-playlist-detail',
+  CREATE_PLAYLIST: 'local-library:create-playlist',
+  UPDATE_PLAYLIST: 'local-library:update-playlist',
+  DELETE_PLAYLIST: 'local-library:delete-playlist',
+  ADD_TRACK_TO_PLAYLIST: 'local-library:add-track-to-playlist',
+  REMOVE_TRACK_FROM_PLAYLIST: 'local-library:remove-track-from-playlist',
   SCAN: 'local-library:scan',
   SYNC_ROOTS: 'local-library:sync-roots',
   SELECT_DIRECTORIES: 'local-library:select-directories',

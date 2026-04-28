@@ -3,9 +3,11 @@ import type {
   LxHttpRequestOptions,
   LxMusicInfo,
   LxQuality,
+  LxSourceId,
+  LxSearchResultItem,
+  LxSearchResult,
   LxScriptRequestPayload,
   LxScriptRequestResult,
-  LxSourceKey,
 } from '../../../shared/lx-music-source.ts'
 import { parseLxScriptInfo } from '../../../shared/lx-music-source.ts'
 import type {
@@ -13,6 +15,8 @@ import type {
   WorkerHttpRequestMessage,
   WorkerToRunnerMessage,
 } from '@/types/core'
+import { createRendererLogger } from '../../lib/logger.ts'
+import { readLogUrlHost } from '../../../shared/logging.ts'
 
 const LX_QUALITY_FALLBACK_ORDER: LxQuality[] = [
   'flac24bit',
@@ -20,9 +24,128 @@ const LX_QUALITY_FALLBACK_ORDER: LxQuality[] = [
   '320k',
   '128k',
 ]
+const lxRunnerLogger = createRendererLogger('lx-source-runner')
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object'
+}
+
+export function normalizeLxSearchResult(
+  result: unknown,
+  fallbackSource?: LxSourceId
+): LxSearchResult {
+  const emptyResult = {
+    list: [],
+    total: 0,
+    limit: 0,
+    page: 1,
+    source: fallbackSource,
+  }
+
+  if (!isRecord(result)) {
+    return emptyResult
+  }
+
+  if (Array.isArray(result.list)) {
+    // 标准 LX 脚本直接返回 list；保持原始条目，避免破坏第三方脚本扩展字段。
+    return {
+      list: result.list,
+      total:
+        typeof result.total === 'number' ? result.total : result.list.length,
+      limit:
+        typeof result.limit === 'number' ? result.limit : result.list.length,
+      page: typeof result.page === 'number' ? result.page : 1,
+      source:
+        typeof result.source === 'string' ? result.source : fallbackSource,
+    }
+  }
+
+  const nestedData = isRecord(result.data) ? result.data : null
+  const nestedSongs = Array.isArray(nestedData?.songs) ? nestedData.songs : null
+  if (!nestedSongs) {
+    return emptyResult
+  }
+
+  // 兼容部分平台脚本直接透传搜索接口响应，统一归一化成播放器可消费的 LX 列表结构。
+  const list = nestedSongs.flatMap((song): LxSearchResultItem[] => {
+    if (!isRecord(song)) {
+      return []
+    }
+
+    const songmid =
+      song.hash ?? song.songmid ?? song.contentId ?? song.copyrightId ?? song.id
+
+    if (typeof songmid !== 'string' && typeof songmid !== 'number') {
+      return []
+    }
+
+    return [
+      {
+        name:
+          typeof song.title === 'string' && song.title.trim()
+            ? song.title.trim()
+            : typeof song.name === 'string' && song.name.trim()
+              ? song.name.trim()
+              : '未知歌曲',
+        singer:
+          typeof song.singer === 'string' && song.singer.trim()
+            ? song.singer.trim()
+            : typeof song.author === 'string' && song.author.trim()
+              ? song.author.trim()
+              : '未知歌手',
+        album:
+          typeof song.album === 'string' && song.album.trim()
+            ? song.album.trim()
+            : undefined,
+        source: fallbackSource ?? 'wy',
+        songmid,
+        hash:
+          typeof song.hash === 'string' || typeof song.hash === 'number'
+            ? String(song.hash)
+            : undefined,
+        interval:
+          typeof song.interval === 'string' || typeof song.interval === 'number'
+            ? song.interval
+            : typeof song.duration === 'string' ||
+                typeof song.duration === 'number'
+              ? song.duration
+              : undefined,
+        img:
+          typeof song.pic === 'string' && song.pic.trim()
+            ? song.pic.trim()
+            : typeof song.cover === 'string' && song.cover.trim()
+              ? song.cover.trim()
+              : typeof song.img === 'string' && song.img.trim()
+                ? song.img.trim()
+                : undefined,
+        albumId:
+          typeof song.albumId === 'string' || typeof song.albumId === 'number'
+            ? song.albumId
+            : undefined,
+      },
+    ]
+  })
+
+  return {
+    list,
+    total:
+      typeof nestedData?.total_count === 'number'
+        ? nestedData.total_count
+        : typeof nestedData?.display_count === 'number'
+          ? nestedData.display_count
+          : list.length,
+    limit:
+      typeof nestedData?.display_count === 'number'
+        ? nestedData.display_count
+        : list.length,
+    page:
+      typeof nestedData?.page === 'number'
+        ? nestedData.page
+        : typeof result.page === 'number'
+          ? result.page
+          : 1,
+    source: fallbackSource,
+  }
 }
 
 export function normalizeLxScriptRequestResultToUrl(result: unknown) {
@@ -44,6 +167,30 @@ export function normalizeLxScriptRequestResultToUrl(result: unknown) {
 
   if (isRecord(result.data) && typeof result.data.url === 'string') {
     return result.data.url.trim() || null
+  }
+
+  return null
+}
+
+export function normalizeLxScriptRequestResultToLyric(result: unknown) {
+  if (typeof result === 'string' && result.trim()) {
+    return result
+  }
+
+  if (!isRecord(result)) {
+    return null
+  }
+
+  if (typeof result.lyric === 'string' && result.lyric.trim()) {
+    return result.lyric
+  }
+
+  if (typeof result.data === 'string' && result.data.trim()) {
+    return result.data
+  }
+
+  if (isRecord(result.data) && typeof result.data.lyric === 'string') {
+    return result.data.lyric.trim() || null
   }
 
   return null
@@ -104,7 +251,7 @@ async function requestLxHttpWithRendererFetch(
     try {
       body = JSON.parse(rawBody)
     } catch {
-      // keep raw response text
+      // 非 JSON 响应保留原文，部分 LX 脚本会直接从文本里提取播放地址。
     }
 
     return {
@@ -193,6 +340,7 @@ export class LxMusicSourceRunner {
       { type: 'module' }
     )
 
+    // 第三方 LX 脚本隔离在 worker 内执行，主线程只负责 HTTP 代理和结果归一化。
     worker.onmessage = (event: MessageEvent<WorkerToRunnerMessage>) => {
       void this.handleWorkerMessage(event.data)
     }
@@ -296,10 +444,15 @@ export class LxMusicSourceRunner {
           message.options
         )
       } catch (mainProcessError) {
-        console.warn(
-          '[LxMusicRunner] main process HTTP request failed, trying renderer fetch fallback',
-          mainProcessError
+        lxRunnerLogger.debug(
+          'main process HTTP request failed, trying renderer fetch fallback',
+          {
+            error: mainProcessError,
+            sourceHost: readLogUrlHost(message.url),
+            sourceUrl: message.url,
+          }
         )
+        // 主进程代理失败时降级到 renderer fetch，兼容少量只允许浏览器 CORS 路径的源。
         response = await requestLxHttpWithRendererFetch(
           message.url,
           message.options
@@ -308,6 +461,7 @@ export class LxMusicSourceRunner {
 
       const url = readLxResponseBodyUrl(response.body)
       if (url) {
+        // 部分 LX 脚本只通过 httpRequest 回包携带真实地址，后续 musicUrl 结果需要兜底读取。
         this.lastMusicUrl = url
       }
 
@@ -342,6 +496,7 @@ export class LxMusicSourceRunner {
         reject(new Error('LX script request timed out'))
       }, timeoutMs)
 
+      // 以 callId 关联 worker 异步响应，避免多个搜索/取链请求并发时串包。
       this.pendingInvocations.set(callId, { resolve, reject, timeoutId })
       this.postToWorker({
         type: 'invoke-request',
@@ -380,7 +535,7 @@ export class LxMusicSourceRunner {
   }
 
   async getMusicUrl(
-    source: LxSourceKey,
+    source: LxSourceId,
     musicInfo: LxMusicInfo,
     quality: LxQuality
   ) {
@@ -419,6 +574,49 @@ export class LxMusicSourceRunner {
     }
 
     return url
+  }
+
+  async getLyric(source: LxSourceId, musicInfo: LxMusicInfo) {
+    await this.initialize()
+
+    const sourceConfig = this.sources[source]
+    if (!sourceConfig) {
+      throw new Error(`LX script does not support source: ${source}`)
+    }
+
+    if (!sourceConfig.actions.includes('lyric')) {
+      throw new Error(`LX source ${source} does not support lyric`)
+    }
+
+    const result = await this.invokeRequest({
+      source,
+      action: 'lyric',
+      info: {
+        musicInfo,
+      },
+    })
+
+    return normalizeLxScriptRequestResultToLyric(result) ?? result
+  }
+
+  async search(source: LxSourceId, keyword: string, page = 1, limit = 20) {
+    await this.initialize()
+
+    if (!this.sources[source]) {
+      throw new Error(`LX script does not support source: ${source}`)
+    }
+
+    const result = await this.invokeRequest({
+      source,
+      action: 'search',
+      info: {
+        keyword,
+        page,
+        limit,
+      },
+    })
+
+    return normalizeLxSearchResult(result, source)
   }
 
   dispose() {

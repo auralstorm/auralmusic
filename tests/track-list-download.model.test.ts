@@ -16,6 +16,12 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
           albumName: string
           coverUrl: string
           duration: number
+          fee?: number
+          lockedPlatform?: string
+          lxInfo?: {
+            songmid?: string | number
+            source?: string
+          }
         }
         requestedQuality: string
         policy: string
@@ -28,12 +34,18 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
         artistName: string
         coverUrl: string
         albumName?: string
+        fee?: number
         requestedQuality: string
         sourceUrl?: string
         resolvedQuality?: string
         sourceProvider?: string
         fileExtension?: string | null
         downloadQualityPolicy?: string
+        lockedPlatform?: string
+        lxInfo?: {
+          songmid?: string | number
+          source?: string
+        }
       }
     | undefined
   let toastMessage = ''
@@ -45,6 +57,11 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
       artistNames: 'Singer A',
       duration: 0,
       albumName: 'Album',
+      lockedPlatform: 'tx',
+      lxInfo: {
+        songmid: 'tx-mid',
+        source: 'tx',
+      },
     },
     coverUrl: 'fallback-cover.jpg',
     downloadEnabled: true,
@@ -75,6 +92,12 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
       albumName: 'Album',
       coverUrl: 'fallback-cover.jpg',
       duration: 0,
+      fee: 0,
+      lockedPlatform: 'tx',
+      lxInfo: {
+        songmid: 'tx-mid',
+        source: 'tx',
+      },
     },
     requestedQuality: 'higher',
     policy: 'fallback',
@@ -83,9 +106,15 @@ test('handleTrackDownload resolves source before enqueueing and forwards resolve
     songId: 8,
     songName: 'Download Me',
     artistName: 'Singer A',
+    fee: 0,
     coverUrl: 'fallback-cover.jpg',
     albumName: 'Album',
     requestedQuality: 'higher',
+    lockedPlatform: 'tx',
+    lxInfo: {
+      songmid: 'tx-mid',
+      source: 'tx',
+    },
     sourceUrl: 'https://cdn.example.com/track.flac',
     resolvedQuality: 'lossless',
     sourceProvider: 'official-download',

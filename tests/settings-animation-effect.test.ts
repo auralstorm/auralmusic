@@ -41,4 +41,5 @@ test('global styles define reduced and off animation behavior', () => {
   assert.match(globalsSource, /transition-duration:\s*0ms\s*!important/)
   assert.match(globalsSource, /\.bg-animate/)
   assert.match(globalsSource, /\.player-scene-artwork-shell\.is-breathing/)
+  assert.match(globalsSource, /\.player-vinyl-record/)
 })

@@ -344,9 +344,9 @@ const MusicSourceSettingsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='w-[min(680px,calc(100vw-2rem))] max-w-none gap-0 overflow-hidden rounded-[28px] p-0 lg:max-w-170'>
-        <div className='space-y-5 px-7 pt-7 pb-6'>
-          <DialogHeader>
+      <DialogContent className='grid h-[min(620px,calc(100vh-4rem))] w-[min(680px,calc(100vw-2rem))] max-w-none grid-rows-[minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-[28px] p-0 lg:max-w-170'>
+        <div className='flex min-h-0 flex-col gap-5 px-7 pt-7 pb-4'>
+          <DialogHeader className='shrink-0'>
             <DialogTitle className='text-xl font-semibold'>
               音源设置
             </DialogTitle>
@@ -355,9 +355,9 @@ const MusicSourceSettingsDialog = ({
           <Tabs
             value={activeTab}
             onValueChange={value => setActiveTab(value as MusicSourceTab)}
-            className='gap-4'
+            className='min-h-0 flex-1 gap-4'
           >
-            <TabsList className='bg-muted/60 grid h-10 w-full grid-cols-2 rounded-2xl p-1'>
+            <TabsList className='bg-muted/60 grid h-10 w-full shrink-0 grid-cols-2 rounded-2xl p-1'>
               <TabsTrigger value='enhanced-unblock' className='rounded-xl'>
                 默认源
               </TabsTrigger>
@@ -371,7 +371,7 @@ const MusicSourceSettingsDialog = ({
 
             <TabsContent
               value='enhanced-unblock'
-              className='min-h-[320px] space-y-4'
+              className='min-h-0 space-y-4 overflow-y-auto pr-1'
             >
               <div>
                 <h3 className='text-foreground text-sm font-semibold'>
@@ -414,8 +414,11 @@ const MusicSourceSettingsDialog = ({
               </div>
             </TabsContent>
 
-            <TabsContent value='luoxue' className='min-h-[320px] space-y-4'>
-              <div className='flex items-start justify-between gap-4'>
+            <TabsContent
+              value='luoxue'
+              className='min-h-0 flex-col gap-3 data-[state=active]:flex data-[state=inactive]:hidden'
+            >
+              <div className='flex shrink-0 items-start justify-between gap-4'>
                 <div>
                   <h3 className='text-foreground text-sm font-semibold'>
                     落雪音源
@@ -428,7 +431,7 @@ const MusicSourceSettingsDialog = ({
               </div>
 
               {lxScripts.length ? (
-                <div className='max-h-44 space-y-3 overflow-y-auto pr-1'>
+                <div className='min-h-0 flex-1 space-y-3 overflow-y-auto pr-1'>
                   {lxScripts.map(script => (
                     <ScriptInfoCard
                       key={script.id}
@@ -441,32 +444,31 @@ const MusicSourceSettingsDialog = ({
                   ))}
                 </div>
               ) : (
-                <div className='border-border/70 bg-muted/20 text-muted-foreground flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-6 text-center text-sm'>
+                <div className='border-border/70 bg-muted/20 text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-6 text-center text-sm'>
                   <FileCode2 className='size-6' />
                   <span>尚未导入落雪音源脚本</span>
                 </div>
               )}
 
-              <div className='space-y-3'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  disabled={importing}
-                  onClick={() => void handleImportLocalLxScript()}
-                >
-                  <Upload
-                    className={importingLocal ? 'animate-pulse' : undefined}
-                  />
-                  本地导入脚本
-                </Button>
-
+              <div className='border-border/60 shrink-0 border-t pt-3'>
                 <div className='flex items-center gap-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    disabled={importing}
+                    onClick={() => void handleImportLocalLxScript()}
+                  >
+                    <Upload
+                      className={importingLocal ? 'animate-pulse' : undefined}
+                    />
+                    本地导入脚本
+                  </Button>
                   <Input
                     value={onlineScriptUrl}
                     disabled={importing}
                     placeholder='输入在线落雪音源脚本 URL'
                     onChange={event => setOnlineScriptUrl(event.target.value)}
-                    className='bg-muted/40 h-10 border-none px-4'
+                    className='bg-muted/40 h-8 border-none px-4'
                   />
                   <Button
                     type='button'

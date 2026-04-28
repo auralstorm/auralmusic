@@ -74,6 +74,7 @@ function mapArtistSong(song: RawTopSong): ArtistTopSongItem {
     duration: song.dt || 0,
     albumName: song.al?.name || song.album?.name || '',
     coverUrl: song.al?.picUrl || song.album?.picUrl || '',
+    fee: typeof song.fee === 'number' ? song.fee : 0,
     artists: (song.ar || []).map(artist => ({
       id: artist.id,
       name: artist.name || '未知歌手',
@@ -98,6 +99,7 @@ export function createArtistTopSongPlaybackQueue(
     albumName: song.albumName,
     coverUrl: song.coverUrl,
     duration: song.duration,
+    fee: typeof song.fee === 'number' ? song.fee : 0,
   }))
 }
 

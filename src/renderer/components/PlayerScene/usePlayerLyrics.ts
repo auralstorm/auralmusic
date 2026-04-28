@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { createRendererLogger } from '../../lib/logger.ts'
 import { buildLyricLines } from './player-lyrics.model'
 import { fetchLyricTextBundle } from './player-lyrics.service'
 import type { LyricLine, UsePlayerLyricsParams } from './types'
 
 const EMPTY_LYRICS: LyricLine[] = []
 const NO_LYRIC_ERROR = '暂无歌词'
+const lyricsLogger = createRendererLogger('lyrics')
 
 export function usePlayerLyrics({
   isOpen,
@@ -49,7 +51,12 @@ export function usePlayerLyrics({
           return
         }
 
-        console.error('load lyric failed', error)
+        lyricsLogger.warn('load lyric failed', {
+          error,
+          lockedLxSourceId: currentTrack?.lockedLxSourceId,
+          lockedPlatform: currentTrack?.lockedPlatform,
+          trackId,
+        })
         setLyrics(EMPTY_LYRICS)
         setLyricsError(NO_LYRIC_ERROR)
       } finally {

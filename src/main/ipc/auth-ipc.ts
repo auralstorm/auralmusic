@@ -5,6 +5,7 @@ import type { AuthSession } from '../../shared/auth'
 
 const { ipcMain } = electron
 
+/** 注册鉴权会话 IPC，renderer 只处理业务会话对象，不直接访问 cookie store。 */
 export function registerAuthIpc() {
   ipcMain.handle(AUTH_IPC_CHANNELS.GET, () => {
     return getAuthSession()

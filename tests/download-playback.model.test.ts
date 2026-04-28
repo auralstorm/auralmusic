@@ -26,6 +26,9 @@ test('buildDownloadTaskPlaybackTrack maps a completed download into a local play
     status: 'completed',
     progress: 100,
     quality: 'jymaster',
+    durationMs: 231000,
+    lyricText: '[00:01.00]Nice to meet you',
+    translatedLyricText: '[00:01.00]很高兴遇见你',
   })
 
   assert.deepEqual(track, {
@@ -34,9 +37,11 @@ test('buildDownloadTaskPlaybackTrack maps a completed download into a local play
     artistNames: 'Taylor Swift',
     albumName: '1989',
     coverUrl: 'cover.jpg',
-    duration: 0,
+    duration: 231000,
     sourceUrl:
       'auralmusic-media://local-file?path=F%3A%5CMusic+Library%5CBlank+Space.mp3',
+    lyricText: '[00:01.00]Nice to meet you',
+    translatedLyricText: '[00:01.00]很高兴遇见你',
   })
 })
 

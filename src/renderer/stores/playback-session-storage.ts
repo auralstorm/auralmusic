@@ -23,6 +23,7 @@ export function createPlaybackSessionSnapshot(input: {
   duration: number
   playbackMode: PlaybackMode
 }): PlaybackSessionSnapshot | null {
+  // 保存前先用共享队列规则校验索引，避免恢复时落到不存在的歌曲。
   const snapshot = createPlaybackQueueSnapshot(input.queue, input.currentIndex)
 
   if (!snapshot.currentTrack) {
@@ -38,6 +39,7 @@ export function createPlaybackSessionSnapshot(input: {
   }
 }
 
+// 更新已生成快照的进度/时长，避免保存队列时重复重建整份播放快照。
 export function withPlaybackSessionTiming(
   snapshot: PlaybackSessionSnapshot,
   timing: {
@@ -52,6 +54,7 @@ export function withPlaybackSessionTiming(
   }
 }
 
+// 校验并归一化本地存储里的播放会话，过滤损坏队列和非法进度。
 export function normalizePlaybackSessionSnapshot(
   value: unknown
 ): PlaybackSessionSnapshot | null {
@@ -83,6 +86,7 @@ export function normalizePlaybackSessionSnapshot(
   }
 }
 
+// 从 localStorage-like 对象读取播放会话，JSON 损坏时按无会话处理。
 export function readPlaybackSessionSnapshot(
   storage: PlaybackSessionStorageLike
 ): PlaybackSessionSnapshot | null {
@@ -98,6 +102,7 @@ export function readPlaybackSessionSnapshot(
   }
 }
 
+// 写入播放会话快照，调用方负责控制保存频率。
 export function writePlaybackSessionSnapshot(
   storage: PlaybackSessionStorageLike,
   snapshot: PlaybackSessionSnapshot
@@ -105,6 +110,7 @@ export function writePlaybackSessionSnapshot(
   storage.setItem(PLAYBACK_SESSION_STORAGE_KEY, JSON.stringify(snapshot))
 }
 
+// 清理播放会话，通常用于关闭记忆播放或恢复失败场景。
 export function clearPlaybackSessionSnapshot(
   storage: PlaybackSessionStorageLike
 ) {

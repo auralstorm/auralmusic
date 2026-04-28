@@ -9,6 +9,7 @@ import {
   ENHANCED_SOURCE_MODULES,
   LOCAL_LIBRARY_SCAN_FORMATS,
   MUSIC_SOURCE_PROVIDERS,
+  PLAYER_ARTWORK_STYLES,
   RETRO_COVER_PRESETS,
   defaultConfig,
   normalizeDiskCacheDir,
@@ -36,6 +37,7 @@ import {
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
+  normalizePlayerArtworkStyle,
   normalizePlayerBackgroundMode,
   normalizeRememberPlaybackSession,
   normalizeShowLocalLibraryMenu,
@@ -66,6 +68,7 @@ const Store =
     }
   ).default ?? ElectronStore
 
+/** 识别旧版本默认下载目录，迁移时避免继续把文件写到项目源码目录下。 */
 function isLegacyProjectDownloadsDir(value: string) {
   const normalizedValue = value.trim()
   if (!normalizedValue) {
@@ -78,6 +81,7 @@ function isLegacyProjectDownloadsDir(value: string) {
   )
 }
 
+/** 兼容历史 high 质量枚举，新版本统一映射到 higher。 */
 function normalizeQuality(value: unknown): AudioQualityLevel {
   if (value === 'high') {
     return 'higher'
@@ -93,6 +97,7 @@ function normalizeQuality(value: unknown): AudioQualityLevel {
   return defaultConfig.quality
 }
 
+/** 归一化启用的音源提供方，过滤未知值并去重。 */
 function normalizeMusicSourceProviders(value: unknown): MusicSourceProvider[] {
   if (!Array.isArray(value)) {
     return defaultConfig.musicSourceProviders
@@ -110,6 +115,7 @@ function normalizeMusicSourceProviders(value: unknown): MusicSourceProvider[] {
   ]
 }
 
+/** 判断 provider 列表是否和目标值一致，用于迁移时减少无意义写入。 */
 function areProvidersEqual(
   left: unknown,
   right: MusicSourceProvider[]
@@ -240,6 +246,10 @@ const CONFIG_STORE_SCHEMA = {
     type: 'string',
     enum: ['off', 'static', 'dynamic'],
   },
+  playerArtworkStyle: {
+    type: 'string',
+    enum: PLAYER_ARTWORK_STYLES,
+  },
   animationEffect: {
     type: 'string',
     enum: ANIMATION_EFFECT_LEVELS,
@@ -267,6 +277,7 @@ const CONFIG_STORE_SCHEMA = {
   downloadEmbedTranslatedLyrics: { type: 'boolean' },
 } satisfies ConstructorParameters<typeof Store<AppConfig>>[0]['schema']
 
+/** 构建配置存储选项，包含默认值和 schema 校验。 */
 export function buildConfigStoreOptions(
   resolveStoreDirectory: () => string = resolveAppStoreDirectory
 ) {
@@ -282,6 +293,7 @@ function createConfigStore() {
   return new Store<AppConfig>(buildConfigStoreOptions())
 }
 
+/** 配置 store 单例，避免多个 electron-store 实例同时读写同一个配置文件。 */
 class ConfigStore {
   private static instance: ReturnType<typeof createConfigStore>
 
@@ -291,6 +303,7 @@ class ConfigStore {
     if (!ConfigStore.instance) {
       ConfigStore.instance = createConfigStore()
 
+      // 历史配置和外部手改配置在首次读取 store 时集中归一化，保证运行期拿到稳定字段。
       const quality = ConfigStore.instance.get('quality')
       const normalizedQuality = normalizeQuality(quality)
       if (quality !== normalizedQuality) {
@@ -418,6 +431,16 @@ class ConfigStore {
         ConfigStore.instance.set(
           'playerBackgroundMode',
           normalizedPlayerBackgroundMode
+        )
+      }
+
+      const playerArtworkStyle = ConfigStore.instance.get('playerArtworkStyle')
+      const normalizedPlayerArtworkStyle =
+        normalizePlayerArtworkStyle(playerArtworkStyle)
+      if (playerArtworkStyle !== normalizedPlayerArtworkStyle) {
+        ConfigStore.instance.set(
+          'playerArtworkStyle',
+          normalizedPlayerArtworkStyle
         )
       }
 
@@ -688,10 +711,12 @@ function getConfigStore() {
   return ConfigStore.getInstance()
 }
 
+/** 按 key 读取配置值，返回类型由 AppConfig 对应字段推导。 */
 export const getConfig = <K extends keyof AppConfig>(key: K): AppConfig[K] => {
   return getConfigStore().get(key)
 }
 
+/** 写入单个配置项，具体副作用由 config IPC 注册层处理。 */
 export const setConfig = <K extends keyof AppConfig>(
   key: K,
   value: AppConfig[K]
@@ -699,6 +724,7 @@ export const setConfig = <K extends keyof AppConfig>(
   getConfigStore().set(key, value)
 }
 
+/** 重置全部配置到默认值，调用方需要同步处理主题/快捷键等运行时副作用。 */
 export const resetConfig = (): void => {
   getConfigStore().reset()
 }

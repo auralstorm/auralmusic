@@ -16,6 +16,7 @@ export interface AlbumTrackItem {
   albumName: string
   duration: number
   coverUrl: string
+  fee?: number
 }
 
 export interface AlbumDetailPageState {
@@ -55,6 +56,7 @@ export interface RawTrackAlbum {
 export interface RawAlbumTrack {
   id: number
   name?: string
+  fee?: number
   dt?: number
   al?: RawTrackAlbum
   ar?: RawTrackArtist[]

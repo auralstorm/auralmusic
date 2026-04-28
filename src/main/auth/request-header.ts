@@ -11,6 +11,7 @@ function isCookieHeaderName(headerName: string) {
   return headerName.toLowerCase() === 'cookie'
 }
 
+/** 仅给内置 Music API 同源请求补充登录 Cookie，避免把用户 Cookie 注入到第三方地址。 */
 function isAuthRequest(requestUrl: string, authOrigin?: string) {
   if (!authOrigin) {
     return false
@@ -23,6 +24,7 @@ function isAuthRequest(requestUrl: string, authOrigin?: string) {
   }
 }
 
+/** 保留原请求中的 Cookie header 大小写，避免部分服务端/代理对 header 名称表现不一致。 */
 function resolveCookieHeaderName(
   requestHeaders: ResolveAuthRequestHeadersOptions['requestHeaders']
 ) {
@@ -33,6 +35,7 @@ function resolveCookieHeaderName(
   )
 }
 
+/** 将 Electron/Node 可能传入的多值 Cookie header 规整成浏览器格式。 */
 function normalizeCookieHeader(
   cookieHeader?: string | string[] | undefined
 ): string {
@@ -43,6 +46,7 @@ function normalizeCookieHeader(
   return cookieHeader ?? ''
 }
 
+/** 合并 Cookie 时按名称覆盖旧值，保证最新登录态优先于请求里已有的同名 Cookie。 */
 function mergeCookieHeader(existingCookie = '', authCookie = '') {
   const mergedPairs = parseCookiePairs(existingCookie)
   const indexByName = new Map(
@@ -64,6 +68,11 @@ function mergeCookieHeader(existingCookie = '', authCookie = '') {
   return mergedPairs.map(pair => `${pair.name}=${pair.value}`).join('; ')
 }
 
+/**
+ * 为发往 Music API 的请求补充鉴权 Cookie。
+ *
+ * 这个函数只返回新的 header 对象，不直接注册 webRequest hook，便于请求拦截和下载源解析复用。
+ */
 export function resolveAuthRequestHeaders({
   authOrigin,
   authSession,
@@ -90,6 +99,7 @@ export function resolveAuthRequestHeaders({
   }
 }
 
+/** 将 Electron webRequest 的 header 结构转换为 fetch 可直接消费的字符串 header。 */
 export function normalizeRequestHeadersForFetch(
   requestHeaders: Record<string, string | string[] | undefined>
 ) {

@@ -3,6 +3,7 @@ import { exposeCacheApi } from './api/cache-api'
 import { exposeConfigApi } from './api/config-api'
 import { exposeDownloadApi } from './api/download-api'
 import { exposeLocalLibraryApi } from './api/local-library-api'
+import { exposeLoggerApi } from './api/logger-api'
 import { exposeMusicSourceApi } from './api/music-source-api'
 import { exposeRuntimeApi } from './api/runtime-api'
 import { exposeShortcutApi } from './api/shortcut-api'
@@ -16,6 +17,7 @@ exposeCacheApi()
 exposeConfigApi()
 exposeDownloadApi()
 exposeLocalLibraryApi()
+exposeLoggerApi()
 exposeMusicSourceApi()
 exposeRuntimeApi()
 exposeShortcutApi()

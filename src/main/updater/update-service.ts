@@ -26,10 +26,12 @@ type UpdateServiceOptions = {
 
 type UpdateSnapshotListener = (snapshot: AppUpdateSnapshot) => void
 
+/** Linux 通常不走 electron-updater 下载安装，改为打开发布页让用户自行选择包格式。 */
 function resolveActionMode(platform: NodeJS.Platform): UpdateActionMode {
   return platform === 'linux' ? 'external-link' : 'install'
 }
 
+/** 统一 release notes 的字符串/数组两种格式，便于 renderer 直接展示。 */
 function normalizeReleaseNotes(
   releaseNotes:
     | UpdateInfo['releaseNotes']
@@ -57,6 +59,7 @@ function normalizeReleaseNotes(
     .join('\n\n')
 }
 
+/** 发布日期可解析时转成 YYYY-MM-DD，不可解析时保留原文避免丢信息。 */
 function normalizeReleaseDate(publishDate: string | null | undefined) {
   const normalized = publishDate?.trim()
   if (!normalized) {
@@ -71,6 +74,7 @@ function normalizeReleaseDate(publishDate: string | null | undefined) {
   return parsed.toISOString().slice(0, 10)
 }
 
+/** 生成 GitHub release 地址；未知版本时指向 latest。 */
 function createReleaseUrl({
   owner,
   repo,
@@ -87,6 +91,7 @@ function createReleaseUrl({
   return `https://github.com/${owner}/${repo}/releases/tag/v${version}`
 }
 
+/** 创建更新服务初始快照，renderer 初始化时可以直接消费。 */
 function createInitialSnapshot(
   options: Pick<
     UpdateServiceOptions,
@@ -114,6 +119,12 @@ function createInitialSnapshot(
   }
 }
 
+/**
+ * 创建自动更新服务。
+ *
+ * 服务内部维护更新状态机快照，并通过 subscribe 广播给窗口；这样 IPC 只需要调用命令，
+ * renderer 不直接依赖 electron-updater 的事件模型。
+ */
 export function createUpdateService(options: UpdateServiceOptions) {
   let snapshot = createInitialSnapshot(options)
   let autoCheckTimer: NodeJS.Timeout | null = null
@@ -125,6 +136,7 @@ export function createUpdateService(options: UpdateServiceOptions) {
   autoUpdater.fullChangelog = true
 
   const emitSnapshot = () => {
+    // 广播副本，避免 listener 意外修改内部 snapshot。
     const nextSnapshot = { ...snapshot }
     listeners.forEach(listener => {
       listener(nextSnapshot)
@@ -152,6 +164,7 @@ export function createUpdateService(options: UpdateServiceOptions) {
     updateInfo: UpdateInfo | UpdateDownloadedEvent,
     extra: Partial<AppUpdateSnapshot> = {}
   ) => {
+    // 不同 updater 事件携带的日期字段名称不完全一致，这里做兼容读取。
     const releaseDate =
       normalizeReleaseDate(
         (
@@ -184,6 +197,7 @@ export function createUpdateService(options: UpdateServiceOptions) {
   }
 
   const bindAutoUpdaterEvents = () => {
+    // electron-updater 事件只在 initialize 后绑定一次，避免重复订阅导致状态多次广播。
     autoUpdater.on('checking-for-update', () => {
       setSnapshot(current => ({
         ...current,
@@ -256,10 +270,12 @@ export function createUpdateService(options: UpdateServiceOptions) {
     trigger: UpdateTrigger
   ): Promise<AppUpdateSnapshot> => {
     if (!options.enabled) {
+      // 开发环境和未打包环境没有可用更新源，返回明确错误状态给 UI。
       return markUnsupported()
     }
 
     if (snapshot.status === 'checking' || snapshot.status === 'downloading') {
+      // 检查/下载进行中时复用当前状态，避免并发调用扰乱 updater 内部状态机。
       return getSnapshot()
     }
 
@@ -292,6 +308,7 @@ export function createUpdateService(options: UpdateServiceOptions) {
     }
 
     if (options.platform === 'linux') {
+      // Linux 发行包类型多，交给发布页选择比自动安装更稳。
       await openDownloadPage()
       return getSnapshot()
     }
@@ -365,6 +382,7 @@ export function createUpdateService(options: UpdateServiceOptions) {
     }
 
     autoCheckTimer = setTimeout(() => {
+      // 延迟自动检查，避免应用启动阶段网络/窗口初始化和更新检查互相抢资源。
       void checkForUpdates('auto')
     }, options.autoCheckDelayMs ?? DEFAULT_AUTO_CHECK_DELAY_MS)
   }

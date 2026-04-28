@@ -55,6 +55,7 @@ const ShortcutRegistrationBridge = () => {
     clearRetryTimer()
 
     const delay = retryDelayRef.current
+    // 快捷键注册状态依赖主进程，指数退避避免窗口启动期反复打 IPC。
     retryTimerRef.current = setTimeout(() => {
       setRetryToken(current => current + 1)
     }, delay)

@@ -7,6 +7,9 @@ import {
   getPlaybackTransportState,
   getPlaybackModeLabel,
   getPlaybackProgressViewState,
+  shouldShowPlaybackLikeButton,
+  shouldShowPlaybackDownloadButton,
+  createPlaybackDownloadSong,
 } from '../src/renderer/components/PlaybackControl/model/playback-control.model.ts'
 
 test('clampPlaybackPercent keeps slider values inside 0-100', () => {
@@ -82,4 +85,94 @@ test('getPlaybackTransportState derives hasTrack and playing state from track an
       isPlaying: true,
     }
   )
+})
+
+test('shouldShowPlaybackLikeButton hides local and non-netease tracks', () => {
+  assert.equal(
+    shouldShowPlaybackLikeButton({
+      sourceUrl: '',
+      lockedPlatform: undefined,
+    }),
+    true
+  )
+  assert.equal(
+    shouldShowPlaybackLikeButton({
+      sourceUrl: '',
+      lockedPlatform: 'wy',
+    }),
+    true
+  )
+  assert.equal(
+    shouldShowPlaybackLikeButton({
+      sourceUrl: '',
+      lockedPlatform: 'tx',
+    }),
+    false
+  )
+  assert.equal(
+    shouldShowPlaybackLikeButton({
+      sourceUrl: 'auralmusic-media://local-file?path=F%3A%5CMusic%5Clocal.mp3',
+      lockedPlatform: undefined,
+    }),
+    false
+  )
+})
+
+test('playback download button follows download setting visibility', () => {
+  assert.equal(
+    shouldShowPlaybackDownloadButton({
+      downloadEnabled: true,
+      sourceUrl: '',
+    }),
+    true
+  )
+  assert.equal(
+    shouldShowPlaybackDownloadButton({
+      downloadEnabled: false,
+      sourceUrl: '',
+    }),
+    false
+  )
+  assert.equal(
+    shouldShowPlaybackDownloadButton({
+      downloadEnabled: true,
+      sourceUrl: 'auralmusic-media://local-file?path=F%3A%5CMusic%5Clocal.mp3',
+    }),
+    false
+  )
+})
+
+test('createPlaybackDownloadSong maps the current playback track for download enqueue', () => {
+  assert.deepEqual(
+    createPlaybackDownloadSong({
+      id: 88,
+      name: 'Download Track',
+      artistNames: 'Singer',
+      albumName: 'Album',
+      coverUrl: 'cover.jpg',
+      duration: 180000,
+      fee: 0,
+      lockedPlatform: 'tx',
+      lxInfo: {
+        songmid: 'tx-mid',
+        source: 'tx',
+      },
+    }),
+    {
+      id: 88,
+      name: 'Download Track',
+      artistNames: 'Singer',
+      albumName: 'Album',
+      coverUrl: 'cover.jpg',
+      duration: 180000,
+      fee: 0,
+      lockedPlatform: 'tx',
+      lxInfo: {
+        songmid: 'tx-mid',
+        source: 'tx',
+      },
+    }
+  )
+
+  assert.equal(createPlaybackDownloadSong(null), null)
 })

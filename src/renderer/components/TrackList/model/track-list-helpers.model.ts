@@ -47,5 +47,6 @@ export function toPlaybackTrack(
     albumName: item.albumName || '',
     coverUrl: item.coverUrl || fallbackCoverUrl,
     duration: item.duration,
+    fee: typeof item.fee === 'number' ? item.fee : 0,
   }
 }

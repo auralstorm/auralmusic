@@ -16,6 +16,7 @@ type SystemFontsIpcRegistrationOptions = {
   getFonts?: (options?: FontListOptions) => Promise<string[]>
 }
 
+/** 字体列表去重、去空并按中文环境排序，保证设置页展示稳定。 */
 function normalizeFontFamilies(fonts: string[]) {
   return Array.from(
     new Set(
@@ -26,11 +27,17 @@ function normalizeFontFamilies(fonts: string[]) {
   ).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
 }
 
+/** 动态导入 font-list，避免在模块加载阶段就触发原生依赖初始化。 */
 async function getSystemFonts(options?: FontListOptions) {
   const { getFonts } = await import('font-list')
   return getFonts(options)
 }
 
+/**
+ * 创建系统字体 IPC 注册器。
+ *
+ * 支持注入 getFonts/ipcMain，方便测试字体归一化和通道注册，不依赖真实系统字体环境。
+ */
 export function createSystemFontsIpc(
   options: SystemFontsIpcRegistrationOptions = {}
 ) {
@@ -47,6 +54,7 @@ export function createSystemFontsIpc(
   }
 }
 
+/** 注册系统字体 IPC 的生产入口。 */
 export function registerSystemFontsIpc(
   options: SystemFontsIpcRegistrationOptions = {}
 ) {

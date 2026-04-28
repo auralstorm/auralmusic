@@ -24,6 +24,7 @@ type MatchLocalLibraryLyricsOptions = {
   fetcher?: typeof fetch
 }
 
+/** 构造访问 Music API 的请求头，在线歌词匹配同样需要携带当前登录 Cookie。 */
 function createMusicApiRequestHeaders(requestUrl: string) {
   const baseURL = readMusicApiBaseUrlFromEnv()
   if (!baseURL) {
@@ -47,6 +48,7 @@ function createMusicApiRequestHeaders(requestUrl: string) {
   )
 }
 
+/** 拉取 Music API JSON 并把非 2xx 响应转成异常，方便主流程统一失败退出。 */
 async function fetchMusicApiJson(fetcher: typeof fetch, requestUrl: string) {
   const response = await fetcher(requestUrl, {
     headers: createMusicApiRequestHeaders(requestUrl),

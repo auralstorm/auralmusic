@@ -4,15 +4,22 @@ import { pathToFileURL } from 'node:url'
 
 import { getConfig } from '../config/store.ts'
 import {
+  addLocalLibraryTrackToPlaylist,
+  createLocalLibraryPlaylist,
+  deleteLocalLibraryPlaylist,
   deleteLocalLibraryTrack,
+  queryLocalLibraryPlaylistDetailByInput,
+  queryLocalLibraryPlaylistsByInput,
   queryLocalLibraryAlbumsByInput,
   queryLocalLibraryArtistsByInput,
   queryLocalLibraryTracksByInput,
   readLocalLibraryOverview,
   readLocalLibrarySnapshot,
   resolveLocalLibraryOnlineLyricMatch,
+  removeLocalLibraryTrackFromPlaylist,
   runLocalLibraryScan,
   syncLocalLibraryRoots,
+  updateLocalLibraryPlaylist,
 } from '../local-library/index.ts'
 import { LOCAL_LIBRARY_IPC_CHANNELS } from '../../shared/ipc/index.ts'
 import type { LocalLibraryOnlineLyricMatchInput } from '../../shared/local-library.ts'
@@ -46,6 +53,12 @@ type LocalLibraryIpcRegistrationOptions = {
   platform?: NodeJS.Platform
 }
 
+/**
+ * 创建本地曲库 IPC 注册器。
+ *
+ * 本地曲库操作横跨 SQLite、文件扫描、系统文件管理器和在线歌词匹配；renderer 只传入业务参数，
+ * 主进程负责权限边界、平台兼容和配置开关。
+ */
 export function createLocalLibraryIpc(
   options: LocalLibraryIpcRegistrationOptions = {}
 ) {
@@ -97,7 +110,73 @@ export function createLocalLibraryIpc(
         }
       )
 
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.QUERY_PLAYLISTS,
+        (_event, input) => {
+          return queryLocalLibraryPlaylistsByInput(
+            input as Parameters<typeof queryLocalLibraryPlaylistsByInput>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.GET_PLAYLIST_DETAIL,
+        (_event, input) => {
+          return queryLocalLibraryPlaylistDetailByInput(
+            input as Parameters<
+              typeof queryLocalLibraryPlaylistDetailByInput
+            >[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.CREATE_PLAYLIST,
+        (_event, input) => {
+          return createLocalLibraryPlaylist(
+            input as Parameters<typeof createLocalLibraryPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.UPDATE_PLAYLIST,
+        (_event, input) => {
+          return updateLocalLibraryPlaylist(
+            input as Parameters<typeof updateLocalLibraryPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.DELETE_PLAYLIST,
+        (_event, input) => {
+          return deleteLocalLibraryPlaylist(
+            input as Parameters<typeof deleteLocalLibraryPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.ADD_TRACK_TO_PLAYLIST,
+        (_event, input) => {
+          return addLocalLibraryTrackToPlaylist(
+            input as Parameters<typeof addLocalLibraryTrackToPlaylist>[0]
+          )
+        }
+      )
+
+      ipcMain.handle(
+        LOCAL_LIBRARY_IPC_CHANNELS.REMOVE_TRACK_FROM_PLAYLIST,
+        (_event, input) => {
+          return removeLocalLibraryTrackFromPlaylist(
+            input as Parameters<typeof removeLocalLibraryTrackFromPlaylist>[0]
+          )
+        }
+      )
+
       ipcMain.handle(LOCAL_LIBRARY_IPC_CHANNELS.SCAN, async () => {
+        // 扫描总是读取最新配置，用户修改根目录或格式后无需重启主进程。
         return runLocalLibraryScan(
           getConfig('localLibraryRoots'),
           getConfig('localLibraryScanFormats')
@@ -118,6 +197,7 @@ export function createLocalLibraryIpc(
             (event as { sender: unknown }).sender
           )
 
+          // 多选目录用于一次性配置多个曲库根目录，默认定位到当前第一个根目录。
           const result = await dialog.showOpenDialog(window, {
             title: 'Select Local Library Directories',
             defaultPath: getConfig('localLibraryRoots')[0],
@@ -150,6 +230,7 @@ export function createLocalLibraryIpc(
           }
 
           if (platform === 'win32' && shell.openExternal) {
+            // Windows 下 openPath 对部分中文/特殊路径可能失败，file URL 是兼容兜底。
             const externalOpenResult = await shell.openExternal(
               pathToFileURL(targetPath).toString()
             )
@@ -168,6 +249,7 @@ export function createLocalLibraryIpc(
           }
 
           if (platform === 'win32' && shell.showItemInFolder) {
+            // Windows 原生支持定位到文件本身，优先使用 showItemInFolder。
             shell.showItemInFolder(filePath)
             return true
           }
@@ -183,6 +265,7 @@ export function createLocalLibraryIpc(
           }
 
           if (platform === 'win32' && shell.openExternal) {
+            // 非 showItemInFolder 路径走父目录 file URL 兜底，减少路径编码问题。
             const externalOpenResult = await shell.openExternal(
               pathToFileURL(parentDirectory).toString()
             )
@@ -206,6 +289,7 @@ export function createLocalLibraryIpc(
         LOCAL_LIBRARY_IPC_CHANNELS.MATCH_ONLINE_LYRICS,
         async (_event, input: LocalLibraryOnlineLyricMatchInput) => {
           if (!getConfig('localLibraryOnlineLyricMatchEnabled')) {
+            // 在线歌词匹配可能产生网络请求，必须严格受用户配置开关控制。
             return null
           }
 
@@ -216,6 +300,7 @@ export function createLocalLibraryIpc(
   }
 }
 
+/** 注册本地曲库 IPC 的生产入口。 */
 export function registerLocalLibraryIpc(
   options: LocalLibraryIpcRegistrationOptions = {}
 ) {

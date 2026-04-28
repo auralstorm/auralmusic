@@ -39,14 +39,17 @@ type CacheIndexState = {
   entries: Map<string, CacheEntryRecord>
 }
 
+/** 缓存索引中的关键字段必须是非空字符串。 */
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+/** 缓存类型白名单校验，避免旧索引或手改索引污染清理逻辑。 */
 function isKnownEntryType(value: unknown): value is CacheEntryType {
   return value === 'audio' || value === 'lyrics' || value === 'image'
 }
 
+/** 相对路径只允许缓存目录内部路径，防止索引文件被篡改后删除目录外文件。 */
 function normalizeRelativePath(value: unknown) {
   if (!isNonEmptyString(value)) {
     return null
@@ -60,6 +63,7 @@ function normalizeRelativePath(value: unknown) {
   return normalized
 }
 
+/** 读取并校验缓存索引，遇到未知版本或脏数据时安全降级为空索引。 */
 function parseIndex(raw: unknown): CacheIndexState {
   if (
     !raw ||
@@ -119,6 +123,7 @@ function parseIndex(raw: unknown): CacheIndexState {
   return { entries }
 }
 
+/** 将内存 Map 序列化为磁盘索引结构。 */
 function serializeIndex(state: CacheIndexState): CacheIndex {
   return {
     version: CACHE_INDEX_VERSION,
@@ -126,10 +131,12 @@ function serializeIndex(state: CacheIndexState): CacheIndex {
   }
 }
 
+/** 缓存 id 使用类型和业务 key 共同 hash，避免不同资源类型 key 相同导致冲突。 */
 function buildCacheId(type: CacheEntryType, key: string) {
   return createHash('sha256').update(type).update(':').update(key).digest('hex')
 }
 
+/** 优先从 URL 路径推断扩展名，失败时落到 content-type 或 .bin。 */
 function getUrlExtension(sourceUrl: string) {
   try {
     const extension = path.extname(new URL(sourceUrl).pathname)
@@ -143,6 +150,7 @@ function getUrlExtension(sourceUrl: string) {
   return '.bin'
 }
 
+/** 根据音频 content-type 选择扩展名，确保 local-media 协议能返回正确 MIME。 */
 function getContentTypeExtension(contentType: string | null) {
   if (!contentType) {
     return '.bin'
@@ -173,6 +181,7 @@ function getContentTypeExtension(contentType: string | null) {
   return '.bin'
 }
 
+/** 根据图片 content-type 选择扩展名。 */
 function getImageContentTypeExtension(contentType: string | null) {
   if (!contentType) {
     return '.bin'
@@ -197,6 +206,7 @@ function getImageContentTypeExtension(contentType: string | null) {
   return '.bin'
 }
 
+/** 判断缓存文件是否仍存在，索引清理和命中检查都会复用。 */
 async function fileExists(filePath: string) {
   try {
     await fs.access(filePath)
@@ -206,6 +216,11 @@ async function fileExists(filePath: string) {
   }
 }
 
+/**
+ * 磁盘缓存服务。
+ *
+ * 负责音频、封面和歌词缓存的目录布局、索引维护、容量淘汰和 local-media URL 生成。
+ */
 export class CacheService {
   private readonly defaultRootDir: string
   private readonly fetcher: typeof fetch
@@ -218,10 +233,12 @@ export class CacheService {
     this.now = options.now ?? Date.now
   }
 
+  /** 返回默认缓存根目录，用于设置页展示。 */
   getDefaultCacheRoot() {
     return this.defaultRootDir
   }
 
+  /** 配置目录为空时回退默认目录。 */
   resolveCacheRoot(configCacheDir: string) {
     return isNonEmptyString(configCacheDir)
       ? configCacheDir
@@ -232,6 +249,7 @@ export class CacheService {
     params: ResolveAudioSourceParams
   ): Promise<ResolveAudioSourceResult> {
     if (!params.enabled) {
+      // 用户关闭磁盘缓存时直接返回远程地址，不做任何目录初始化。
       return { url: params.sourceUrl, fromCache: false }
     }
 
@@ -246,6 +264,7 @@ export class CacheService {
         cachedEntry.relativePath
       )
       if (await fileExists(absolutePath)) {
+        // 命中后刷新访问时间，容量淘汰会优先保留最近使用的资源。
         cachedEntry.lastAccessed = this.now()
         await this.saveIndex(layout, state)
 
@@ -259,6 +278,7 @@ export class CacheService {
     try {
       const response = await this.fetcher(params.sourceUrl)
       if (!response.ok) {
+        // 缓存失败不影响播放主流程，回退源地址。
         return { url: params.sourceUrl, fromCache: false }
       }
 
@@ -290,10 +310,12 @@ export class CacheService {
 
       return { url: createLocalMediaUrl(absolutePath), fromCache: true }
     } catch {
+      // 网络或写盘异常都降级为远程地址，避免缓存层阻断播放器。
       return { url: params.sourceUrl, fromCache: false }
     }
   }
 
+  /** 解析图片资源；未命中时后台写入缓存，避免封面列表首屏被磁盘写入阻塞。 */
   async resolveImageSource(
     params: ResolveImageSourceParams
   ): Promise<ResolveImageSourceResult> {
@@ -322,6 +344,7 @@ export class CacheService {
       await this.saveIndex(layout, state)
     }
 
+    // 图片先返回远端 URL，后台落盘缓存，避免封面列表被磁盘写入阻塞首屏渲染。
     this.queueImagePersistence(layout, state, id, params)
     return { url: params.sourceUrl, fromCache: false }
   }
@@ -343,6 +366,7 @@ export class CacheService {
 
     const absolutePath = this.toAbsolutePath(layout.rootDir, entry.relativePath)
     if (!(await fileExists(absolutePath))) {
+      // 索引存在但文件已被外部清理时，删除脏索引并返回未命中。
       state.entries.delete(id)
       await this.saveIndex(layout, state)
       return null
@@ -366,6 +390,7 @@ export class CacheService {
     const absolutePath = this.toAbsolutePath(layout.rootDir, relativePath)
     const payload = String(params.payload)
 
+    // 歌词缓存落成 JSON 文本文件，便于排查和跨版本读取。
     await fs.mkdir(path.dirname(absolutePath), { recursive: true })
     await fs.writeFile(absolutePath, payload, 'utf8')
 
@@ -385,6 +410,7 @@ export class CacheService {
   }
 
   async clear(options: { cacheDir: string }) {
+    // 清理只删除受控子目录和索引文件，不递归删除用户选择的缓存根目录本身。
     const layout = await this.ensureLayout(options.cacheDir)
     await Promise.all([
       fs.rm(layout.audioDir, { recursive: true, force: true }),
@@ -413,6 +439,7 @@ export class CacheService {
         entry.relativePath
       )
       if (!(await fileExists(absolutePath))) {
+        // 状态统计顺便修复被外部删除文件造成的脏索引。
         state.entries.delete(id)
         hasChanges = true
         continue
@@ -469,6 +496,7 @@ export class CacheService {
       return
     }
 
+    // 同一封面只允许一个后台写入任务，避免并发滚动时重复下载并互相覆盖索引。
     const writePromise = this.persistImageEntry(layout, state, id, params)
       .catch(() => undefined)
       .finally(() => {
@@ -479,6 +507,7 @@ export class CacheService {
   }
 
   private toAbsolutePath(rootDir: string, relativePath: string) {
+    // relativePath 已在 parseIndex 中去掉 ../，这里仅做平台路径拼接。
     const segments = relativePath.split('/').filter(Boolean)
     return path.join(rootDir, ...segments)
   }
@@ -488,6 +517,7 @@ export class CacheService {
       const raw = await fs.readFile(layout.indexFilePath, 'utf8')
       return parseIndex(JSON.parse(raw))
     } catch {
+      // 索引不存在或损坏时按空缓存处理，后续写入会重建 index.json。
       return { entries: new Map() }
     }
   }
@@ -562,6 +592,7 @@ export class CacheService {
       return left.lastAccessed - right.lastAccessed
     })
 
+    // 按最近访问时间淘汰，优先保留当前常听音频与最近展示过的封面/歌词。
     for (const entry of sortedEntries) {
       if (totalBytes <= maxBytes) {
         break

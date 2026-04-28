@@ -20,6 +20,8 @@ function createContext(
   return {
     scene: 'playback',
     isAuthenticated: false,
+    isVip: false,
+    trackFee: 0,
     ...overrides,
     config: {
       ...baseConfig,
@@ -48,6 +50,7 @@ test('buildResolverPolicy uses authenticated resolver order and keeps builtin pl
   const policy = buildResolverPolicy(
     createContext({
       isAuthenticated: true,
+      isVip: true,
       config: {
         musicSourceProviders: ['kugou', 'lxMusic', 'migu', 'kugou', 'noop'],
       },
@@ -67,6 +70,7 @@ test('buildResolverPolicy excludes lxMusic when luoxue source is disabled', () =
   const policy = buildResolverPolicy(
     createContext({
       isAuthenticated: true,
+      isVip: true,
       config: {
         luoxueSourceEnabled: false,
         musicSourceProviders: ['kugou', 'migu', 'kugou'],
@@ -97,6 +101,52 @@ test('buildResolverPolicy uses unauthenticated resolver order and trims custom a
   )
 
   assert.deepEqual(policy.resolverOrder, ['builtinUnblock', 'lxMusic'])
+})
+
+test('buildResolverPolicy bypasses official for authenticated non-vip tracks with non-zero fee', () => {
+  const policy = buildResolverPolicy(
+    createContext({
+      isAuthenticated: true,
+      isVip: false,
+      trackFee: 1,
+    })
+  )
+
+  assert.deepEqual(policy.resolverOrder, [
+    'builtinUnblock',
+    'lxMusic',
+    'customApi',
+  ])
+})
+
+test('buildResolverPolicy bypasses official for non-wy locked search results even when authenticated', () => {
+  const policy = buildResolverPolicy(
+    createContext({
+      isAuthenticated: true,
+      isVip: true,
+      lockedPlatform: 'tx',
+      trackFee: 0,
+    })
+  )
+
+  assert.deepEqual(policy.resolverOrder, ['lxMusic', 'customApi'])
+})
+
+test('buildResolverPolicy keeps official first for authenticated non-vip free tracks', () => {
+  const policy = buildResolverPolicy(
+    createContext({
+      isAuthenticated: true,
+      isVip: false,
+      trackFee: 0,
+    })
+  )
+
+  assert.deepEqual(policy.resolverOrder, [
+    'official',
+    'builtinUnblock',
+    'lxMusic',
+    'customApi',
+  ])
 })
 
 test('buildResolverPolicy keeps only official when music source is disabled', () => {

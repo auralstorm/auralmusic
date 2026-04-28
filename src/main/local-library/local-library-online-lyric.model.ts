@@ -24,6 +24,7 @@ type ConservativeSearchInput = {
 
 const MAX_DURATION_DIFF_MS = 5000
 
+/** 标题归一化时去掉版本、feat、括号等常见噪声，降低错配概率。 */
 function normalizeTrackTitle(value: string) {
   return value
     .toLowerCase()
@@ -33,6 +34,7 @@ function normalizeTrackTitle(value: string) {
     .trim()
 }
 
+/** 歌手字段按常见分隔符拆分，便于多歌手歌曲做交集判断。 */
 function normalizeArtistTokens(value: string) {
   return value
     .replace(/[|/、，,&]/g, ',')
@@ -42,6 +44,7 @@ function normalizeArtistTokens(value: string) {
     .filter(Boolean)
 }
 
+/** 兼容搜索接口 artists 和 ar 两种歌手字段。 */
 function readSongArtists(song: SearchSongRecord) {
   const artists = song.artists ?? song.ar ?? []
   return artists
@@ -49,6 +52,7 @@ function readSongArtists(song: SearchSongRecord) {
     .filter(Boolean)
 }
 
+/** 兼容搜索接口 dt 和 duration 两种时长字段。 */
 function readSongDurationMs(song: SearchSongRecord) {
   if (typeof song.dt === 'number' && Number.isFinite(song.dt)) {
     return song.dt
@@ -65,6 +69,7 @@ function readSearchSongRecords(payload: unknown) {
   return readSearchSongs(payload) as SearchSongRecord[]
 }
 
+/** 标题必须归一化后完全一致，在线补词宁可不写也不写错。 */
 function isSafeTitleMatch(inputTitle: string, candidateTitle: string) {
   const normalizedInputTitle = normalizeTrackTitle(inputTitle)
   const normalizedCandidateTitle = normalizeTrackTitle(candidateTitle)
@@ -75,6 +80,7 @@ function isSafeTitleMatch(inputTitle: string, candidateTitle: string) {
   )
 }
 
+/** 歌手至少有一个 token 命中，避免同名歌曲跨歌手误匹配。 */
 function hasArtistIntersection(
   inputArtistName: string,
   candidateArtists: string[]
@@ -97,6 +103,7 @@ function hasArtistIntersection(
   return false
 }
 
+/** 时长允许 5 秒误差，兼容本地文件裁剪和平台元数据差异。 */
 function isSafeDurationMatch(
   inputDurationMs: number,
   candidateDurationMs: number
@@ -127,6 +134,7 @@ function sanitizeLyricText(value: string) {
     .join('\n')
 }
 
+/** 读取搜索结果歌曲数组，接口结构异常时返回空数组。 */
 function readSearchSongs(payload: unknown) {
   const root = payload as
     | {
@@ -141,6 +149,7 @@ function readSearchSongs(payload: unknown) {
   return root?.result?.songs ?? []
 }
 
+/** 构造本地歌曲在线歌词搜索关键词。 */
 export function buildLocalLyricSearchKeyword(
   title: string,
   artistName: string
@@ -151,6 +160,7 @@ export function buildLocalLyricSearchKeyword(
     .join(' ')
 }
 
+/** 读取第一个有合法 id 的搜索候选，适合不需要保守校验的场景。 */
 export function readFirstSearchSongCandidate(
   payload: unknown
 ): SearchSongCandidate | null {
@@ -204,6 +214,7 @@ export function readConservativeSearchSongCandidate(
   }
 }
 
+/** 读取在线歌词接口返回的原文/翻译歌词，并清理脏行。 */
 export function readOnlineLyricPayload(
   payload: unknown
 ): LocalLibraryLyricPayload {
@@ -225,6 +236,7 @@ export function readOnlineLyricPayload(
   }
 }
 
+/** 从歌曲详情响应中读取封面 URL。 */
 export function readOnlineCoverUrl(payload: unknown) {
   const root = payload as
     | {

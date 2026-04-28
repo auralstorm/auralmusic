@@ -16,6 +16,7 @@ type LocalLibraryQueueSourceDescriptor =
   | { type: 'all' }
   | { type: 'album'; albumName: string; artistName: string }
   | { type: 'artist'; artistName: string }
+  | { type: 'playlist'; playlistId: number }
 
 function encodeLocalLibraryQueueSegment(value: string) {
   return encodeURIComponent(value)
@@ -69,6 +70,10 @@ export function createLocalLibraryArtistQueueSourceKey(artistName: string) {
   return `local-library:artist:${encodeLocalLibraryQueueSegment(artistName)}`
 }
 
+export function createLocalLibraryPlaylistQueueSourceKey(playlistId: number) {
+  return `local-library:playlist:${playlistId}`
+}
+
 export function resolveLocalLibraryQueueSourceDescriptor(
   sourceKey: string | null | undefined
 ): LocalLibraryQueueSourceDescriptor | null {
@@ -97,6 +102,14 @@ export function resolveLocalLibraryQueueSourceDescriptor(
     }
   }
 
+  const playlistMatch = sourceKey.match(/^local-library:playlist:(\d+)$/)
+  if (playlistMatch) {
+    return {
+      type: 'playlist',
+      playlistId: Number(playlistMatch[1]),
+    }
+  }
+
   return null
 }
 
@@ -116,6 +129,10 @@ export function buildLocalLibraryPlaybackQueue(
 
     if (descriptor.type === 'artist') {
       return track.artistName === descriptor.artistName
+    }
+
+    if (descriptor.type === 'playlist') {
+      return true
     }
 
     return (

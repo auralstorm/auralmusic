@@ -23,3 +23,7 @@ test('defaultConfig seeds enhanced playback source modules in a stable order', (
 test('normalizeEnhancedSourceModules preserves an explicit empty selection', () => {
   assert.deepEqual(normalizeEnhancedSourceModules([]), [])
 })
+
+test('default config no longer exposes legacy lx search quality state', () => {
+  assert.equal('defaultLxSearchQuality' in defaultConfig, false)
+})

@@ -49,6 +49,7 @@ function normalizeSongLikeTrack(
     albumName: album?.name || fallbackAlbumName,
     coverUrl: song.picUrl || album?.picUrl || '',
     duration: song.duration || song.dt || 0,
+    fee: typeof song.fee === 'number' ? song.fee : 0,
   }
 }
 

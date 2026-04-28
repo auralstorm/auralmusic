@@ -34,6 +34,7 @@ export interface RawSongAlbum {
 export interface RawTopSong {
   id: number
   name?: string
+  fee?: number
   alia?: string[]
   tns?: string[]
   dt?: number

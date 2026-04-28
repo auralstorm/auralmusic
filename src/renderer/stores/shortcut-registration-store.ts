@@ -22,7 +22,9 @@ const defaultGlobalRegistrationStatuses =
 
 export const useShortcutRegistrationStore =
   create<ShortcutRegistrationStoreState>(set => ({
+    // 全局快捷键注册结果，设置页用它展示每个快捷键是否被系统成功占用。
     globalRegistrationStatuses: defaultGlobalRegistrationStatuses,
+    // 同步主进程广播的注册状态快照。
     syncGlobalRegistrationStatuses: statuses => {
       set({ globalRegistrationStatuses: statuses })
     },

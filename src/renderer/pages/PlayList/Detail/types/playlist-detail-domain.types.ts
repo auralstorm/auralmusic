@@ -18,6 +18,7 @@ export interface PlaylistTrackItem {
   albumName: string
   duration: number
   coverUrl: string
+  fee?: number
 }
 
 export interface PlaylistDetailPageState {
@@ -58,6 +59,7 @@ export interface RawTrackAlbum {
 export interface RawPlaylistTrack {
   id: number
   name?: string
+  fee?: number
   dt?: number
   al?: RawTrackAlbum
   ar?: RawTrackArtist[]

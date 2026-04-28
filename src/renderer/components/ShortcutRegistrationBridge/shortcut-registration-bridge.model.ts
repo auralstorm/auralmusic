@@ -15,6 +15,7 @@ export type ShortcutStatusFetchRequest = {
   previousBindingsCacheKey: string
 }
 
+/** 生成快捷键配置指纹，用于跳过重复 IPC 拉取。 */
 export function createStatusBindingsCacheKey(
   enabled: boolean,
   bindings: ShortcutBindings
@@ -27,6 +28,7 @@ export function createStatusBindingsCacheKey(
   ].join('|')
 }
 
+/** 生成注册结果指纹，避免 Electron 重复广播导致 renderer 无意义刷新。 */
 export function createStatusesCacheKey(
   statuses: GlobalShortcutRegistrationStatuses
 ) {
@@ -38,6 +40,7 @@ export function createStatusesCacheKey(
   }).join('|')
 }
 
+/** 乐观标记当前配置已开始同步，失败时再回滚以允许后续重试。 */
 export function beginShortcutStatusFetch(
   state: ShortcutStatusFetchState,
   bindingsCacheKey: string

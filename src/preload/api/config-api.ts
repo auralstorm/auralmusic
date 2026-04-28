@@ -2,17 +2,18 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '../../shared/ipc/index.ts'
 import type { AppConfig } from '../../shared/config.ts'
 
-// 定义暴露给渲染进程的 API 类型
 export type ConfigApi = {
+  /** 按配置键读取值，泛型保证返回类型和 AppConfig 中的字段类型一致。 */
   getConfig: <K extends keyof AppConfig>(key: K) => Promise<AppConfig[K]>
+  /** 写入单个配置项，主进程负责持久化和必要校验。 */
   setConfig: <K extends keyof AppConfig>(
     key: K,
     value: AppConfig[K]
   ) => Promise<void>
+  /** 重置全部配置到默认值。 */
   resetConfig: () => Promise<void>
 }
 
-// 封装 API 实现
 const configApi: ConfigApi = {
   getConfig: async key => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONFIG.GET, key)
@@ -25,7 +26,7 @@ const configApi: ConfigApi = {
   },
 }
 
-// 暴露 API 到 window 对象
 export function exposeConfigApi() {
+  // 配置读写统一穿过主进程，renderer 不直接接触配置文件路径和存储实现。
   contextBridge.exposeInMainWorld('electronConfig', configApi)
 }

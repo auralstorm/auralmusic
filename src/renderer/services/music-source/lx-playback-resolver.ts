@@ -1,5 +1,6 @@
 import type { AudioQualityLevel } from '../../../shared/config.ts'
 import type {
+  ImportedLxMusicSource,
   LxInitedData,
   LxMusicInfo,
   LxQuality,
@@ -10,6 +11,7 @@ import type {
   SongUrlV1Result,
 } from '../../../shared/playback.ts'
 import { getLxMusicRunner, initLxMusicRunner } from './LxMusicSourceRunner.ts'
+import { createRendererLogger } from '../../lib/logger.ts'
 import type { LxPlaybackResolverConfig } from '@/types/core'
 
 const AUDIO_QUALITY_TO_LX: Record<AudioQualityLevel, LxQuality> = {
@@ -31,6 +33,32 @@ const LX_PLAYBACK_SOURCE_PRIORITY: LxSourceKey[] = [
   'tx',
   'mg',
 ]
+const LX_PLAYBACK_FAILURE_DEDUP_WINDOW_MS = 8_000
+const lxPlaybackLogger = createRendererLogger('lx-playback')
+const recentLxPlaybackFailures = new Map<string, number>()
+
+function readErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function shouldLogLxPlaybackFailure(key: string, now = Date.now()) {
+  const lastLoggedAt = recentLxPlaybackFailures.get(key)
+  if (
+    typeof lastLoggedAt === 'number' &&
+    now - lastLoggedAt < LX_PLAYBACK_FAILURE_DEDUP_WINDOW_MS
+  ) {
+    return false
+  }
+
+  recentLxPlaybackFailures.set(key, now)
+  for (const [cacheKey, loggedAt] of recentLxPlaybackFailures) {
+    if (now - loggedAt >= LX_PLAYBACK_FAILURE_DEDUP_WINDOW_MS) {
+      recentLxPlaybackFailures.delete(cacheKey)
+    }
+  }
+
+  return true
+}
 
 export function formatLxInterval(durationMs: number) {
   const totalSeconds = Math.max(0, Math.floor(durationMs / 1000))
@@ -42,24 +70,31 @@ export function formatLxInterval(durationMs: number) {
 
 export function toLxMusicInfo(track: PlaybackTrack): LxMusicInfo {
   const trackId = String(track.id)
+  const lxInfo = track.lxInfo
+  const source =
+    track.lockedLxSourceId?.trim() ||
+    track.lockedPlatform ||
+    lxInfo?.source?.trim() ||
+    'wy'
 
   return {
-    songmid: track.id,
-    hash: trackId,
-    strMediaMid: trackId,
-    copyrightId: trackId,
+    songmid: lxInfo?.songmid ?? track.id,
+    hash: resolveLxMusicHash(trackId, source, lxInfo),
+    strMediaMid: lxInfo?.strMediaMid ?? trackId,
+    copyrightId: lxInfo?.copyrightId ?? trackId,
     name: track.name,
     singer: track.artistNames,
     album: track.albumName,
-    source: 'wy',
+    albumId: lxInfo?.albumId,
+    source,
     interval: formatLxInterval(track.duration),
-    img: track.coverUrl,
+    img: track.coverUrl || lxInfo?.img,
   }
 }
 
 export function selectBestLxSource(
   sources: LxInitedData['sources'],
-  preferred: LxSourceKey[] = LX_PLAYBACK_SOURCE_PRIORITY
+  preferred: string[] = LX_PLAYBACK_SOURCE_PRIORITY
 ) {
   const available = new Set(
     Object.entries(sources)
@@ -80,10 +115,83 @@ export function selectBestLxSource(
   return null
 }
 
+export function resolveLxPlaybackScriptCandidates(options: {
+  scripts: ImportedLxMusicSource[]
+  activeScriptId: string
+  preferredSource: string
+}) {
+  const { scripts, activeScriptId, preferredSource } = options
+  const activeScript = scripts.find(script => script.id === activeScriptId)
+  const remainingScripts = scripts.filter(script => {
+    if (script.id === activeScriptId) {
+      return false
+    }
+
+    return true
+  })
+  const sourceMatchedScripts = remainingScripts.filter(script => {
+    return !script.sources?.length || script.sources.includes(preferredSource)
+  })
+  const unmatchedScripts = remainingScripts.filter(script => {
+    return script.sources?.length && !script.sources.includes(preferredSource)
+  })
+  const fallbackScripts = [...sourceMatchedScripts, ...unmatchedScripts]
+
+  return activeScript ? [activeScript, ...fallbackScripts] : fallbackScripts
+}
+
 function mapAudioQualityLevelToLxQuality(
   quality: AudioQualityLevel
 ): LxQuality {
   return AUDIO_QUALITY_TO_LX[quality] || '320k'
+}
+
+function resolveRequestedLxQuality(
+  track: PlaybackTrack,
+  quality: AudioQualityLevel
+): LxQuality {
+  return track.preferredQuality ?? mapAudioQualityLevelToLxQuality(quality)
+}
+
+function resolveLxMusicHash(
+  trackId: string,
+  source: string,
+  lxInfo: PlaybackTrack['lxInfo']
+) {
+  if (lxInfo?.hash?.trim()) {
+    return lxInfo.hash.trim()
+  }
+
+  if (!lxInfo) {
+    return trackId
+  }
+
+  if (source === 'wy') {
+    return trackId
+  }
+
+  if (source === 'mg' && lxInfo.copyrightId?.trim()) {
+    return lxInfo.copyrightId.trim()
+  }
+
+  if (lxInfo?.songmid !== undefined && lxInfo.songmid !== null) {
+    const platformId = String(lxInfo.songmid).trim()
+    return platformId || undefined
+  }
+
+  return undefined
+}
+
+function resolvePreferredLxSources(
+  track: PlaybackTrack,
+  musicInfo: LxMusicInfo
+) {
+  const lockedSource = track.lockedLxSourceId || track.lockedPlatform
+  if (lockedSource) {
+    return [lockedSource]
+  }
+
+  return [musicInfo.source, ...LX_PLAYBACK_SOURCE_PRIORITY]
 }
 
 export async function resolveTrackWithLxMusicSource(options: {
@@ -109,11 +217,43 @@ export async function resolveTrackWithLxMusicSource(options: {
     return null
   }
 
-  const scriptContent = await window.electronMusicSource.readLxScript(
-    activeScript.id
-  )
+  const musicInfo = toLxMusicInfo(track)
+  const preferredSource =
+    track.lockedLxSourceId || track.lockedPlatform || musicInfo.source
+  const scriptCandidates = resolveLxPlaybackScriptCandidates({
+    scripts: config.luoxueMusicSourceScripts,
+    activeScriptId,
+    preferredSource,
+  })
+
+  for (const script of scriptCandidates) {
+    const result = await resolveTrackWithLxMusicSourceScript({
+      script,
+      musicInfo,
+      track,
+      quality,
+    })
+    if (result) {
+      return result
+    }
+  }
+
+  return null
+}
+
+async function resolveTrackWithLxMusicSourceScript(options: {
+  script: ImportedLxMusicSource
+  musicInfo: LxMusicInfo
+  track: PlaybackTrack
+  quality: AudioQualityLevel
+}): Promise<SongUrlV1Result | null> {
+  const { script, musicInfo, track, quality } = options
+  const scriptContent = await window.electronMusicSource.readLxScript(script.id)
   if (!scriptContent) {
-    console.warn('[LxPlaybackResolver] active LX script content is missing')
+    lxPlaybackLogger.warn('LX script content is missing', {
+      scriptId: script.id,
+      scriptName: script.name,
+    })
     return null
   }
 
@@ -126,16 +266,19 @@ export async function resolveTrackWithLxMusicSource(options: {
     try {
       runner = await initLxMusicRunner(scriptContent)
     } catch (error) {
-      console.warn('[LxPlaybackResolver] init lx runner failed', error)
+      lxPlaybackLogger.warn('init lx runner failed', {
+        error,
+        scriptId: script.id,
+        scriptName: script.name,
+      })
       return null
     }
   }
 
-  const musicInfo = toLxMusicInfo(track)
-  const source = selectBestLxSource(runner.getSources(), [
-    musicInfo.source,
-    ...LX_PLAYBACK_SOURCE_PRIORITY,
-  ])
+  const source = selectBestLxSource(
+    runner.getSources(),
+    resolvePreferredLxSources(track, musicInfo)
+  )
   if (!source) {
     return null
   }
@@ -144,7 +287,7 @@ export async function resolveTrackWithLxMusicSource(options: {
     const url = await runner.getMusicUrl(
       source,
       musicInfo,
-      mapAudioQualityLevelToLxQuality(quality)
+      resolveRequestedLxQuality(track, quality)
     )
 
     return {
@@ -154,7 +297,22 @@ export async function resolveTrackWithLxMusicSource(options: {
       br: 0,
     }
   } catch (error) {
-    console.warn('[LxPlaybackResolver] resolve music url failed', error)
+    const failureKey = [
+      script.id,
+      source,
+      track.id,
+      readErrorMessage(error),
+    ].join(':')
+
+    if (shouldLogLxPlaybackFailure(failureKey)) {
+      lxPlaybackLogger.warn('resolve music url failed', {
+        error,
+        scriptId: script.id,
+        scriptName: script.name,
+        source,
+        trackId: track.id,
+      })
+    }
     return null
   }
 }

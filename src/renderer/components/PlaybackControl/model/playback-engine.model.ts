@@ -9,6 +9,7 @@ export const OUTPUT_DEVICE_UNAVAILABLE_MESSAGE = '音频输出设备切换失败
 export const STALE_PLAYBACK_REQUEST = Symbol('STALE_PLAYBACK_REQUEST')
 export const PLAYBACK_PROGRESS_SYNC_INTERVAL_MS = 1000 / 30
 
+/** 清空待播音源，确保下一首歌不会继承上一首的解码缓冲。 */
 export function prepareAudioForPendingTrack(audio: PendingTrackAudio) {
   audio.pause()
   audio.removeAttribute('src')
@@ -126,6 +127,7 @@ export async function applyPersistedProgress(
   audio.currentTime = nextTime
 }
 
+/** 判断异步播放请求是否已被新曲目或组件卸载淘汰。 */
 export function isPlaybackRequestStale(
   expectedRequestId: number,
   expectedTrackId: number,

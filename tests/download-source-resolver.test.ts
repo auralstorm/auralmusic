@@ -25,6 +25,7 @@ function createTrack() {
     albumName: 'Album',
     coverUrl: '',
     duration: 200000,
+    fee: 0,
   }
 }
 
@@ -32,7 +33,7 @@ test('createDownloadSourceResolver falls back from official family to LX and ret
   const calls: string[] = []
 
   const deps: DownloadSourceResolverDeps = {
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     getSongUrlV1: async params => {
       calls.push(`song-url:${params.level}:${params.unblock}`)
       throw new Error('playback unavailable')
@@ -77,7 +78,7 @@ test('createDownloadSourceResolver returns official playback when official downl
   const calls: string[] = []
 
   const deps: DownloadSourceResolverDeps = {
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     getSongDownloadUrlV1: async params => {
       calls.push(`song-download:${params.level}`)
       return { data: { data: { url: '' } } }
@@ -116,11 +117,60 @@ test('createDownloadSourceResolver returns official playback when official downl
   assert.deepEqual(calls, ['song-url:higher:false'])
 })
 
+test('createDownloadSourceResolver bypasses official providers for authenticated non-vip paid tracks', async () => {
+  const calls: string[] = []
+
+  const deps: DownloadSourceResolverDeps = {
+    getAuthState: () => ({ isAuthenticated: true, isVip: false }),
+    getSongDownloadUrlV1: async () => {
+      calls.push('song-download')
+      return { data: { data: { url: 'https://cdn.example.com/official.mp3' } } }
+    },
+    getSongUrlV1: async () => {
+      calls.push('song-url')
+      return {
+        data: {
+          data: [{ id: 9, url: 'https://cdn.example.com/official.mp3' }],
+        },
+      }
+    },
+    resolveTrackWithLxMusicSource: async params => {
+      calls.push(`lx:${params.quality}`)
+      return {
+        id: 9,
+        url: 'https://cdn.example.com/from-lx.flac',
+        time: 200000,
+        br: 0,
+      }
+    },
+    getConfig: () => createConfig(),
+  }
+
+  const resolveDownloadSource = createDownloadSourceResolver(deps)
+  const result = await resolveDownloadSource({
+    track: {
+      ...createTrack(),
+      id: 9,
+      fee: 1,
+    },
+    requestedQuality: 'higher',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/from-lx.flac',
+    quality: 'higher',
+    provider: 'lxMusic',
+    fileExtension: '.flac',
+  })
+  assert.deepEqual(calls, ['lx:higher'])
+})
+
 test('createDownloadSourceResolver prefers official playback over official download when both are available', async () => {
   const calls: string[] = []
 
   const deps: DownloadSourceResolverDeps = {
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     getSongDownloadUrlV1: async params => {
       calls.push(`song-download:${params.level}`)
       return {
@@ -172,7 +222,7 @@ test('createDownloadSourceResolver uses the default API loader for official down
   const calls: string[] = []
 
   const deps: DownloadSourceResolverDeps = {
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     loadSongApiListModule: async () => {
       calls.push('load-api')
       return {
@@ -223,7 +273,7 @@ test('createDownloadSourceResolver uses the default API loader for official down
 
 test('createDownloadSourceResolver derives extension from official download payload', async () => {
   const deps: DownloadSourceResolverDeps = {
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     getSongDownloadUrlV1: async params => {
       assert.equal(params.level, 'higher')
       assert.equal(params.id, 2)
@@ -270,7 +320,7 @@ test('createDownloadSourceResolver stops after the requested quality when policy
   const calls: string[] = []
 
   const resolveDownloadSource = createDownloadSourceResolver({
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     getSongDownloadUrlV1: async params => {
       calls.push(`song-download:${params.level}`)
       return { data: { data: { url: '' } } }
@@ -310,7 +360,7 @@ test('createDownloadSourceResolver falls through lower qualities when policy is 
   const calls: string[] = []
 
   const resolveDownloadSource = createDownloadSourceResolver({
-    getIsAuthenticated: () => true,
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
     getSongDownloadUrlV1: async params => {
       calls.push(`song-download:${params.level}`)
       return {
@@ -374,7 +424,7 @@ test('createDownloadSourceResolver prefers builtin unblock before official when 
         musicSourceProviders: ['migu'],
         luoxueSourceEnabled: false,
       }),
-    getIsAuthenticated: () => false,
+    getAuthState: () => ({ isAuthenticated: false, isVip: false }),
     getSongDownloadUrlV1: async () => {
       calls.push('official-download')
       return {
@@ -412,7 +462,7 @@ test('createDownloadSourceResolver still tries builtin unblock when legacy built
         musicSourceProviders: ['lxMusic'],
         luoxueSourceEnabled: false,
       }),
-    getIsAuthenticated: () => false,
+    getAuthState: () => ({ isAuthenticated: false, isVip: false }),
     getSongDownloadUrlV1: async () => {
       calls.push('official-download')
       return {
@@ -449,7 +499,7 @@ test('createDownloadSourceResolver does not fall through to official when music 
       createConfig({
         musicSourceProviders: ['migu'],
       }),
-    getIsAuthenticated: () => false,
+    getAuthState: () => ({ isAuthenticated: false, isVip: false }),
     getSongDownloadUrlV1: async () => {
       calls.push('official-download')
       return {
@@ -481,4 +531,62 @@ test('createDownloadSourceResolver does not fall through to official when music 
     'song-match:qijieya',
     'lx',
   ])
+})
+
+test('createDownloadSourceResolver sends non-wy locked tracks directly to lx source', async () => {
+  const calls: string[] = []
+
+  const resolveDownloadSource = createDownloadSourceResolver({
+    getConfig: () => createConfig(),
+    getAuthState: () => ({ isAuthenticated: true, isVip: true }),
+    getSongUrlV1: async () => {
+      calls.push('official-playback')
+      return {
+        data: {
+          data: [{ id: 77, url: 'https://cdn.example.com/official.mp3' }],
+        },
+      }
+    },
+    getSongDownloadUrlV1: async () => {
+      calls.push('official-download')
+      return {
+        data: { data: { url: 'https://cdn.example.com/official.flac' } },
+      }
+    },
+    getSongUrlMatch: async () => {
+      calls.push('builtin-unblock')
+      return { data: { data: 'https://cdn.example.com/unblock.mp3' } }
+    },
+    resolveTrackWithLxMusicSource: async params => {
+      calls.push(`lx:${params.track.lockedPlatform}:${params.quality}`)
+      return {
+        id: 77,
+        url: 'https://cdn.example.com/tencent.flac',
+        time: 200000,
+        br: 0,
+      }
+    },
+  })
+
+  const result = await resolveDownloadSource({
+    track: {
+      ...createTrack(),
+      id: 77,
+      lockedPlatform: 'tx',
+      lxInfo: {
+        songmid: 'tx-mid',
+        source: 'tx',
+      },
+    },
+    requestedQuality: 'lossless',
+    policy: 'fallback',
+  })
+
+  assert.deepEqual(result, {
+    url: 'https://cdn.example.com/tencent.flac',
+    quality: 'lossless',
+    provider: 'lxMusic',
+    fileExtension: '.flac',
+  })
+  assert.deepEqual(calls, ['lx:tx:lossless'])
 })

@@ -28,6 +28,7 @@ import {
   normalizePlaybackFadeEnabled,
   normalizeLyricsKaraokeEnabled,
   normalizePlaybackSpeed,
+  normalizePlayerArtworkStyle,
   normalizePlayerBackgroundMode,
   normalizeRememberPlaybackSession,
   normalizeShowLocalLibraryMenu,
@@ -172,6 +173,7 @@ function normalizeConfig(config: AppConfig): AppConfig {
     playerBackgroundMode: normalizePlayerBackgroundMode(
       config.playerBackgroundMode
     ),
+    playerArtworkStyle: normalizePlayerArtworkStyle(config.playerArtworkStyle),
     animationEffect: normalizeAnimationEffect(config.animationEffect),
     immersivePlayerControls: normalizeImmersivePlayerControls(
       config.immersivePlayerControls
@@ -216,9 +218,12 @@ function normalizeConfig(config: AppConfig): AppConfig {
 }
 
 export const useConfigStore = create<ConfigStoreState>((set, get) => ({
+  // 当前应用配置快照，所有配置读取都以这份归一化结果为准。
   config: defaultConfig,
+  // 配置初始化/重置加载态，避免页面在配置未就绪时读取脏默认值。
   isLoading: true,
 
+  // 从主进程逐项读取配置并统一归一化，兼容旧版本配置字段。
   initConfig: async () => {
     try {
       set({ isLoading: true })
@@ -240,6 +245,7 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
     }
   },
 
+  // 乐观更新单项配置；主进程写入失败时回滚到上一个配置快照。
   setConfig: async <K extends keyof AppConfig>(key: K, value: AppConfig[K]) => {
     const currentConfig = get().config
     const newConfig = { ...currentConfig, [key]: value }
@@ -254,6 +260,7 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
     }
   },
 
+  // 重置主进程配置并让 renderer 回到默认配置快照。
   resetConfig: async () => {
     set({ config: defaultConfig, isLoading: true })
     try {

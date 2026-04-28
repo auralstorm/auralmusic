@@ -28,6 +28,7 @@ const SUPPORTED_AUDIO_EXTENSIONS = new Map<LocalLibraryScanFormat, string>([
 const FALLBACK_ARTIST_NAME = '未知歌手'
 const FALLBACK_ALBUM_NAME = '未知专辑'
 
+/** 扫描阶段解析出的音频元数据，字段全部转成曲库数据库可直接消费的形态。 */
 export interface ParsedAudioMetadata {
   title: string | null
   artistName: string | null
@@ -41,11 +42,13 @@ export interface ParsedAudioMetadata {
   coverExtension: string | null
 }
 
+/** 扫描上下文允许注入解析器，便于测试和后续替换 music-metadata 实现。 */
 export interface LocalLibraryScanContext {
   coverCacheDir: string
   parseAudioMetadata: (filePath: string) => Promise<ParsedAudioMetadata>
 }
 
+/** 归一化封面图片扩展名，未知格式不写入缓存。 */
 function normalizeCoverExtension(format?: string | null) {
   const normalizedFormat = format?.trim().toLowerCase()
   if (!normalizedFormat) {
@@ -67,6 +70,7 @@ function normalizeCoverExtension(format?: string | null) {
   return null
 }
 
+/** 使用 music-metadata 解析音频标签，并转换成曲库统一元数据。 */
 async function parseAudioMetadataWithMusicMetadata(
   filePath: string
 ): Promise<ParsedAudioMetadata> {
@@ -115,6 +119,7 @@ async function parseAudioMetadataWithMusicMetadata(
   }
 }
 
+/** 创建扫描上下文，默认使用 music-metadata 解析器。 */
 export function createLocalLibraryScanContext(
   options: Partial<LocalLibraryScanContext> &
     Pick<LocalLibraryScanContext, 'coverCacheDir'>
@@ -126,6 +131,7 @@ export function createLocalLibraryScanContext(
   }
 }
 
+/** 根据用户配置的格式生成支持的扩展名集合。 */
 function createSupportedAudioExtensionSet(
   formats: readonly LocalLibraryScanFormat[]
 ) {
@@ -136,6 +142,7 @@ function createSupportedAudioExtensionSet(
   )
 }
 
+/** 判断文件是否属于当前扫描格式集合。 */
 function isSupportedAudioFile(
   filePath: string,
   supportedExtensions: Set<string>
@@ -143,10 +150,12 @@ function isSupportedAudioFile(
   return supportedExtensions.has(path.extname(filePath).toLowerCase())
 }
 
+/** 同名歌词是辅助资源，不作为无效音频计入跳过数量。 */
 function isLocalLyricSidecar(filePath: string) {
   return path.extname(filePath).toLowerCase() === '.lrc'
 }
 
+/** 递归收集目录下所有文件，后续统一按扩展名过滤。 */
 async function collectFiles(rootPath: string): Promise<string[]> {
   const entries = await readdir(rootPath, { withFileTypes: true })
   const collectedFiles: string[] = []
@@ -164,6 +173,7 @@ async function collectFiles(rootPath: string): Promise<string[]> {
   return collectedFiles
 }
 
+/** 将内嵌封面写入曲库封面缓存目录，并返回本地路径。 */
 async function persistCoverAsset(
   coverCacheDir: string,
   filePath: string,
@@ -182,10 +192,12 @@ async function persistCoverAsset(
   return targetPath
 }
 
+/** 没有标题标签时使用文件名作为歌曲名兜底。 */
 function resolveFallbackTitle(filePath: string) {
   return path.basename(filePath, path.extname(filePath)).trim() || '未知歌曲'
 }
 
+/** 文件大小和 mtime 未变化时认为索引可复用，避免重复解析标签。 */
 function isTrackFileUnchanged(options: {
   existingTrack: {
     fileSize: number
@@ -200,6 +212,11 @@ function isTrackFileUnchanged(options: {
   )
 }
 
+/**
+ * 扫描本地曲库根目录。
+ *
+ * 扫描会同步根目录、递归读取音频文件、写入/更新曲库索引，并删除已从目录消失的旧记录。
+ */
 export async function scanLocalLibraryRoots(options: {
   database: LocalLibraryDatabase
   scanContext: LocalLibraryScanContext

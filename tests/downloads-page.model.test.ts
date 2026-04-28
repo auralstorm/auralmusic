@@ -4,6 +4,7 @@ import {
   canOpenDownloadTaskFile,
   canOpenDownloadTaskFolder,
   filterDownloadTasks,
+  formatDownloadTaskFileSize,
   formatDownloadTaskProgress,
   getDownloadTaskStatusLabel,
 } from '../src/renderer/pages/Downloads/downloads.model.ts'
@@ -98,4 +99,14 @@ test('formatDownloadTaskProgress handles pending, running and terminal states', 
     ),
     '23%'
   )
+})
+
+test('formatDownloadTaskFileSize renders readable file sizes and empty fallback', () => {
+  assert.equal(formatDownloadTaskFileSize(undefined), '-')
+  assert.equal(formatDownloadTaskFileSize(null), '-')
+  assert.equal(formatDownloadTaskFileSize(-1), '-')
+  assert.equal(formatDownloadTaskFileSize(512), '512 B')
+  assert.equal(formatDownloadTaskFileSize(1536), '1.50 KB')
+  assert.equal(formatDownloadTaskFileSize(10 * 1024 * 1024), '10.0 MB')
+  assert.equal(formatDownloadTaskFileSize(128 * 1024 * 1024), '128 MB')
 })

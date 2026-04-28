@@ -62,7 +62,11 @@ test('playback control and track info avoid broad currentTrack subscriptions', (
   )
   assert.match(
     playbackTrackInfoSource,
-    /const\s+showLikeButton\s*=\s*!isLocalMediaUrl\(trackSourceUrl\)/
+    /const\s+trackLockedPlatform\s*=\s*usePlaybackStore\([\s\S]*state\.currentTrack\?\.lockedPlatform[\s\S]*\)/
+  )
+  assert.match(
+    playbackTrackInfoSource,
+    /const\s+showLikeButton\s*=\s*shouldShowPlaybackLikeButton\(\{[\s\S]*sourceUrl:\s*trackSourceUrl[\s\S]*lockedPlatform:\s*trackLockedPlatform[\s\S]*\}\)/
   )
   assert.match(playbackTrackInfoSource, /useCurrentTrackLike\(trackId\)/)
   assert.match(playbackTrackInfoSource, /\{showLikeButton \? \(/)

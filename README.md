@@ -17,6 +17,7 @@
     <img src="./docs/screenshots/rank.png" alt="Player Page" width="100%" style="border-radius: 8px; object-fit: cover;">
     <img src="./docs/screenshots/dark-player2.jpg" alt="Player Page" width="100%" style="border-radius: 8px; object-fit: cover;">
     <img src="./docs/screenshots/dark-player.jpg" alt="Player Page" width="100%" style="border-radius: 8px; object-fit: cover;">
+    <img src="./docs/screenshots/viny.jpg" alt="Player Page" width="100%" style="border-radius: 8px; object-fit: cover;">
   </div>
 </p>
 

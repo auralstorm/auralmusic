@@ -52,6 +52,7 @@
     "clsx": "^2.1.1",
     "colorthief": "^3.3.1",
     "dompurify": "^3.4.1",
+    "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
     "embla-carousel-react": "^8.6.0",

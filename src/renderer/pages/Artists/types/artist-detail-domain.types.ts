@@ -21,6 +21,7 @@ export interface ArtistTopSongItem {
   albumName: string
   coverUrl: string
   artists: ArtistSongArtist[]
+  fee?: number
 }
 
 export interface ArtistAlbumItem {

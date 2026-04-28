@@ -1,6 +1,9 @@
 import type { LyricPlayerProps } from '@applemusic-like-lyrics/react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import type { RetroCoverPreset } from '../../../../shared/config.ts'
+import type {
+  PlayerArtworkStyle,
+  RetroCoverPreset,
+} from '../../../../shared/config.ts'
 
 import type { LyricLine } from './player-scene-model.types'
 
@@ -41,6 +44,7 @@ export interface PlayerSceneArtworkProps {
   isPlaying: boolean
   dynamicCoverEnabled: boolean
   retroCoverPreset: RetroCoverPreset
+  playerArtworkStyle: PlayerArtworkStyle
   isSceneOpen: boolean
 }
 
