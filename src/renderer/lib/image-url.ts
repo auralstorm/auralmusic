@@ -2,7 +2,7 @@ export const imageSizes = {
   avatar: { width: 80, height: 80 },
   listCover: { width: 50, height: 50 },
   cardCover: { width: 210, height: 210 },
-  detailCover: { width: 300, height: 300 },
+  detailCover: { width: 220, height: 220 },
   mvCard: { width: 208, height: 136 },
   playerCover: { width: 512, height: 512 },
   backgroundCover: { width: 300, height: 200 },
