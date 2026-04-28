@@ -80,8 +80,15 @@ export function shouldShowPlaybackLikeButton(input: {
   return !input.lockedPlatform || input.lockedPlatform === 'wy'
 }
 
-export function shouldShowPlaybackDownloadButton(downloadEnabled: boolean) {
-  return downloadEnabled
+export function shouldShowPlaybackDownloadButton(input: {
+  downloadEnabled: boolean
+  sourceUrl: string
+}) {
+  if (isLocalMediaUrl(input.sourceUrl)) {
+    return false
+  }
+
+  return input.downloadEnabled
 }
 
 export function createPlaybackDownloadSong(

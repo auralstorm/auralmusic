@@ -21,6 +21,9 @@ const downloadLogger = createRendererLogger('download')
 
 const PlaybackDownloadButton = () => {
   const currentTrack = usePlaybackStore(state => state.currentTrack)
+  const currentTrackSourceUrl = usePlaybackStore(
+    state => state.currentTrack?.sourceUrl ?? ''
+  )
   const downloadEnabled = useConfigStore(state => state.config.downloadEnabled)
   const downloadQuality = useConfigStore(state => state.config.downloadQuality)
   const downloadQualityPolicy = useConfigStore(
@@ -28,7 +31,12 @@ const PlaybackDownloadButton = () => {
   )
   const [pending, setPending] = useState(false)
 
-  if (!shouldShowPlaybackDownloadButton(downloadEnabled)) {
+  if (
+    !shouldShowPlaybackDownloadButton({
+      downloadEnabled,
+      sourceUrl: currentTrackSourceUrl,
+    })
+  ) {
     return null
   }
 

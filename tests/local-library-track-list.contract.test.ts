@@ -74,3 +74,19 @@ test('local library page reveals the active file through preload api', () => {
   assert.match(pageSource, /localLibraryApi\?\.revealTrack/)
   assert.match(pageSource, /localLibraryApi\.revealTrack\(track\.filePath\)/)
 })
+
+test('local library song tab resolves playback start by selected file path', () => {
+  assert.match(pageSource, /const selectedTrack = tracks\[startIndex\]/)
+  assert.match(
+    pageSource,
+    /queryAllTrackPages\(\s*debouncedKeyword,\s*songScope,\s*200\s*\)/
+  )
+  assert.match(
+    pageSource,
+    /queueTracks\.findIndex\(\s*track => track\.filePath === selectedTrack\.filePath\s*\)/
+  )
+  assert.match(
+    pageSource,
+    /buildLocalLibraryPlaybackQueue\(queueTracks, sourceKey\)/
+  )
+})

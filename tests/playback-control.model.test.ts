@@ -119,8 +119,27 @@ test('shouldShowPlaybackLikeButton hides local and non-netease tracks', () => {
 })
 
 test('playback download button follows download setting visibility', () => {
-  assert.equal(shouldShowPlaybackDownloadButton(true), true)
-  assert.equal(shouldShowPlaybackDownloadButton(false), false)
+  assert.equal(
+    shouldShowPlaybackDownloadButton({
+      downloadEnabled: true,
+      sourceUrl: '',
+    }),
+    true
+  )
+  assert.equal(
+    shouldShowPlaybackDownloadButton({
+      downloadEnabled: false,
+      sourceUrl: '',
+    }),
+    false
+  )
+  assert.equal(
+    shouldShowPlaybackDownloadButton({
+      downloadEnabled: true,
+      sourceUrl: 'auralmusic-media://local-file?path=F%3A%5CMusic%5Clocal.mp3',
+    }),
+    false
+  )
 })
 
 test('createPlaybackDownloadSong maps the current playback track for download enqueue', () => {

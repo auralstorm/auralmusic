@@ -48,7 +48,6 @@ import {
 } from './local-library.model'
 import {
   buildLocalLibraryPlaybackQueue,
-  buildLocalLibraryPlaybackTrack,
   resolveLocalLibraryQueueSourceDescriptor,
 } from './local-library-playback.model'
 
@@ -741,22 +740,37 @@ const LocalLibrary = () => {
 
   const handlePlayIndex = useCallback(
     async (
-      _tracks: LocalLibraryTrackRecord[],
+      tracks: LocalLibraryTrackRecord[],
       startIndex: number,
       sourceKey: string
     ) => {
-      const queueTracks = await queryAllTrackPages(keyword, songScope, 200)
-      if (!queueTracks.length || startIndex >= queueTracks.length) {
+      const selectedTrack = tracks[startIndex]
+      if (!selectedTrack) {
+        return
+      }
+
+      const queryTracks = await queryAllTrackPages(
+        debouncedKeyword,
+        songScope,
+        200
+      )
+      const queueTracks = queryTracks.length ? queryTracks : tracks
+      const queueStartIndex = queueTracks.findIndex(
+        track => track.filePath === selectedTrack.filePath
+      )
+
+      if (queueStartIndex < 0) {
+        toast.error('当前歌曲已不在本地歌曲列表中')
         return
       }
 
       playQueueFromIndex(
-        queueTracks.map(track => buildLocalLibraryPlaybackTrack(track)),
-        startIndex,
+        buildLocalLibraryPlaybackQueue(queueTracks, sourceKey),
+        queueStartIndex,
         sourceKey
       )
     },
-    [keyword, playQueueFromIndex, songScope]
+    [debouncedKeyword, playQueueFromIndex, songScope]
   )
 
   const handleOpenAlbum = useCallback(

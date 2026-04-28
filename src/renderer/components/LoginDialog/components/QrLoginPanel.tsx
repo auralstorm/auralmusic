@@ -95,11 +95,11 @@ const QrLoginPanel = () => {
   }, [clearExpiryTimer, fetchQrCode])
 
   return (
-    <div className='space-y-4 rounded-[28px] border border-neutral-200 bg-white p-5 shadow-[0_18px_70px_rgba(15,23,42,0.05)]'>
+    <div className='space-y-4 rounded-[28px] border border-neutral-200 bg-white p-5 shadow-[0_18px_70px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-white/7 dark:shadow-[0_18px_70px_rgba(0,0,0,0.28)]'>
       <div className='space-y-4'>
         <div className='mx-auto w-full max-w-[320px]'>
-          <div className='from-background via-muted/40 to-background relative flex min-h-[250px] items-center justify-center overflow-hidden rounded-[28px] bg-gradient-to-br'>
-            <div className='bg-background relative overflow-hidden rounded-[24px] border shadow-lg'>
+          <div className='from-background via-muted/40 to-background relative flex min-h-[250px] items-center justify-center overflow-hidden rounded-[28px] bg-gradient-to-br dark:from-white/10 dark:via-white/5 dark:to-black/30'>
+            <div className='relative overflow-hidden rounded-[24px] border border-white bg-white shadow-lg dark:border-white/20'>
               {qrView?.qrImg ? (
                 <img
                   alt='扫码登录二维码'
@@ -108,7 +108,7 @@ const QrLoginPanel = () => {
                   src={qrView.qrImg}
                 />
               ) : (
-                <div className='text-muted-foreground flex size-[200px] items-center justify-center rounded-[18px] bg-neutral-100 text-sm'>
+                <div className='text-muted-foreground flex size-[200px] items-center justify-center rounded-[18px] bg-neutral-100 text-sm dark:bg-white dark:text-neutral-500'>
                   {isLoading || qrStatus === 'loading'
                     ? '正在生成二维码...'
                     : '二维码加载失败'}
